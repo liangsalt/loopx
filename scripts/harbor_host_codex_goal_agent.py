@@ -59,7 +59,7 @@ from loopx.benchmark_core.loop_protocol import (
     render_loop_contract_packet_lines,
 )
 
-LONG_RUN_DEFAULT_GOAL_TIMEOUT_SEC = 10800.0
+LONG_RUN_DEFAULT_GOAL_TIMEOUT_SEC = 21600.0
 
 
 try:  # pragma: no cover - exercised on the benchmark host.

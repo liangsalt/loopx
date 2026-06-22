@@ -514,7 +514,7 @@ def main() -> int:
             app_server_wait_for_completion="false",
         )
         assert no_wait_agent.app_server_wait_for_completion is False
-        assert no_wait_agent.goal_timeout_sec == 10800.0
+        assert no_wait_agent.goal_timeout_sec == 21600.0
 
         treatment_agent = module.HarborHostCodexGoalAgent(
             logs_dir=Path(tmp) / "treatment-logs",
@@ -559,7 +559,7 @@ def main() -> int:
             loopx_case_id="find-network-alignments",
         )
         assert polling_agent.loopx_prompt_polling_rounds == 5
-        assert polling_agent.loopx_prompt_polling_round_timeout_sec == 10800.0
+        assert polling_agent.loopx_prompt_polling_round_timeout_sec == 21600.0
         assert polling_agent.loopx_case_id == "find-network-alignments"
         long_polling_agent = module.HarborHostCodexGoalAgent(
             logs_dir=Path(tmp) / "long-polling-logs",

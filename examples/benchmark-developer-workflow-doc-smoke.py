@@ -61,7 +61,7 @@ def main() -> int:
             "loopx-prompt-polling-test",
             "loopx_experiment_protocol=max5_blind_loop_no_feedback",
             "loopx_prompt_polling_rounds=5",
-            "loopx_prompt_polling_round_timeout_sec=900",
+            "loopx_prompt_polling_round_timeout_sec=21600",
             "follow-up",
             "`turn/start` calls in the same thread",
             "harbor_prompt_polling_round_timeout_before_completion",

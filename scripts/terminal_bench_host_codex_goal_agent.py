@@ -37,7 +37,7 @@ from loopx.benchmark_case_state import (
     render_benchmark_case_lifecycle_contract_lines,
 )
 
-LONG_RUN_DEFAULT_GOAL_TIMEOUT_SEC = 10800.0
+LONG_RUN_DEFAULT_GOAL_TIMEOUT_SEC = 21600.0
 
 
 try:  # pragma: no cover - exercised on the benchmark host.
