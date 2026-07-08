@@ -5,9 +5,26 @@ Status: prototype adapter contract v0.
 Long-running exploration goals (for example a Codex loop studying an external
 software domain through LoopX) produce results that operators want to read as
 a topology, not as an agent action log: what has been explored, where the loop
-is blocked and why, and what was found. This capability keeps those results in
-a compact, public-safe, append-only log and projects them into a Feishu/Lark
-Base result board plus one interactive result card.
+is blocked and why, and what was found.
+
+Role boundaries, in one breath:
+
+- **Explore capability (this layer)** owns the structured exploration
+  EVIDENCE: a compact, public-safe, append-only node/edge/finding/blocked-
+  frontier log plus bounded read-model projections. This is research
+  evidence, not a display artifact -- its downstream consumers are vision
+  checkpoints, replanning, successor-todo generation, and user gates first,
+  and presentation second. That is why the log lives under
+  `loopx/capabilities/explore/`, not under `loopx/presentation/`.
+- **Presentation** renders the public-safe explore projection into operator
+  surfaces (Mermaid graph, Feishu/Lark Base rows, cards). The reusable
+  display implementation lives in
+  `loopx.presentation.sinks.lark.explore_results`; the facade under
+  `loopx.capabilities.lark` stays intentionally thin, and new display
+  behavior must not be added there.
+- **Value connectors** remain the boundary for external signal input,
+  permissions, and source authority. The Lark explore sink is display only
+  and must never be conflated with a connector.
 
 ## State Contract
 
