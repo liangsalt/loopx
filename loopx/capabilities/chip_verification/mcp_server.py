@@ -1,6 +1,6 @@
 """Project-bound stdio transport for the chip-verification capability.
 
-TRAE owns inference and subagent contexts. This module only exposes the same
+The selected runtime owns inference and sessions. This module exposes the same
 provider used by the CLI; it neither launches a model nor owns DV transitions.
 """
 from __future__ import annotations
@@ -37,8 +37,9 @@ def create_server(workspace: str | Path, *, invoker: Callable[..., dict] | None 
         "loopx-dv",
         instructions=(
             "LoopX chip-verification state is independent of this MCP connection. "
-            "The main Agent reads dv_status/dv_next summaries and delegates one task "
-            "to loopx-dv-worker. Only the worker reads dv_context. "
+            "One selected Agent runtime reads dv_status/dv_next, claims a bounded task, "
+            "reads dv_context and submits its result. Fresh sessions or optional child "
+            "sessions relieve context pressure; neither workflow requires two agents. "
             "A session_id is a caller-supplied execution label, not verified TRAE identity. "
             "Poll asynchronous build receipts with dv_job_status."
         ),
@@ -72,7 +73,7 @@ def create_server(workspace: str | Path, *, invoker: Callable[..., dict] | None 
 
     @tool
     def dv_context(attempt_id: str) -> dict:
-        """Worker only: read bounded inputs and the output schema for an attempt."""
+        """Read bounded inputs and the output schema for one active attempt."""
         return call("context", {"attempt_id": attempt_id})
 
     @tool
@@ -94,9 +95,29 @@ def create_server(workspace: str | Path, *, invoker: Callable[..., dict] | None 
         return call("heartbeat", {"attempt_id": attempt_id}, execute=True)
 
     @tool
-    def dv_import(spec: str, context_chars: int = 24000) -> dict:
+    def dv_import(spec: str, context_chars: int = 24000, flow: str = "design-dv") -> dict:
         """Import a spec file by path; do not paste the full spec into chat."""
-        return call("import", {"spec": spec, "context_chars": context_chars}, execute=True)
+        return call("import", {"spec": spec, "context_chars": context_chars, "flow": flow}, execute=True)
+
+    @tool
+    def dv_prepare_design() -> dict:
+        """Enable shared contracts, design and UVM tracks for an already imported specification."""
+        return call("prepare-design", execute=True)
+
+    @tool
+    def dv_engineering_status() -> dict:
+        """Read shared contract revisions and readiness from any specification entry level."""
+        return call("engineering-status")
+
+    @tool
+    def dv_check_design(rtl_task_id: str, timeout: int = 600) -> dict:
+        """Start durable RTL tool checks; unavailable lint or CDC is not a passing result."""
+        return call("check-design", {"rtl_task_id": rtl_task_id, "timeout": timeout}, execute=True)
+
+    @tool
+    def dv_join_design(rtl_task_id: str, manifest: str) -> dict:
+        """Bind design and generated UVM files to a common contract before simulation."""
+        return call("join-design", {"rtl_task_id": rtl_task_id, "manifest": manifest}, execute=True)
 
     @tool
     def dv_design_map() -> dict:
@@ -109,13 +130,14 @@ def create_server(workspace: str | Path, *, invoker: Callable[..., dict] | None 
         return call("generation-scopes")
 
     @tool
-    def dv_generate_uvm(rtl_files: list[str], top: str, profile_path: str | None = None,
+    def dv_generate_uvm(top: str, rtl_files: list[str] | None = None, profile_path: str | None = None,
                         scope_id: str | None = None, context_chars: int | None = None,
-                        session_id: str | None = None) -> dict:
-        """Prepare UVM generation work from RTL and an explicit scope; the host supplies inference."""
-        return call("generate-uvm", {"rtl_files": rtl_files, "top": top,
+                        session_id: str | None = None, contract_task_id: str | None = None) -> dict:
+        """Prepare UVM from shared interfaces or existing RTL; expected behavior comes from spec."""
+        return call("generate-uvm", {"rtl_files": rtl_files or [], "top": top,
                                     "profile_path": profile_path, "scope_id": scope_id,
-                                    "context_chars": context_chars, "session_id": session_id}, execute=True)
+                                    "context_chars": context_chars, "session_id": session_id,
+                                    "contract_task_id": contract_task_id}, execute=True)
 
     @tool
     def dv_build_uvm(manifest: str, simulator: str = "vivado", run_smoke: bool = True) -> dict:
@@ -142,6 +164,11 @@ def create_server(workspace: str | Path, *, invoker: Callable[..., dict] | None 
     def dv_retry(task_id: str) -> dict:
         """Requeue a recoverable failed task after resolving its reported cause."""
         return call("retry", {"task_id": task_id}, execute=True)
+
+    @tool
+    def dv_revise(task_id: str, reason: str) -> dict:
+        """Repair accepted RTL or UVM component after tool failure; invalidate dependent evidence."""
+        return call("revise", {"task_id": task_id, "reason": reason}, execute=True)
 
     @tool
     def dv_export_plan() -> dict:

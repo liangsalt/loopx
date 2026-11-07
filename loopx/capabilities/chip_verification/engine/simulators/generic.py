@@ -30,6 +30,7 @@ _FIELDS = {
     "compile_order", "include_dirs", "defines", "uvm_dir", "vivado_home",
     "testname", "runtime", "seed", "timescale", "uvm_no_dpi",
     "activity_contract", "coverage_manifest", "extra_inputs",
+    "engineering_binding",
 }
 
 
@@ -107,6 +108,15 @@ def load_build_manifest(manifest_path) -> dict:
     if not isinstance(top, str) or not re.fullmatch(_IDENTIFIER, top):
         raise ManifestError("top must be an unescaped Verilog identifier")
     resolved = {"manifest_path": str(manifest_path), "candidate_dir": str(candidate), "top": top}
+    if "engineering_binding" in data:
+        binding = data["engineering_binding"]
+        fields = {"contract_task_id", "contract_hash", "rtl_task_id", "rtl_check_task_id", "tb_task_ids"}
+        if (not isinstance(binding, dict) or set(binding) != fields or
+                any(not isinstance(binding.get(key), str) or not binding[key] for key in fields - {"tb_task_ids"}) or
+                not isinstance(binding["tb_task_ids"], list) or not binding["tb_task_ids"] or
+                any(not isinstance(value, str) or not value for value in binding["tb_task_ids"])):
+            raise ManifestError("Invalid engineering_binding; use the shared-contract join operation")
+        resolved["engineering_binding"] = binding
     for role in ("rtl_files", "tb_files"):
         paths = [_path(candidate, item, role) for item in _list(data.get(role), role, nonempty=True)]
         if role == "tb_files" and any(not item.is_relative_to(candidate) for item in paths):

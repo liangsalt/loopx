@@ -37,6 +37,16 @@ def register_chip_verification_commands(
     imported.add_argument("--scope", default="Verify the features described by this specification; identify missing implementation information explicitly.")
     imported.add_argument("--chunk-chars", type=int, default=7000)
     imported.add_argument("--context-chars", type=int, default=24000)
+    imported.add_argument("--flow", choices=["design-dv", "dv"], default="design-dv",
+                          help="Shared specification to design and UVM, or compatibility DV-only flow.")
+    action("prepare-design", "Enable shared specification contracts and both engineering tracks.")
+    action("engineering-status", "Read entry views, shared contracts and design/DV readiness.")
+    checks = action("check-design", "Run tool checks on an accepted RTL candidate in the background.")
+    checks.add_argument("--rtl-task-id", required=True)
+    checks.add_argument("--timeout", type=int, default=600)
+    join = action("join-design", "Bind an accepted design and UVM manifest to the same shared contract.")
+    join.add_argument("--rtl-task-id", required=True)
+    join.add_argument("--manifest", required=True)
     action("status", "Read durable progress without changing a workspace.")
     design_map = action("design-map", "Read system, microarchitecture, module and feature slices.")
     design_map.add_argument("--dimension", choices=["document", "layer", "module", "feature"])
@@ -62,10 +72,14 @@ def register_chip_verification_commands(
     abandon.add_argument("--reason", required=True)
     retry = action("retry", "Make a failed domain task eligible for a new attempt.")
     retry.add_argument("--task-id", required=True)
+    revise = action("revise", "Revise accepted RTL or UVM component bytes using concrete tool feedback.")
+    revise.add_argument("--task-id", required=True)
+    revise.add_argument("--reason", required=True)
     action("export-plan", "Write the accepted test plan from durable validated artifacts.")
     action("generation-scopes", "Read bounded UVM generation scopes.")
     generate = action("generate-uvm", "Prepare native-host UVM generation work; does not launch another agent.")
-    generate.add_argument("--rtl-files", nargs="+", required=True)
+    generate.add_argument("--rtl-files", nargs="+", default=[])
+    generate.add_argument("--contract-task-id", help="Shared contract enables TB generation before RTL exists.")
     generate.add_argument("--top", required=True)
     generate.add_argument("--profile-path")
     generate.add_argument("--scope-id")
@@ -106,7 +120,7 @@ def handle_chip_verification_command(
             fields = ("spec", "name", "scope", "chunk_chars", "context_chars", "dimension", "limit",
                       "kind", "task_id", "session_id", "attempt_id", "response_file", "response",
                       "reason", "rtl_files", "top", "profile_path", "scope_id", "manifest", "simulator", "job_id",
-                      "timeout", "run_smoke")
+                      "timeout", "run_smoke", "flow", "contract_task_id", "rtl_task_id")
             arguments = {key: getattr(args, key) for key in fields if getattr(args, key, None) is not None}
             if "response" in arguments:
                 raw = arguments["response"]

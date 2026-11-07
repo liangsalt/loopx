@@ -20,13 +20,15 @@ def run_build(project, manifest_path, *, run_smoke=False, timeout=600, vivado_ho
     if not manifest.is_absolute():
         manifest = project.root / manifest
     manifest = manifest.resolve()
+    from .joining import validate_join
+    join_prerequisites = validate_join(project, manifest)
     backend = GenericXSimBackend(vivado_home)
     planned = backend.plan(manifest)
     inputs = {entry["path"]: entry["sha256"] for entry in backend.snapshot_inputs(manifest)}
     # Generated candidates and manually provided reusable UVCs share this entry.
     # Add dependencies only when exact accepted candidate bytes are being built.
     source_hashes = {str(Path(path).resolve()): inputs[path] for path in planned["compile_order"]}
-    prerequisites = []
+    prerequisites = list(join_prerequisites)
     for task in project.store.list_tasks(status="done", kind="implement"):
         records = task["result"].get("files", [])
         matched = False
@@ -63,6 +65,7 @@ def run_build(project, manifest_path, *, run_smoke=False, timeout=600, vivado_ho
             def check(task, result, artifacts):
                 project.assert_inputs_current()
                 verify_hashes(inputs)
+                validate_join(project, manifest)
                 actual = {entry["path"]: entry["sha256"] for entry in result["evidence"]["inputs"]}
                 if actual != inputs:
                     raise ValidationError("Build input set changed between preparation and execution")

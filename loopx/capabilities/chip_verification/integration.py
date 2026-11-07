@@ -25,8 +25,8 @@ RESOURCES = {
 }
 HOST_STEPS = [
     "在 TRAE 中国版打开该工作区；设置 > MCP 中启用项目级 MCP，并确认 loopx-dv 可用。",
-    "设置 > Beta > Subagents 中确认启用 Subagents 目录；使用内置 Agent。",
-    "开启新对话，调用 loopx-dv Skill；确认实际委派给 loopx-dv-worker 并返回任务摘要。",
+    "开启新对话，调用 loopx-dv Skill；Agent 领取一个有界任务并提交，确认服务返回回执。",
+    "上下文接近预算时开启新会话并从状态恢复；也可选择启用 Subagents 使用可选 worker。",
 ]
 
 
@@ -85,6 +85,9 @@ def _server_entry() -> dict:
         "START_MCP_TIMEOUT_MS": "60000",
         "RUN_MCP_TIMEOUT_MS": "60000",
     }
+    for name in ("XILINX_VIVADO", "LOOPX_VERIBLE_LINT"):
+        if os.environ.get(name):
+            environment[name] = os.environ[name]
     package_parent = Path(__file__).resolve().parents[3]
     # Source checkouts can be run before installation. Wheels must import from
     # their own interpreter's site-packages without a PYTHONPATH dependency.
@@ -109,8 +112,8 @@ def install(workspace: str | Path, execute: bool = False) -> dict:
         "files": [], "host_steps": HOST_STEPS,
         "host_verified": False,
         "limitations": [
-            "文件安装不等于 TRAE 已启用 MCP 或实际调用了子智能体。",
-            "本适配使用 TRAE 中国版 IDE 的模型和 Subagent；不依赖 TraeX 或 CLI 登录。",
+            "文件安装不等于 TRAE 已启用 MCP 或实际执行了工程任务。",
+            "本适配使用 TRAE 中国版 IDE 的模型；子智能体可选，不依赖 TraeX 或 CLI 登录。",
             "session_id 是调用方执行标签；并非经 TRAE API 验证的原生会话身份。",
         ],
     }

@@ -15,11 +15,16 @@ from .host_work import encoded
 
 
 def launch(project, arguments):
-    from .engine.simulators.generic import GenericXSimBackend
     # Fail fast on malformed inputs/missing tools before claiming a background run.
-    backend = GenericXSimBackend()
-    backend.plan(arguments["manifest"])
-    inputs = backend.snapshot_inputs(arguments["manifest"])
+    if arguments.get("operation") == "check-design":
+        from .engine.design import get_candidate
+        candidate = get_candidate(project, arguments["rtl_task_id"])
+        inputs = [{"path": path, "sha256": value} for path, value in candidate["inputs"].items()]
+    else:
+        from .engine.simulators.generic import GenericXSimBackend
+        backend = GenericXSimBackend()
+        backend.plan(arguments["manifest"])
+        inputs = backend.snapshot_inputs(arguments["manifest"])
     arguments = {**arguments, "inputs": inputs}
     identifier = "job-" + uuid.uuid4().hex
     with project.store._db(write=True) as db:
@@ -85,7 +90,11 @@ def run(root, identifier):
         for item in arguments.pop("inputs"):
             if file_hash(item["path"]) != item["sha256"]:
                 raise ValueError("Build input changed after dispatch: " + item["path"])
-        result = run_build(project, arguments.pop("manifest"), **arguments)
+        if arguments.pop("operation", None) == "check-design":
+            from .engine.design_checks import run_checks
+            result = run_checks(project, **arguments)
+        else:
+            result = run_build(project, arguments.pop("manifest"), **arguments)
     except Exception as error:
         result = {"status": "failed", "error": str(error)}
     with project.store._db(write=True) as db:
