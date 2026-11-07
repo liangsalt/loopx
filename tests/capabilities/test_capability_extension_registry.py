@@ -44,6 +44,7 @@ BUILTIN_IDS = [
     "connector-registry",
     "external-evidence-research",
     "performance-diagnosis",
+    "chip-verification",
     "reliability-diagnostics",
     "progress-review-sentinel",
     "goal-capability-organization",

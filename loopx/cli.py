@@ -90,6 +90,7 @@ from .capabilities.external_research.cli import (
 from .capabilities.performance_diagnosis.cli import (
     register_performance_diagnosis_commands,
 )
+from .capabilities.chip_verification.cli import register_chip_verification_commands
 from .cli_commands import (
     handle_benchmark_command,
     handle_bootstrap_connect_command,
@@ -289,6 +290,7 @@ def build_parser() -> LoopXArgumentParser:
 
     register_external_evidence_commands(sub, add_subcommand_format)
     register_performance_diagnosis_commands(sub, add_subcommand_format)
+    register_chip_verification_commands(sub, add_subcommand_format)
 
     register_ml_experiment_commands(sub, add_subcommand_format)
 

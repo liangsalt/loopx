@@ -672,6 +672,7 @@ export function createEffectRuntimeHandlers(
     ["external_evidence.admit", lazyHandler(() => import("./capabilities/external_evidence.ts"), ({evaluateExternalEvidenceAdmission}) => evaluateExternalEvidenceAdmission)],
     ["external_evidence.retire", lazyHandler(() => import("./capabilities/external_evidence.ts"), ({projectExternalEvidenceRetirement}) => projectExternalEvidenceRetirement)],
     ["performance_diagnosis.plan", lazyHandler(() => import("./capabilities/performance_diagnosis.ts"), ({planPerformanceDiagnosis}) => planPerformanceDiagnosis)],
+    ["chip_verification.admit", lazyHandler(() => import("./capabilities/chip_verification.ts"), ({admitChipVerification}) => admitChipVerification)],
     ["performance_diagnosis.inspect", lazyHandler(() => import("./capabilities/performance_diagnosis.ts"), ({summarizePerformanceProfile}) => summarizePerformanceProfile)],
     ["content_reference.search", lazyHandler(() => import("./capabilities/content_reference.ts"), ({searchContentReferences}) => searchContentReferences)],
     ["content_reference.capture", lazyHandler(() => import("./capabilities/content_reference.ts"), ({captureContentReference}) => captureContentReference)],
