@@ -236,27 +236,41 @@ def reconcile(project):
         complete = sorted([*local, *environment], key=lambda item: item["id"])
         complete_by_id = {item["id"]: item for item in complete}
         context_ids = {item["id"] for item in environment}
-        # Reserve room for interface bindings learned from other scopes. Complete
-        # requirements are atomic; a single oversized clause remains a blocker.
-        scopes, batch = [], []
-        for requirement in sorted(local, key=lambda value: (tuple(value.get("features", [])), value["id"])):
-            trial = batch + [requirement]
-            payload = _scope_payload(project, name, sorted([*trial, *environment], key=lambda item: item["id"]), 999999, 1000000)
-            size = _size(CONTRACT_INSTRUCTION, CONTRACT_SCHEMA, {"task_id": "contract_" + "0" * 24, **payload})
-            if batch and size > _budget(project) * 0.75:
+        mandatory = _scope_payload(project, name, environment, 0, 1)
+        floor = _size(CONTRACT_INSTRUCTION, CONTRACT_SCHEMA, {"task_id": "contract_" + "0" * 24, **mandatory})
+        impossible_context = floor > _budget(project)
+        if impossible_context:
+            # Every local partition would repeat this already oversized input.
+            # Retain the complete module once, explicitly blocked for refinement.
+            scopes = [complete]
+        else:
+            # Reserve room for interface bindings learned from other scopes. Complete
+            # requirements are atomic; a single oversized clause remains a blocker.
+            scopes, batch = [], []
+            for requirement in sorted(local, key=lambda value: (tuple(value.get("features", [])), value["id"])):
+                trial = batch + [requirement]
+                payload = _scope_payload(project, name, sorted([*trial, *environment], key=lambda item: item["id"]), 999999, 1000000)
+                size = _size(CONTRACT_INSTRUCTION, CONTRACT_SCHEMA, {"task_id": "contract_" + "0" * 24, **payload})
+                if batch and size > _budget(project) * 0.75:
+                    scopes.append(batch)
+                    batch = []
+                batch.append(requirement)
+            if batch:
                 scopes.append(batch)
-                batch = []
-            batch.append(requirement)
-        if batch:
-            scopes.append(batch)
-        scopes = [sorted([*scope, *environment], key=lambda item: item["id"]) for scope in scopes]
+            scopes = [sorted([*scope, *environment], key=lambda item: item["id"]) for scope in scopes]
         # Preserve established task boundaries across an execution-budget change.
         existing = [task for task in project.store.list_tasks(kind="spec-contract")
                     if task["payload"]["module_id"] == module_id(name)
                     and task["status"] not in {"stale", "cancelled"}]
         if existing:
+            preserve = True
+            if impossible_context:
+                with project.store._db() as db:
+                    attempted = {row[0] for row in db.execute("SELECT DISTINCT task_id FROM attempts WHERE baseline_id=?",
+                                                             (project.store.baseline()["id"],))}
+                preserve = any(task["status"] not in {"pending", "blocked"} or task["id"] in attempted for task in existing)
             groups_of_ids = [{req["id"] for req in task["payload"]["requirements"]} for task in existing]
-            if (set().union(*groups_of_ids) == complete_by_id.keys()
+            if (preserve and set().union(*groups_of_ids) == complete_by_id.keys()
                     and all(context_ids <= ids for ids in groups_of_ids)
                     and sum(len(ids - context_ids) for ids in groups_of_ids) == len(local)
                     and all(req == complete_by_id.get(req["id"]) for task in existing for req in task["payload"]["requirements"])):
@@ -284,7 +298,9 @@ def reconcile(project):
             if task["status"] == "done":
                 _materialize_children(project, task)
             elif task["status"] not in {"stale", "cancelled", "running"}:
-                if payload["known_questions"]:
+                if impossible_context:
+                    _budget_task(project, task)
+                elif payload["known_questions"]:
                     reason = "Source clarification required: " + "; ".join(q["question"] for q in payload["known_questions"])
                     if task["status"] != "blocked" or task["reason"] != reason:
                         project.store.block(task_id, reason)
@@ -602,9 +618,32 @@ def status(project):
     partial_modules = {task["payload"]["module_id"] for task in relevant if task["kind"] == "spec-contract" and task["payload"].get("partial_module")}
     contracts = [task for task in relevant if task["kind"] == "spec-contract"]
     candidates = [task for task in relevant if task["kind"] == "rtl"]
+    blocked = defaultdict(list)
+    for task in contracts:
+        if task["status"] == "blocked":
+            blocked[task["payload"]["module_id"]].append(task)
+    blocked_modules = []
+    for identifier, items in sorted(blocked.items())[:8]:
+        name = items[0]["payload"]["module_name"]
+        environment = {req["id"]: req for task in items for req in task["payload"]["requirements"]
+                       if req["applicability"] == "context"}
+        mandatory = _scope_payload(project, name, sorted(environment.values(), key=lambda item: item["id"]), 0, 1)
+        floor = _size(CONTRACT_INSTRUCTION, CONTRACT_SCHEMA, {"task_id": "contract_" + "0" * 24, **mandatory})
+        instruction, schema, pack = _context_raw(project, items[0])
+        reason = items[0].get("reason") or ""
+        blocked_modules.append({"module_id": identifier, "module_name": name[:160],
+                                "module_name_omitted_chars": max(0, len(name) - 160), "blocked_scopes": len(items),
+                                "distinct_source_questions": len({(q["category"], q["question"])
+                                                                  for task in items for q in task["payload"]["known_questions"]}),
+                                "context_floor_chars": floor, "context_chars": _size(instruction, schema, pack),
+                                "context_budget_chars": _budget(project),
+                                "context_blocked": floor > _budget(project) or any(
+                                    (task.get("reason") or "").startswith("Shared contract context exceeds budget:") for task in items),
+                                "reason": reason[:480], "reason_omitted_chars": max(0, len(reason) - 480)})
     return {"enabled": bool(project.config.get("engineering_enabled")), "entry_views": dict(views),
             "entry_readiness": _entry_readiness(project),
             "superseded_tasks": len(superseded),
+            "blocked_modules": blocked_modules, "omitted_blocked_modules": max(0, len(blocked) - len(blocked_modules)),
             "composition_obligations": [{"module_id": identifier, "status": "requires_module_integration",
                                          "scope_count": sum(task["kind"] == "spec-contract" and task["payload"]["module_id"] == identifier for task in relevant),
                                          "whole_module_complete": False} for identifier in sorted(partial_modules)],
@@ -613,7 +652,8 @@ def status(project):
             "contracts": [{"task_id": task["id"], "module_id": task["payload"]["module_id"],
                             "module_name": task["payload"]["module_name"], "top": (task["result"] or {}).get("top"),
                             "status": task["status"], "hash": digest(task["result"]) if task["result"] else None,
-                            "blocking_questions": sum(q["blocking"] for q in (task["result"] or {}).get("unresolved", []))}
+                            "blocking_questions": len(task["payload"]["known_questions"])
+                                                  + sum(q["blocking"] for q in (task["result"] or {}).get("unresolved", []))}
                            for task in contracts[:100]],
             "omitted_contracts": max(0, len(contracts) - 100),
             "candidates": [{"rtl_task_id": task["id"], "status": task["status"],
