@@ -18,7 +18,7 @@ test("runtime loads selected owners without importing unrelated methods", () => 
     const handlers = createEffectRuntimeHandlers({fingerprint: "loading-test",
       requestShutdown: () => { shutdowns++; }});
     const imported = (suffix) => [...loaded].some(url => url.endsWith(suffix));
-    for (const suffix of ["/task_lease_acquire_decision.ts", "/external_evidence.ts", "/performance_diagnosis.ts",
+    for (const suffix of ["/task_lease_acquire_decision.ts", "/external_evidence.ts", "/performance_diagnosis.ts", "/chip_verification.ts",
       "/goal_agent_context.ts", "/goal_capability_organization.ts", "/peer_context.ts",
       "/source_grants.ts", "/execution_identity.ts"]) {
       assert.equal(imported(suffix), false, suffix);
@@ -42,6 +42,13 @@ test("runtime loads selected owners without importing unrelated methods", () => 
     assert.equal(imported("/task_lease_acquire_decision.ts"), true);
     assert.equal(imported("/external_evidence.ts"), false);
     assert.equal(imported("/performance_diagnosis.ts"), false);
+    assert.equal(imported("/chip_verification.ts"), false);
+    const dv = await dispatchEffectRuntimeMethod(handlers, "chip_verification.admit", {
+      action: "status", workspace: "uninitialized-workspace",
+    });
+    assert.equal(dv.allowed, true);
+    assert.equal(dv.execution_performed, false);
+    assert.equal(imported("/chip_verification.ts"), true);
     const policy = {mode: "bounded", discovery_budget_minutes: 5, max_trials: 1};
     const inspect = await dispatchEffectRuntimeMethod(handlers, "capability.improvement.inspect", {policy});
     assert.equal(inspect.mode, "bounded");
