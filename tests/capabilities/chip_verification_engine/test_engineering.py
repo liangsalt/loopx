@@ -26,7 +26,7 @@ class EngineeringTests(unittest.TestCase):
     def tearDown(self):
         self.temporary.cleanup()
 
-    def extract(self, modules=None, unresolved=None, classify=None):
+    def extract(self, modules=None, unresolved=None, classify=None, cross_references=None):
         for task in self.project.store.list_tasks(kind="model"):
             if task["status"] == "done":
                 continue
@@ -38,7 +38,7 @@ class EngineeringTests(unittest.TestCase):
                 for index, sid in enumerate(task["payload"]["source_ids"])],
                 "dispositions": [{"source_id": sid, "classification": "requirements", "reason": "Explicit source behavior"}
                                  for sid in task["payload"]["source_ids"]],
-                "unresolved": unresolved or [], "cross_references": []}
+                "unresolved": unresolved or [], "cross_references": cross_references or []}
             if classify:
                 for requirement in response["requirements"]:
                     classify(requirement)
@@ -99,6 +99,51 @@ class EngineeringTests(unittest.TestCase):
         prompt, _, pack = engineering.task_context(self.project, plans[0])
         self.assertEqual("counter", pack["shared_contract"]["top"])
         self.assertIn("not an oracle", prompt)
+
+    def test_resolved_source_questions_stay_closed_while_other_questions_block(self):
+        source_id = self.project.store.list_tasks(kind="model")[0]["payload"]["source_ids"][0]
+        reference = {"from_source_id": source_id, "reference": "Reset interface",
+                     "reason": "Confirm the reset binding"}
+        questions = [{"source_ids": [source_id], "question": question, "blocking": True}
+                     for question in ("Which reset polarity applies?", "Which enable level applies?")]
+        original = self.extract(unresolved=questions, cross_references=[reference])[0]
+        self.assertEqual("blocked", original["status"])
+        self.assertEqual(3, len(original["payload"]["known_questions"]))
+        issues = {issue["description"]: issue for issue in self.project.store.list_issues()}
+        reference_issue = issues["Reset interface: Confirm the reset binding"]
+        polarity_issue = issues["Which reset polarity applies?"]
+        enable_issue = issues["Which enable level applies?"]
+        self.assertEqual("source_reference", reference_issue["category"])
+        self.assertEqual("spec_blocker", polarity_issue["category"])
+        self.project.store.resolve_issue(reference_issue["id"], "Source review identified the reset interface.")
+        self.project.store.resolve_issue(polarity_issue["id"], "Source review clarified the reset polarity.")
+        self.project.reconcile()
+
+        current = [task for task in self.project.store.list_tasks(kind="spec-contract")
+                   if task["status"] not in {"stale", "cancelled"}]
+        self.assertEqual(1, len(current))
+        self.assertEqual("blocked", current[0]["status"])
+        self.assertEqual([{"question": "Which enable level applies?", "category": "spec_blocker"}],
+                         current[0]["payload"]["known_questions"])
+        self.assertEqual([enable_issue["id"]], [issue["id"] for issue in self.project.store.list_issues()])
+        self.assertEqual([], self.project.store.ready_tasks())
+
+        self.project.store.resolve_issue(enable_issue["id"], "Source review clarified the enable level.")
+        self.project.reconcile()
+        ready = self.project.store.ready_tasks()
+        self.assertEqual(1, len(ready))
+        self.assertEqual("spec-contract", ready[0]["kind"])
+        self.assertEqual([], ready[0]["payload"]["known_questions"])
+        restarted = DVProject(self.root)
+        for _ in range(2):
+            restarted.reconcile()
+            self.assertEqual([ready[0]["id"]], [task["id"] for task in restarted.store.ready_tasks()])
+            self.assertEqual([], restarted.store.list_issues())
+        self.assertEqual(3, len(restarted.store.list_issues(status="resolved")))
+        self.commit(ready[0], self.candidate(ready[0]))
+        self.project.reconcile()
+        self.assertEqual(1, len(self.project.store.list_tasks(kind="contract-plan")))
+        self.assertEqual(1, len(self.project.store.list_tasks(kind="microarchitecture")))
 
     def test_system_functional_entry_can_propose_shared_architectural_decomposition(self):
         task = self.extract(classify=lambda requirement: requirement.update(modules=[]))[0]
