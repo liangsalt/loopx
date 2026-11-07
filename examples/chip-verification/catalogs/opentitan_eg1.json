@@ -1,0 +1,744 @@
+{
+  "title": "OpenTitan Earlgrey EG1: integrated system, power/reset/clock microarchitecture and cross-module wake-up contracts",
+  "documents": [
+    {
+      "id": "eg1_system",
+      "title": "Earlgrey integrated system design",
+      "layer": "system",
+      "module": "top_earlgrey",
+      "features": [
+        "power",
+        "reset",
+        "clock",
+        "memory_map",
+        "interconnect",
+        "interrupt",
+        "security"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/doc/design/README.md",
+      "git_blob_sha1": "f995c043f0bf604d95c45458945c481dd2ac266c",
+      "license": "Apache-2.0",
+      "sha256": "27af006aada210cba0158cd12ac88e38bb74eed40aeb89d4a849afafc2f8700f"
+    },
+    {
+      "id": "pwrmgr_theory",
+      "title": "Power manager microarchitecture",
+      "layer": "microarchitecture",
+      "module": "pwrmgr",
+      "features": [
+        "power",
+        "low_power",
+        "wake",
+        "reset",
+        "clock"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/ip_autogen/pwrmgr/doc/theory_of_operation.md",
+      "git_blob_sha1": "5f197a894c9e363733d7d4479c268516e29c6d7e",
+      "license": "Apache-2.0",
+      "sha256": "a368acee7b97f3ea0e473e84fb305fdf32a87427a901567c93bed1f87bb2dafd"
+    },
+    {
+      "id": "pwrmgr_interfaces",
+      "title": "Power manager interfaces",
+      "layer": "module",
+      "module": "pwrmgr",
+      "features": [
+        "power",
+        "handshake",
+        "clock_domain_crossing"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/ip_autogen/pwrmgr/doc/interfaces.md",
+      "git_blob_sha1": "e4b8fae8150a0e703a0e8d621e8ed9623847790f",
+      "license": "Apache-2.0",
+      "sha256": "9275f7803078b92598a646e37fa43d1969ee9a9ad50c01349850ab5a588e4779"
+    },
+    {
+      "id": "pwrmgr_programming",
+      "title": "Power manager software contract",
+      "layer": "software",
+      "module": "pwrmgr",
+      "features": [
+        "power",
+        "wake",
+        "interrupt",
+        "software_protocol"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/ip_autogen/pwrmgr/doc/programmers_guide.md",
+      "git_blob_sha1": "4fb6b768d973c20046e2f2d748f156efd9c5e331",
+      "license": "Apache-2.0",
+      "sha256": "988552c44ac21c89360fad5e39bb5d0fb757671e9b3142c0aa29d461b824f035"
+    },
+    {
+      "id": "rstmgr_theory",
+      "title": "Reset manager microarchitecture",
+      "layer": "microarchitecture",
+      "module": "rstmgr",
+      "features": [
+        "reset",
+        "reset_cause",
+        "crash_dump",
+        "clock_domain_crossing"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/ip_autogen/rstmgr/doc/theory_of_operation.md",
+      "git_blob_sha1": "39efddb0cf4239e9a12f598948b5c3027b1c68dd",
+      "license": "Apache-2.0",
+      "sha256": "819020bec8e2bf282b373eaa02d334d447383a74d7d654a1da193f1ed6821933"
+    },
+    {
+      "id": "rstmgr_interfaces",
+      "title": "Reset manager interfaces",
+      "layer": "module",
+      "module": "rstmgr",
+      "features": [
+        "reset",
+        "handshake",
+        "alert"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/ip_autogen/rstmgr/doc/interfaces.md",
+      "git_blob_sha1": "f39bb26fe3b00467b0345a8a272c7fc8292bb2a2",
+      "license": "Apache-2.0",
+      "sha256": "974d6d8fc226e7e6566b1fcc41ca1b587a539b1e7b2565c9f936fccc27088221"
+    },
+    {
+      "id": "clkmgr_theory",
+      "title": "Clock manager microarchitecture",
+      "layer": "microarchitecture",
+      "module": "clkmgr",
+      "features": [
+        "clock",
+        "clock_gating",
+        "clock_measurement",
+        "low_power"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/ip_autogen/clkmgr/doc/theory_of_operation.md",
+      "git_blob_sha1": "5d81a4805fda5eff1d448a262fbc821bba12a9e5",
+      "license": "Apache-2.0",
+      "sha256": "cb854abc65b6555a006a205c6049a3317034e9616984b9f21239c85475b4d78d"
+    },
+    {
+      "id": "clkmgr_interfaces",
+      "title": "Clock manager interfaces",
+      "layer": "module",
+      "module": "clkmgr",
+      "features": [
+        "clock",
+        "handshake",
+        "alert"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/ip_autogen/clkmgr/doc/interfaces.md",
+      "git_blob_sha1": "625a4ecebe3777ec066e838ac7dc4a578816f7e5",
+      "license": "Apache-2.0",
+      "sha256": "b01414f31dc06e050b16be2d0416a9e26b602fd3b0f62d27e365bef6822f2646"
+    },
+    {
+      "id": "aon_timer_theory",
+      "title": "Always-on timer microarchitecture",
+      "layer": "microarchitecture",
+      "module": "aon_timer",
+      "features": [
+        "wake",
+        "watchdog",
+        "reset",
+        "low_power"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/ip/aon_timer/doc/theory_of_operation.md",
+      "git_blob_sha1": "d6981a4be73d4bc1a39eede6d43e8e0825bb6f45",
+      "license": "Apache-2.0",
+      "sha256": "ed3a739e5b82244366e4ea0980fadc397e5b42617887835ae7f3785931c992b3"
+    },
+    {
+      "id": "aon_timer_interfaces",
+      "title": "Always-on timer interfaces",
+      "layer": "module",
+      "module": "aon_timer",
+      "features": [
+        "wake",
+        "watchdog",
+        "clock_domain_crossing"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/ip/aon_timer/doc/interfaces.md",
+      "git_blob_sha1": "05407eb3c62415bb425bb191e494360ffcab1c37",
+      "license": "Apache-2.0",
+      "sha256": "cf86f14700f4af34103d2c2cfa6e10de7075281144d9d951a95e7d180bc3be61"
+    },
+    {
+      "id": "aon_timer_programming",
+      "title": "Always-on timer software contract",
+      "layer": "software",
+      "module": "aon_timer",
+      "features": [
+        "wake",
+        "watchdog",
+        "software_protocol"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/ip/aon_timer/doc/programmers_guide.md",
+      "git_blob_sha1": "71964465c1b69c3d98b2cf50471ce296fcd76cfa",
+      "license": "Apache-2.0",
+      "sha256": "f19fa6c17e85a17ecc0dd1c2679e1f84d98c617e78ca3b1d493f4fd8ec82e1e1"
+    },
+    {
+      "id": "sysrst_ctrl_theory",
+      "title": "System reset controller microarchitecture",
+      "layer": "microarchitecture",
+      "module": "sysrst_ctrl",
+      "features": [
+        "reset",
+        "wake",
+        "low_power",
+        "debounce"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/ip/sysrst_ctrl/doc/theory_of_operation.md",
+      "git_blob_sha1": "4dd0e792bef44fabe3876b945cadc8ff27558d2e",
+      "license": "Apache-2.0",
+      "sha256": "ba8d4960179de26fa6920a4403c3e94f72ad080df0ede82de732b00cab23e7fe"
+    },
+    {
+      "id": "sysrst_ctrl_interfaces",
+      "title": "System reset controller interfaces",
+      "layer": "module",
+      "module": "sysrst_ctrl",
+      "features": [
+        "reset",
+        "wake",
+        "pins"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/ip/sysrst_ctrl/doc/interfaces.md",
+      "git_blob_sha1": "23bb1a63a06af2cb40f763caab58de730fbf3481",
+      "license": "Apache-2.0",
+      "sha256": "40597045144aee33f10ca9601ca80c6eca5018c33cd8065bd07d3b765c6c5d66"
+    },
+    {
+      "id": "ast_contract",
+      "title": "Analog sensor top system contract",
+      "layer": "architecture",
+      "module": "ast",
+      "features": [
+        "power",
+        "clock",
+        "reset",
+        "analog_handshake"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/ip/ast/README.md",
+      "git_blob_sha1": "85ac71039b5ef0fbded4c6529a2822747a523bb5",
+      "license": "Apache-2.0",
+      "sha256": "75bfc94a2f53f7c206719808177abde9b98a1e00f5b16b2b2bbe02e985b9aa54"
+    },
+    {
+      "id": "otp_ctrl_theory",
+      "title": "OTP controller microarchitecture",
+      "layer": "microarchitecture",
+      "module": "otp_ctrl",
+      "features": [
+        "initialization",
+        "lifecycle",
+        "integrity",
+        "power"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/ip/otp_ctrl/doc/theory_of_operation.md",
+      "git_blob_sha1": "540b9e04bd486a1e97f6e49ff12b17e2b7186a5c",
+      "license": "Apache-2.0",
+      "sha256": "a0ee311c62749447ef8bb63af91aebdb0dc7a279bf224433de97f3bf3067fbd2"
+    },
+    {
+      "id": "otp_ctrl_interfaces",
+      "title": "OTP controller interfaces",
+      "layer": "module",
+      "module": "otp_ctrl",
+      "features": [
+        "initialization",
+        "lifecycle",
+        "handshake",
+        "key_distribution"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/ip/otp_ctrl/doc/interfaces.md",
+      "git_blob_sha1": "188b26c539ed23d7486086106837c72bef6f2c99",
+      "license": "Apache-2.0",
+      "sha256": "396aa14b74705babcbdf506548858bb8ad557671cd54a0d399a058a93888c336"
+    },
+    {
+      "id": "otp_ctrl_programming",
+      "title": "OTP controller software contract",
+      "layer": "software",
+      "module": "otp_ctrl",
+      "features": [
+        "initialization",
+        "lifecycle",
+        "software_protocol"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/ip/otp_ctrl/doc/programmers_guide.md",
+      "git_blob_sha1": "71a31cc01cbcd3f477fb2da4c2870ca0af8854cf",
+      "license": "Apache-2.0",
+      "sha256": "112abb62d9d0df2c0c5ab50acd97e4b4e16bfac1065c958bcf99bad0acda469f"
+    },
+    {
+      "id": "pinmux_theory",
+      "title": "Pin multiplexer microarchitecture",
+      "layer": "microarchitecture",
+      "module": "pinmux",
+      "features": [
+        "wake",
+        "retention",
+        "low_power",
+        "pinmux"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/ip/pinmux/doc/theory_of_operation.md",
+      "git_blob_sha1": "c53e34cb660d16848db290a69bd10cd92e2e6bd6",
+      "license": "Apache-2.0",
+      "sha256": "295ff383f814553e07b0a3d287e0ea42e92fd8adfb63d85876ebac7898e32af9"
+    },
+    {
+      "id": "pinmux_interfaces",
+      "title": "Pin multiplexer interfaces",
+      "layer": "module",
+      "module": "pinmux",
+      "features": [
+        "wake",
+        "retention",
+        "pins"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/ip/pinmux/doc/interfaces.md",
+      "git_blob_sha1": "7ed48eb2818a9fb8dc59db75cc002a7492b34828",
+      "license": "Apache-2.0",
+      "sha256": "fe2a8fb6445d2acd1c1c90fe4b274fd8f3d251ba55c9559340a3974c6085e28a"
+    },
+    {
+      "id": "pinmux_programming",
+      "title": "Pin multiplexer software contract",
+      "layer": "software",
+      "module": "pinmux",
+      "features": [
+        "wake",
+        "retention",
+        "software_protocol"
+      ],
+      "role": "specification",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/ip/pinmux/doc/programmers_guide.md",
+      "git_blob_sha1": "e38405d84bb3b1274838c54f75b368ea2f77703f",
+      "license": "Apache-2.0",
+      "sha256": "6e0571159d43c4d7907a7a8e135952db291efbdd1952314332996228632dd29a"
+    },
+    {
+      "id": "chip_testplan",
+      "title": "Earlgrey chip test plan",
+      "layer": "verification",
+      "module": "top_earlgrey",
+      "features": [
+        "system_verification",
+        "power",
+        "reset",
+        "clock"
+      ],
+      "role": "reference",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/data/chip_testplan.hjson",
+      "git_blob_sha1": "6ebadde18919b4144660919fd513656a2e362c39",
+      "license": "Apache-2.0",
+      "sha256": "469c7998c5fd7d5d974e8f7a6f2f478999c14fd5078a2818a5791c94d2030a6b"
+    },
+    {
+      "id": "pwrmgr_testplan",
+      "title": "Power manager test plan",
+      "layer": "verification",
+      "module": "pwrmgr",
+      "features": [
+        "uvm",
+        "coverage",
+        "low_power",
+        "wake"
+      ],
+      "role": "reference",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/ip_autogen/pwrmgr/data/pwrmgr_testplan.hjson",
+      "git_blob_sha1": "b545255a3431bd42b3cc53a2dbf7b10edeffc798",
+      "license": "Apache-2.0",
+      "sha256": "ff538850d559258961985122e163393f8eddfcea476d147f60f4315c880ba841"
+    },
+    {
+      "id": "rstmgr_testplan",
+      "title": "Reset manager test plan",
+      "layer": "verification",
+      "module": "rstmgr",
+      "features": [
+        "uvm",
+        "coverage",
+        "reset"
+      ],
+      "role": "reference",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/ip_autogen/rstmgr/data/rstmgr_testplan.hjson",
+      "git_blob_sha1": "be44e83d038f4550fcc946a3cc50a8884f469e51",
+      "license": "Apache-2.0",
+      "sha256": "3ab36d6c2d8f223c355ff36f6d6d7220ccbe7b9db1983e518445129e6e3d4cc3"
+    },
+    {
+      "id": "clkmgr_testplan",
+      "title": "Clock manager test plan",
+      "layer": "verification",
+      "module": "clkmgr",
+      "features": [
+        "uvm",
+        "coverage",
+        "clock"
+      ],
+      "role": "reference",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/ip_autogen/clkmgr/data/clkmgr_testplan.hjson",
+      "git_blob_sha1": "af05156616edcb97b3df4b9a9c7b2c6d3ba8430d",
+      "license": "Apache-2.0",
+      "sha256": "9bc515e3bc7532cf4cfd77b42e193d121167ecf937c231bc96d48e5bb59604c0"
+    },
+    {
+      "id": "pwrmgr_dv",
+      "title": "Power manager UVM verification environment",
+      "layer": "verification",
+      "module": "pwrmgr",
+      "features": [
+        "uvm",
+        "scoreboard",
+        "coverage",
+        "sequences"
+      ],
+      "role": "reference",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/ip_autogen/pwrmgr/dv/README.md",
+      "git_blob_sha1": "f4da95389c015dd62e08058caae5de993c7fff87",
+      "license": "Apache-2.0",
+      "sha256": "b89a11bae685fe64d274ae7d15d0e7aed631198d09f19cc630e096156594fb63"
+    },
+    {
+      "id": "chip_wake_uvm",
+      "title": "Chip deep sleep wake-up UVM sequence",
+      "layer": "verification",
+      "module": "top_earlgrey",
+      "features": [
+        "uvm",
+        "wake",
+        "low_power",
+        "hw_sw"
+      ],
+      "role": "reference",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/dv/env/seq_lib/chip_sw_pwrmgr_deep_sleep_all_wake_ups_vseq.sv",
+      "git_blob_sha1": "dc133b5e76ef1aa6ba3e0853aedcd104670aba14",
+      "license": "Apache-2.0",
+      "sha256": "db069f9055c6102b5b51f5ac5a2df5a253b0331876b2fe43393ae705b95ef2c8"
+    },
+    {
+      "id": "chip_wake_sw",
+      "title": "Chip deep sleep wake-up firmware",
+      "layer": "software",
+      "module": "top_earlgrey",
+      "features": [
+        "wake",
+        "low_power",
+        "hw_sw"
+      ],
+      "role": "reference",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "sw/device/tests/pwrmgr_deep_sleep_all_wake_ups.c",
+      "git_blob_sha1": "fb69170410ade556b71e26e9e84396d3626ddd21",
+      "license": "Apache-2.0",
+      "sha256": "5e3f36f006b3a3a69b54d18367f673714960b30e60aa793b087a1d230f6e4817"
+    },
+    {
+      "id": "pwrmgr_rtl",
+      "title": "Power manager RTL top module",
+      "layer": "module",
+      "module": "pwrmgr",
+      "features": [
+        "rtl",
+        "power",
+        "reset",
+        "clock"
+      ],
+      "role": "reference",
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "hw/top_earlgrey/ip_autogen/pwrmgr/rtl/pwrmgr.sv",
+      "git_blob_sha1": "690e690d616908a70fdb4c176c67941c3c329b6d",
+      "license": "Apache-2.0",
+      "sha256": "8bdca68a39d02c8ed498afbbebc5fe6cec567b3d2371dc5908ce8e285afaedde"
+    }
+  ],
+  "licenses": [
+    {
+      "repository": "lowRISC/opentitan",
+      "ref": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "path": "LICENSE",
+      "git_blob_sha1": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+      "license": "Apache-2.0",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    }
+  ],
+  "relations": [
+    {
+      "id": "ot-001",
+      "source": "pwrmgr_theory",
+      "target": "eg1_system",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. System sections Clocking and Reset / Reset due to Low Power Entry are detailed by power-manager Overall Sequencing / Supported Low Power Modes. State and handshake correspondence must be checked."
+    },
+    {
+      "id": "ot-002",
+      "source": "rstmgr_theory",
+      "target": "eg1_system",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. System Clocking and Reset is detailed by Reset Topology / Power Domains and Reset Trees. Power-domain reset sequencing requires a shared contract."
+    },
+    {
+      "id": "ot-003",
+      "source": "clkmgr_theory",
+      "target": "eg1_system",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. System Clocking and Reset is detailed by clock-manager Reset Domains / Wait-for-Interrupt Support. Clock gating and reset release ordering require checking."
+    },
+    {
+      "id": "ot-004",
+      "source": "eg1_system",
+      "target": "ast_contract",
+      "kind": "integrates",
+      "rationale": "Candidate; unproven. System AST Clocking and Reset Relationship relates to AST Power Control and Reset / Clock Outputs. Analog acknowledgement and power-good timing are cross-module assumptions."
+    },
+    {
+      "id": "ot-005",
+      "source": "pwrmgr_interfaces",
+      "target": "pwrmgr_theory",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. The interface document Inter-Module Signals section supplies ports and protocol contracts for the associated Theory of Operation. The mapping is a candidate requiring signal-by-signal validation."
+    },
+    {
+      "id": "ot-006",
+      "source": "rstmgr_interfaces",
+      "target": "rstmgr_theory",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. The interface document Inter-Module Signals section supplies ports and protocol contracts for the associated Theory of Operation. The mapping is a candidate requiring signal-by-signal validation."
+    },
+    {
+      "id": "ot-007",
+      "source": "clkmgr_interfaces",
+      "target": "clkmgr_theory",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. The interface document Inter-Module Signals section supplies ports and protocol contracts for the associated Theory of Operation. The mapping is a candidate requiring signal-by-signal validation."
+    },
+    {
+      "id": "ot-008",
+      "source": "aon_timer_interfaces",
+      "target": "aon_timer_theory",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. The interface document Inter-Module Signals section supplies ports and protocol contracts for the associated Theory of Operation. The mapping is a candidate requiring signal-by-signal validation."
+    },
+    {
+      "id": "ot-009",
+      "source": "sysrst_ctrl_interfaces",
+      "target": "sysrst_ctrl_theory",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. The interface document Inter-Module Signals section supplies ports and protocol contracts for the associated Theory of Operation. The mapping is a candidate requiring signal-by-signal validation."
+    },
+    {
+      "id": "ot-010",
+      "source": "otp_ctrl_interfaces",
+      "target": "otp_ctrl_theory",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. The interface document Inter-Module Signals section supplies ports and protocol contracts for the associated Theory of Operation. The mapping is a candidate requiring signal-by-signal validation."
+    },
+    {
+      "id": "ot-011",
+      "source": "pinmux_interfaces",
+      "target": "pinmux_theory",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. The interface document Inter-Module Signals section supplies ports and protocol contracts for the associated Theory of Operation. The mapping is a candidate requiring signal-by-signal validation."
+    },
+    {
+      "id": "ot-012",
+      "source": "clkmgr_theory",
+      "target": "pwrmgr_theory",
+      "kind": "related",
+      "rationale": "Candidate; unproven. Root Clock Gating and Interface with Power Manager relates to Fast Clock Domain FSM / Overall Sequencing. Clock enable acknowledgements must be checked across clock domains."
+    },
+    {
+      "id": "ot-013",
+      "source": "rstmgr_theory",
+      "target": "pwrmgr_theory",
+      "kind": "related",
+      "rationale": "Candidate; unproven. Power Domains and Reset Trees relates to Reset Request Handling / Reset Requests Received During Other States. Reset requests racing with low-power entry require joint scenarios."
+    },
+    {
+      "id": "ot-014",
+      "source": "otp_ctrl_interfaces",
+      "target": "pwrmgr_theory",
+      "kind": "related",
+      "rationale": "Candidate; unproven. OTP Power Manager Interface relates to power-manager Overall Sequencing. Initialization request and completion ordering must agree before CPU release."
+    },
+    {
+      "id": "ot-015",
+      "source": "aon_timer_theory",
+      "target": "pwrmgr_theory",
+      "kind": "related",
+      "rationale": "Candidate; unproven. AON timer Design Details describes wakeup/watchdog operation; power-manager Wakeup Recording / Reset Request Handling consumes the resulting events. Simultaneous wake/reset remains a cross-module obligation."
+    },
+    {
+      "id": "ot-016",
+      "source": "sysrst_ctrl_theory",
+      "target": "pwrmgr_theory",
+      "kind": "related",
+      "rationale": "Candidate; unproven. Ultra-low-power Wakeup Feature and Combo actions relate to Wakeup Recording / Reset Request Handling. Input filtering and power-state-dependent event reception need combined checking."
+    },
+    {
+      "id": "ot-017",
+      "source": "pinmux_theory",
+      "target": "pwrmgr_theory",
+      "kind": "related",
+      "rationale": "Candidate; unproven. Retention and Wakeup Features / Wakeup Detectors relate to Supported Low Power Modes / Wakeup Recording. Pin retention and wake detection require system-level observation."
+    },
+    {
+      "id": "ot-018",
+      "source": "pwrmgr_programming",
+      "target": "pwrmgr_theory",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. Programmer Sequence for Entering Low Power / Possible Exits define software sequencing around Fall Through Handling / Abort Handling. WFI entry, interrupt arrival and handshake completion must be correlated."
+    },
+    {
+      "id": "ot-019",
+      "source": "aon_timer_programming",
+      "target": "aon_timer_theory",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. Wakeup count and threshold access / Interrupt Handling relate to Design Details. Multiword accesses and clock-domain latency require checking."
+    },
+    {
+      "id": "ot-020",
+      "source": "pinmux_programming",
+      "target": "pinmux_theory",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. Sleep Features / Wakeup Features relate to Retention Logic / Wakeup Detectors. Configuration order is part of the software-visible contract."
+    },
+    {
+      "id": "ot-021",
+      "source": "otp_ctrl_programming",
+      "target": "otp_ctrl_theory",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. Initialization / Reset Considerations relate to Power-up and Sense / Partition Defaults. Reset and initialization expectations must be reconciled."
+    },
+    {
+      "id": "ot-022",
+      "source": "pwrmgr_testplan",
+      "target": "pwrmgr_theory",
+      "kind": "verifies",
+      "rationale": "Candidate; unproven. Testpoints aborted_low_power, reset_wakeup_race and lowpower_wakeup_race target Abort Handling / Reset Request Handling / Wakeup Recording. This edge identifies verification intent, not proof or achieved coverage."
+    },
+    {
+      "id": "ot-023",
+      "source": "rstmgr_testplan",
+      "target": "rstmgr_theory",
+      "kind": "verifies",
+      "rationale": "Candidate; unproven. Testpoints reset_stretcher, sw_rst_reset_race and reset_info_capture target POR Reset Tree / Software Controlled Resets / Reset Information. Coverage is not established by this candidate mapping."
+    },
+    {
+      "id": "ot-024",
+      "source": "clkmgr_testplan",
+      "target": "clkmgr_theory",
+      "kind": "verifies",
+      "rationale": "Candidate; unproven. Testpoints trans_enables, frequency_timeout and clk_status relate to Transactional Clock Group / Clock Frequency / Time-out Measurements / Root Clock Gating and Interface with Power Manager. Coverage requires actual runs."
+    },
+    {
+      "id": "ot-025",
+      "source": "chip_testplan",
+      "target": "eg1_system",
+      "kind": "verifies",
+      "rationale": "Candidate; unproven. chip_sw_sleep_pin_retention and chip_sw_ast_clk_rst_inputs target Pin Multiplexor Module (`pinmux`) / AST Clocking and Reset Relationship. This is intent only; no test result is included."
+    },
+    {
+      "id": "ot-026",
+      "source": "pwrmgr_dv",
+      "target": "pwrmgr_testplan",
+      "kind": "related",
+      "rationale": "Candidate; unproven. PWRMGR DV Functional coverage / Self-checking strategy / Testplan describe coverage, scoreboarding and assertions around the selected IP testpoints. This reference does not establish test execution."
+    },
+    {
+      "id": "ot-027",
+      "source": "chip_wake_uvm",
+      "target": "chip_wake_sw",
+      "kind": "related",
+      "rationale": "Candidate; unproven. The chip_sw_pwrmgr_deep_sleep_all_wake_ups_vseq class coordinates the pwrmgr_deep_sleep_all_wake_ups firmware test and wake sources. Ordering and checked behavior require code review and actual simulation."
+    },
+    {
+      "id": "ot-028",
+      "source": "chip_wake_uvm",
+      "target": "pwrmgr_theory",
+      "kind": "verifies",
+      "rationale": "Candidate; unproven. The chip software-coordinated UVM sequence exercises deep-sleep wake sources relevant to Deep Sleep or Standby / Wakeup Recording. This candidate target relationship is not a coverage result."
+    },
+    {
+      "id": "ot-029",
+      "source": "pwrmgr_rtl",
+      "target": "pwrmgr_theory",
+      "kind": "related",
+      "rationale": "Candidate; unproven. The pwrmgr module connects the slow and fast sequencing domains described by Slow Clock Domain FSM / Fast Clock Domain FSM. RTL is preserved as a reference and contributes zero bytes to the natural-specification size gate."
+    }
+  ]
+}

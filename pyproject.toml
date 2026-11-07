@@ -24,6 +24,11 @@ Issues = "https://github.com/loopx-project/loopx/issues"
 Changelog = "https://github.com/loopx-project/loopx/releases"
 
 [project.optional-dependencies]
+chip-verification = [
+  "jsonschema>=4.23,<5",
+  "mcp==1.30.0",
+]
+
 input-token-estimates = [
   "tiktoken==0.12.0",
 ]
@@ -80,6 +85,7 @@ include = ["loopx*"]
 "loopx.semantics" = ["project_registry_io_manifest_v1.json"]
 
 [tool.setuptools.package-data]
+"loopx.capabilities.chip_verification" = ["resources/*.md", "resources/*/*.md", "resources/*/*/*.md"]
 "loopx" = ["web/chat/*.html", "web/chat/*.json", "web/chat/assets/*", "web/chat/manifest.webmanifest", "web/chat/pwa/*"]
 "loopx.control_plane" = ["*.json", "*.ts", "presentation/*.ts"]
 "loopx.semantics" = ["*.json"]

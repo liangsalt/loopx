@@ -49,6 +49,7 @@ _REGISTRY_OPTIONAL_COMMANDS = frozenset(
 		"first-run-report",
 		"usage-ping",
 		"performance-diagnosis",
+		"chip-verification",
 		"new-project-prompt",
 		"resolve-agent-thread",
 		"resolve-peer-route",
@@ -80,6 +81,7 @@ _SELECTED_COMMANDS = _STATUS_COMMANDS | GLOBAL_READ_COMMANDS | PROJECT_LIFECYCLE
 	"agent-context", "agent-directory", "agent-capabilities",
 	"handoff", "handoff-mode",
 	"performance-diagnosis",
+	"chip-verification",
 	"heartbeat-prompt",
 	"heartbeat-prequota",
 	"goal-acceptance",
@@ -484,6 +486,10 @@ def _build_selected_parser(command: str) -> LoopXArgumentParser:
 		from .capabilities.performance_diagnosis.cli import register_performance_diagnosis_commands
 
 		register_performance_diagnosis_commands(subparsers, add_subcommand_format)
+	elif command == "chip-verification":
+		from .capabilities.chip_verification.cli import register_chip_verification_commands
+
+		register_chip_verification_commands(subparsers, add_subcommand_format)
 	elif command in {"heartbeat-prompt", "heartbeat-prequota"}:
 		from .cli_commands.support_control_heartbeat_registration import register_heartbeat_control_commands
 
@@ -540,6 +546,12 @@ def _dispatch_common_command(
 		from .capabilities.performance_diagnosis.cli import handle_performance_diagnosis_command
 
 		return handle_performance_diagnosis_command(
+			args, output_format=output_format, print_payload=print_payload,
+		)
+	if args.command == "chip-verification":
+		from .capabilities.chip_verification.cli import handle_chip_verification_command
+
+		return handle_chip_verification_command(
 			args, output_format=output_format, print_payload=print_payload,
 		)
 	if args.command in {"agent-context", "agent-directory", "agent-capabilities"}:
