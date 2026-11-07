@@ -47,6 +47,11 @@ Every supplied source_id must have exactly one disposition; do not silently omit
 Distinguish in-scope requirements from architectural background and unsupported configurations.
 Do not invent numerical limits or turn descriptive examples into mandatory DUT behavior.
 Keep definitions/context as such; no need to generate tests for license/metadata text.
+Retain relevant supplied clock periods, reset assumptions, interface definitions and
+configuration/environment constraints as requirement records with applicability=context
+when they are not DUT behavior obligations. Preserve their source references and explicit
+affected modules; use an empty modules list for genuinely global context. A context-only
+disposition must not silently discard facts needed for later design or verification binding.
 For explicitly labelled reference documents, preserve existing tests/RTL as evidence
 of intent or implementation only. Do not promote them into normative specification
 requirements without a supplied specification source; retain cross-reference gaps.

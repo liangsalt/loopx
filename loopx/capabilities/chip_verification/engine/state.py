@@ -552,27 +552,90 @@ class StateStore:
             self._event(db, "task_failed", {"reason": reason, "retryable": retryable}, task_id, attempt_id)
             return self._task(db, task_id)
 
-    def block(self, task_id: str, reason: str) -> dict:
-        return self._stop_task(task_id, "blocked", reason)
+    def block(self, task_id: str, reason: str, *, expected_revision: int | None = None) -> dict:
+        return self._stop_task(task_id, "blocked", reason, expected_revision=expected_revision)
 
     def cancel(self, task_id: str, reason: str = "Cancelled by request") -> dict:
         return self._stop_task(task_id, "cancelled", reason)
 
-    def _stop_task(self, task_id, status, reason):
+    def _stop_task(self, task_id, status, reason, *, expected_revision=None):
         if not reason:
             raise ValueError("A stopped task needs a reason")
         with self._db(write=True) as db:
+            return self._stop_task_current(db, task_id, status, reason, expected_revision=expected_revision)
+
+    def _stop_task_current(self, db, task_id, status, reason, *, expected_revision=None):
+        task = self._task(db, task_id)
+        if expected_revision is not None and (task["revision"] != expected_revision or
+                                              task["baseline_id"] != self._current(db)):
+            raise ConflictError("Task changed while preparing its blocker")
+        if task["status"] == "done":
+            raise StateError("Invalidate accepted evidence before stopping completed work")
+        now = time.time()
+        if task["attempt_id"]:
+            db.execute("UPDATE attempts SET status=?,ended=?,reason=? WHERE id=?",
+                       (status, now, reason, task["attempt_id"]))
+        db.execute("UPDATE tasks SET status=?,attempt_id=NULL,revision=revision+1,reason=?,updated=? WHERE id=?",
+                   (status, reason, now, task_id))
+        self._event(db, "task_" + status, {"reason": reason}, task_id)
+        return self._task(db, task_id)
+
+    def block_context(self, task_id: str, expected_revision: int, reason: str, description: str) -> tuple[dict, dict]:
+        """Record an unsent UVM context blocker and its evidence in one transaction."""
+        if not reason or not description:
+            raise ValueError("A context blocker needs a reason and evidence")
+        with self._db(write=True) as db:
             task = self._task(db, task_id)
-            if task["status"] == "done":
-                raise StateError("Invalidate accepted evidence before stopping completed work")
+            if task["status"] not in {"pending", "blocked"}:
+                raise ConflictError("Task changed while preparing its context budget blocker")
+            blocked = self._stop_task_current(db, task_id, "blocked", reason, expected_revision=expected_revision)
+            issue_id = "issue-" + _digest([task["baseline_id"], "uvm_context_blocker", description, task_id, expected_revision])[:20]
+            issue = self._add_issue_current(db, "uvm_context_blocker", description, task_id=task_id, issue_id=issue_id)
+            return blocked, issue
+
+    def recover_context(self, expected: dict, issues: list[dict], resolution: str) -> tuple[dict, bool]:
+        """Resolve admitted context blockers without replacing another revision or lease."""
+        if not issues or not resolution:
+            raise ValueError("Context recovery needs blocker evidence and a resolution")
+        with self._db(write=True) as db:
+            current = self._task(db, expected["id"])
+            if (current["baseline_id"] != self._current(db) or current["baseline_id"] != expected["baseline_id"]
+                    or current["payload"] != expected["payload"]):
+                raise ConflictError("Task inputs changed while recovering its context budget blocker")
+            if current["status"] not in {"blocked", "pending"}:
+                return current, False
+            requeue = current["status"] == "blocked"
+            allowed_revision = expected["revision"] + (1 if expected["status"] == "blocked" and not requeue else 0)
+            if current["revision"] != allowed_revision:
+                return current, False
+            if requeue and (current["reason"] != expected["reason"] or
+                            not (current["reason"] or "").startswith("uvm_context_blocker:")):
+                return current, False
+            unresolved = []
+            for issue in issues:
+                row = db.execute("SELECT * FROM issues WHERE id=?", (issue["id"],)).fetchone()
+                if (not row or row["category"] != "uvm_context_blocker" or row["task_id"] != current["id"]
+                        or row["baseline_id"] != current["baseline_id"]
+                        or any(row[key] != issue[key] for key in ("baseline_id", "task_id", "category", "description"))
+                        or row["status"] not in ({"open"} if requeue else {"open", "resolved"})):
+                    return current, False
+                try:
+                    details = json.loads(row["description"])
+                except (ValueError, TypeError):
+                    return current, False
+                if not isinstance(details, dict) or details.get("input_fingerprint") != current["payload"].get("input_fingerprint"):
+                    return current, False
+                if row["status"] == "open":
+                    unresolved.append(issue["id"])
             now = time.time()
-            if task["attempt_id"]:
-                db.execute("UPDATE attempts SET status=?,ended=?,reason=? WHERE id=?",
-                           (status, now, reason, task["attempt_id"]))
-            db.execute("UPDATE tasks SET status=?,attempt_id=NULL,revision=revision+1,reason=?,updated=? WHERE id=?",
-                       (status, reason, now, task_id))
-            self._event(db, "task_" + status, {"reason": reason}, task_id)
-            return self._task(db, task_id)
+            if requeue:
+                db.execute("UPDATE tasks SET status='pending',result=NULL,attempt_id=NULL,"
+                           "revision=revision+1,reason=NULL,updated=? WHERE id=?", (now, current["id"]))
+                self._event(db, "task_requeued", {}, current["id"])
+            for issue_id in unresolved:
+                db.execute("UPDATE issues SET status='resolved',resolution=?,updated=? WHERE id=?", (resolution, now, issue_id))
+                self._event(db, "issue_resolved", {"issue_id": issue_id, "resolution": resolution})
+            return self._task(db, current["id"]), True
 
     def requeue(self, task_id: str, *, payload: dict | None = None) -> dict:
         with self._db(write=True) as db:
@@ -726,14 +789,17 @@ class StateStore:
         if not category or not description:
             raise ValueError("An issue needs a category and description")
         with self._db(write=True) as db:
-            baseline_id = self._current(db)
-            issue_id = issue_id or "issue-" + _digest([baseline_id, category, description, task_id])[:20]
-            now = time.time()
-            if task_id:
-                self._task(db, task_id)
-            db.execute("INSERT OR IGNORE INTO issues VALUES(?,?,?,?,?,'open',NULL,?,?)",
-                       (issue_id, baseline_id, task_id, category, description, now, now))
-            return dict(db.execute("SELECT * FROM issues WHERE id=?", (issue_id,)).fetchone())
+            return self._add_issue_current(db, category, description, task_id=task_id, issue_id=issue_id)
+
+    def _add_issue_current(self, db, category, description, *, task_id=None, issue_id=None):
+        baseline_id = self._current(db)
+        issue_id = issue_id or "issue-" + _digest([baseline_id, category, description, task_id])[:20]
+        now = time.time()
+        if task_id:
+            self._task(db, task_id)
+        db.execute("INSERT OR IGNORE INTO issues VALUES(?,?,?,?,?,'open',NULL,?,?)",
+                   (issue_id, baseline_id, task_id, category, description, now, now))
+        return dict(db.execute("SELECT * FROM issues WHERE id=?", (issue_id,)).fetchone())
 
     def resolve_issue(self, issue_id: str, resolution: str) -> dict:
         if not resolution:

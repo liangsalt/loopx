@@ -6,11 +6,13 @@ export const CHIP_VERIFICATION_ACTIONS = [
   "doctor", "import", "status", "design-map", "next", "claim", "context", "submit",
   "heartbeat", "abandon", "retry", "export-plan", "generation-scopes", "generate-uvm",
   "build-uvm", "job-status", "report", "install-trae",
+  "prepare-design", "engineering-status", "check-design", "join-design", "revise",
 ] as const;
 export type ChipVerificationAction = (typeof CHIP_VERIFICATION_ACTIONS)[number];
 const MUTATIONS: ReadonlySet<ChipVerificationAction> = new Set([
   "import", "claim", "submit", "heartbeat", "abandon", "retry", "export-plan",
   "generate-uvm", "build-uvm", "install-trae",
+  "prepare-design", "check-design", "join-design", "revise",
 ]);
 
 const object = (value: unknown, label: string): JsonObject => {
@@ -42,9 +44,11 @@ export function admitChipVerification(input: unknown) {
     import: ["spec"], claim: ["session_id"], context: ["attempt_id"], submit: ["attempt_id"],
     heartbeat: ["attempt_id"], abandon: ["attempt_id", "reason"], retry: ["task_id"],
     "generate-uvm": ["top"], "build-uvm": ["manifest"], "job-status": ["job_id"],
+    "check-design": ["rtl_task_id"], "join-design": ["rtl_task_id", "manifest"],
+    revise: ["task_id", "reason"],
   };
   for (const key of required[action] ?? []) text(args[key], key);
-  for (const key of ["task_id", "attempt_id", "session_id", "kind", "profile_path", "scope_id", "simulator"]) {
+  for (const key of ["task_id", "attempt_id", "session_id", "kind", "profile_path", "scope_id", "simulator", "contract_task_id", "rtl_task_id"]) {
     if (args[key] !== undefined && args[key] !== null) text(args[key], key);
   }
   for (const key of ["chunk_chars", "context_chars", "limit", "timeout"]) {
@@ -60,6 +64,9 @@ export function admitChipVerification(input: unknown) {
   if (args.run_smoke !== undefined && typeof args.run_smoke !== "boolean") {
     throw new EffectRuntimeRequestError("run_smoke must be a boolean");
   }
+  if (args.flow !== undefined && !["design-dv", "dv"].includes(args.flow as string)) {
+    throw new EffectRuntimeRequestError("flow must be design-dv or dv");
+  }
   if (action === "submit") {
     const hasFile = args.response_file !== undefined && args.response_file !== null;
     const hasResponse = args.response !== undefined && args.response !== null;
@@ -68,10 +75,11 @@ export function admitChipVerification(input: unknown) {
     if (hasResponse) object(args.response, "response");
   }
   if (action === "generate-uvm") {
-    if (!Array.isArray(args.rtl_files) || !args.rtl_files.length || args.rtl_files.length > 4096) {
-      throw new EffectRuntimeRequestError("rtl_files must contain 1 to 4096 paths");
+    const files = args.rtl_files ?? [];
+    if (!Array.isArray(files) || (!files.length && !args.contract_task_id) || files.length > 4096) {
+      throw new EffectRuntimeRequestError("rtl_files must contain 1 to 4096 paths, or bind a shared contract_task_id");
     }
-    args.rtl_files.forEach((value, index) => text(value, `rtl_files[${index}]`));
+    files.forEach((value, index) => text(value, `rtl_files[${index}]`));
   }
   const mutation = MUTATIONS.has(action);
   const allowed = !mutation || request.execute === true;

@@ -9,6 +9,11 @@ from enum import StrEnum
 class Stage(StrEnum):
     IMPORT = "import"
     MODEL = "model"
+    SPEC_CONTRACT = "spec-contract"
+    CONTRACT_PLAN = "contract-plan"
+    MICROARCHITECTURE = "microarchitecture"
+    RTL = "rtl"
+    RTL_CHECK = "rtl-check"
     PLAN = "plan"
     ARCHITECTURE = "architecture"
     IMPLEMENT = "implement"

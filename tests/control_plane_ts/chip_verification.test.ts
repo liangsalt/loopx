@@ -70,3 +70,21 @@ test("execution budgets reject coercion, nonfinite values and unbounded contexts
     }
   }
 });
+
+test("shared contracts allow UVM before RTL while tool and join mutations remain explicit", () => {
+  const request = {action: "generate-uvm", workspace: ".", execute: true,
+    arguments: {top: "dut", contract_task_id: "contract-1"}};
+  assert.equal(admit(request).allowed, true);
+  assert.equal(admit({action: "engineering-status", workspace: "."}).mutation, false);
+  for (const [action, args] of [
+    ["prepare-design", {}], ["check-design", {rtl_task_id: "rtl-1"}],
+    ["join-design", {rtl_task_id: "rtl-1", manifest: "build.json"}],
+    ["revise", {task_id: "rtl-1", reason: "Elaboration rejected a port width."}],
+  ] as const) {
+    assert.equal(admit({action, workspace: ".", arguments: args}).allowed, false);
+    assert.equal(admit({action, workspace: ".", arguments: args, execute: true}).allowed, true);
+  }
+  assert.throws(() => admit({action: "check-design", workspace: ".", arguments: {task_id: "rtl-1"}}), /rtl_task_id/);
+  assert.throws(() => admit({action: "revise", workspace: ".", execute: true, arguments: {task_id: "rtl-1", reason: " "}}), /reason/);
+  assert.throws(() => admit({action: "import", workspace: ".", arguments: {spec: "s.json", flow: "silently_skip_checks"}}), /flow/);
+});
