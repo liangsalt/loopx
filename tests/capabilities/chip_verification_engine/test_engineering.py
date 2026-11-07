@@ -38,7 +38,8 @@ class EngineeringTests(unittest.TestCase):
                 for index, sid in enumerate(task["payload"]["source_ids"])],
                 "dispositions": [{"source_id": sid, "classification": "requirements", "reason": "Explicit source behavior"}
                                  for sid in task["payload"]["source_ids"]],
-                "unresolved": unresolved or [], "cross_references": cross_references or []}
+                "unresolved": unresolved(task) if callable(unresolved) else unresolved or [],
+                "cross_references": cross_references or []}
             if classify:
                 for requirement in response["requirements"]:
                     classify(requirement)
@@ -365,6 +366,10 @@ class EngineeringTests(unittest.TestCase):
         obligation = engineering.status(self.project)["composition_obligations"][0]
         self.assertFalse(obligation["whole_module_complete"])
         self.assertEqual(len(tasks), obligation["scope_count"])
+        save_json(self.project.config_path, {**self.project.config, "host_context_chars": 48000})
+        self.project.reconcile()
+        self.assertEqual({task["id"] for task in tasks},
+                         {task["id"] for task in self.project.store.list_tasks(kind="spec-contract")})
 
     def test_one_atomic_requirement_that_cannot_fit_remains_explicitly_blocked(self):
         self.spec.write_text(json.dumps({"behavior": "x" * 18000}), encoding="utf-8")
@@ -374,6 +379,135 @@ class EngineeringTests(unittest.TestCase):
         self.assertIn("no required content was truncated", task["reason"])
         self.assertEqual(1, len(task["payload"]["requirements"]))
         self.assertEqual([], self.project.store.list_tasks(kind="microarchitecture"))
+
+    def oversized_environment(self, *, questions=False):
+        self.spec.write_text(json.dumps({"environment": "Clock binding detail " + "x" * 9000,
+                                        "clauses": ["Required operation " + str(i) + ": " + "y" * 300
+                                                    for i in range(24)]}), encoding="utf-8")
+        self.project.import_spec(self.spec, chunk_chars=7000, context_chars=24000)
+
+        def classify(requirement):
+            if self.project.store.get_source(requirement["source_ids"][0])["pointer"] == "/environment":
+                requirement["applicability"] = "context"
+
+        def unresolved(task):
+            return [{"source_ids": task["payload"]["source_ids"], "question": "Confirm the source timing",
+                     "blocking": True}] if questions else []
+
+        with patch.object(engineering, "reconcile", return_value=0):
+            self.extract(classify=classify, unresolved=unresolved)
+        return [engineering._requirement(item) for item in self.project.store.list_requirements()]
+
+    def previous_environment_partitions(self, requirements):
+        environment = [item for item in requirements if item["applicability"] == "context"]
+        local = [item for item in requirements if item["applicability"] == "in_scope"]
+        tasks = []
+        for index, requirement in enumerate(local):
+            payload = engineering._scope_payload(self.project, "counter",
+                                                 sorted([requirement, *environment], key=lambda item: item["id"]),
+                                                 index, len(local))
+            task_id = "contract_" + engineering.digest([self.project.store.baseline()["id"], payload])[:24]
+            task = self.project.store.add_task("spec-contract", f"Reconcile shared specification for counter ({index + 1}/{len(local)})",
+                                               payload, depends_on=sorted({item["extraction_task"] for item in payload["requirements"]}),
+                                               task_id=task_id)
+            tasks.append(task)
+        return tasks
+
+    def test_oversized_shared_environment_keeps_one_lossless_blocked_scope(self):
+        requirements = self.oversized_environment(questions=True)
+        self.project.reconcile()
+        tasks = self.project.store.list_tasks(kind="spec-contract")
+        self.assertEqual(1, len(tasks))
+        task = tasks[0]
+        self.assertEqual("blocked", task["status"])
+        self.assertIn("Shared contract context exceeds budget", task["reason"])
+        self.assertFalse(task["payload"]["partial_module"])
+        self.assertEqual({item["id"]: item for item in requirements},
+                         {item["id"]: item for item in task["payload"]["requirements"]})
+        self.assertTrue(task["payload"]["known_questions"])
+        self.assertEqual({"spec_blocker", "context_blocker"},
+                         {item["category"] for item in self.project.store.list_issues()})
+        projection = engineering.status(self.project)
+        self.assertGreater(projection["contracts"][0]["blocking_questions"], 0)
+        blocked = projection["blocked_modules"][0]
+        self.assertTrue(blocked["context_blocked"])
+        self.assertGreater(blocked["context_floor_chars"], blocked["context_budget_chars"])
+        self.assertGreater(blocked["context_chars"], blocked["context_floor_chars"])
+        self.assertGreater(blocked["distinct_source_questions"], 0)
+        self.assertIn("Shared contract context exceeds budget", blocked["reason"])
+        restarted = DVProject(self.root)
+        for _ in range(2):
+            restarted.reconcile()
+            self.assertEqual([task["id"]], [item["id"] for item in restarted.store.list_tasks(kind="spec-contract")])
+        self.assertEqual([], restarted.store.ready_tasks())
+        self.assertEqual([], restarted.store.list_tasks(kind="microarchitecture"))
+        self.assertEqual([], restarted.store.list_tasks(kind="contract-plan"))
+
+    def test_oversized_shared_environment_supersedes_only_unexecuted_partitions(self):
+        requirements = self.oversized_environment()
+        previous = self.previous_environment_partitions(requirements)
+        for task in previous[::2]:
+            self.project.store.block(task["id"], "Previous oversized source context")
+        self.project.reconcile()
+        current = self.project.store.list_tasks(status="blocked", kind="spec-contract")
+        self.assertEqual(1, len(current))
+        self.assertEqual({item["id"] for item in requirements},
+                         {item["id"] for item in current[0]["payload"]["requirements"]})
+        self.assertEqual({task["id"] for task in previous}, engineering.superseded_task_ids(self.project))
+        self.project.reconcile()
+        self.assertEqual(len(previous) + 1, len(self.project.store.list_tasks(kind="spec-contract")))
+        self.assertEqual([current[0]["id"]], [item["id"] for item in self.project.store.list_tasks(status="blocked", kind="spec-contract")])
+
+    def preserve_executed_environment_partitions(self, *, accepted):
+        requirements = self.oversized_environment()
+        save_json(self.project.config_path, {**self.project.config, "host_context_chars": 128000})
+        previous = self.previous_environment_partitions(requirements)
+        if accepted:
+            self.commit(previous[0], self.candidate(previous[0]))
+        else:
+            self.project.store.claim(previous[0]["id"], "active-contract-session")
+        protected = self.project.store.get_task(previous[0]["id"])
+        save_json(self.project.config_path, {**self.project.config, "host_context_chars": 24000})
+        self.project.reconcile()
+        self.assertEqual({task["id"] for task in previous},
+                         {task["id"] for task in self.project.store.list_tasks(kind="spec-contract")})
+        current = self.project.store.get_task(protected["id"])
+        for field in ("status", "revision", "attempt_id", "result", "payload"):
+            self.assertEqual(protected[field], current[field])
+        self.assertEqual(set(), engineering.superseded_task_ids(self.project))
+
+    def test_oversized_shared_environment_preserves_accepted_partition(self):
+        self.preserve_executed_environment_partitions(accepted=True)
+
+    def test_oversized_shared_environment_preserves_running_partition(self):
+        self.preserve_executed_environment_partitions(accepted=False)
+
+    def test_oversized_shared_environment_preserves_attempted_pending_partition(self):
+        requirements = self.oversized_environment()
+        save_json(self.project.config_path, {**self.project.config, "host_context_chars": 128000})
+        previous = self.previous_environment_partitions(requirements)
+        attempt = self.project.store.claim(previous[0]["id"], "interrupted-contract-session")
+        self.project.store.fail(previous[0]["id"], attempt["id"], "Interrupted before submission")
+        save_json(self.project.config_path, {**self.project.config, "host_context_chars": 24000})
+        self.project.reconcile()
+        self.assertEqual({task["id"] for task in previous},
+                         {task["id"] for task in self.project.store.list_tasks(kind="spec-contract")})
+        self.assertEqual(set(), engineering.superseded_task_ids(self.project))
+
+    def test_blocked_module_projection_bounds_reasons_and_counts_source_questions(self):
+        source_id = self.project.store.list_tasks(kind="model")[0]["payload"]["source_ids"][0]
+        self.extract(modules=["unit_" + str(i) for i in range(10)],
+                     unresolved=[{"source_ids": [source_id], "question": "Source clarification " + "z" * 5000,
+                                  "blocking": True}])
+        value = engineering.status(self.project)
+        self.assertTrue(all(task["blocking_questions"] == 1 for task in value["contracts"]))
+        self.assertEqual(8, len(value["blocked_modules"]))
+        self.assertEqual(2, value["omitted_blocked_modules"])
+        for module in value["blocked_modules"]:
+            self.assertEqual(1, module["distinct_source_questions"])
+            self.assertLessEqual(len(module["reason"]), 480)
+            self.assertGreater(module["reason_omitted_chars"], 0)
+        self.assertLess(len(json.dumps(value)), 20000)
 
     def test_source_blocker_is_not_silently_cleared_by_contract_phase(self):
         source = self.project.store.list_tasks(kind="model")[0]["payload"]["source_ids"][0]
