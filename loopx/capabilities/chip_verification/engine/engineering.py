@@ -125,7 +125,7 @@ def _blocking_sources(project, requirements):
     model_ids = {item["extraction_task"] for item in requirements}
     source_ids = {sid for item in requirements for sid in item["source_ids"]}
     issues = {(item["task_id"], item["category"], item["description"]): item["status"]
-              for item in project.store.list_issues() if item["task_id"] in model_ids}
+              for item in project.store.list_issues(status=None) if item["task_id"] in model_ids}
     candidates = []
     for task_id in model_ids:
         result = project.store.get_task(task_id)["result"]
