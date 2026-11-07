@@ -105,6 +105,8 @@ class DVProject:
         baseline = self.store.initialize(name, path, manifest["spec_sha256"], manifest["spec_bytes"])
         config = {"name": name, "scope": scope, "manifest_path": manifest["manifest_path"],
                   "spec_sha256": manifest["spec_sha256"], "context_chars": context_chars}
+        if previous.get("engineering_enabled"):
+            config["engineering_enabled"] = True
         save_json(self.config_path, config)
         for source in iter_sources(manifest):
             metadata = {k: source[k] for k in ("start_char", "end_char", "revision", "value_kind", "metadata", "boundary")}
@@ -346,17 +348,25 @@ class DVProject:
                 requirements.append({"id": rid, **req})
             # A source batch that only carries metadata/background still has a
             # durable disposition; it need not produce empty test classes.
-            if any(r["applicability"] == "in_scope" for r in requirements):
+            if not self.config.get("engineering_enabled") and any(r["applicability"] == "in_scope" for r in requirements):
                 created += self._materialize_plan(task, requirements)
-        for task in self.store.list_tasks(status="done", kind="plan"):
+        for task in self.store.list_tasks(status="done"):
+            if task["kind"] not in {"plan", "contract-plan"}:
+                continue
             for issue in task["result"]["unresolved"]:
                 self.store.add_issue("plan_blocker" if issue["blocking"] else "plan_question",
                                      issue["question"], task_id=task["id"])
+        if self.config.get("engineering_enabled"):
+            from .engineering import reconcile
+            created += reconcile(self)
         return created
 
     def task_context(self, task):
         self.assert_inputs_current()
         config = self.config
+        if task["kind"] in {"spec-contract", "contract-plan"}:
+            from .engineering import task_context
+            return task_context(self, task)
         if task["kind"] == "model":
             pack = build_context(config["manifest_path"], task, max_chars=config["context_chars"])
             prompt = EXTRACTION_INSTRUCTION + "\nVerification scope:\n" + config["scope"] + "\n" + render_context(pack)
@@ -381,7 +391,12 @@ class DVProject:
             result = runtime(agent, timeout=timeout, max_prompt_chars=self.config["context_chars"] + 3000).run(
                 prompt, cwd=self.root, run_dir=directory, schema=schema, attempt_id=attempt["id"])
             self.assert_inputs_current()
-            validator = self._validate_model if task["kind"] == "model" else self._validate_plan
+            if task["kind"] in {"spec-contract", "contract-plan"}:
+                from .engineering import validate
+                def validator(current, value, artifacts):
+                    return validate(self, current, value, artifacts)
+            else:
+                validator = self._validate_model if task["kind"] == "model" else self._validate_plan
             receipt = self.store.finish(task_id, attempt["id"], result.response,
                                         artifacts=[directory / "response.json", directory / "receipt.json",
                                                    directory / "context.json", directory / "events.jsonl"],
@@ -401,8 +416,9 @@ class DVProject:
         self.reconcile()
         finished = []
         while len(finished) < max_tasks:
+            default_kinds = ["model", "spec-contract", "contract-plan"] if self.config.get("engineering_enabled") else ["model", "plan"]
             ready = [t for t in self.store.ready_tasks(100000)
-                     if t["kind"] in (kinds or ["model", "plan"])]
+                     if t["kind"] in (kinds or default_kinds)]
             from .hierarchy import focused_tasks
             ready = focused_tasks(self, ready, focus)
             batch = ready[:min(parallel, max_tasks - len(finished))]
@@ -426,19 +442,29 @@ class DVProject:
         self.assert_inputs_current()
         self.store.verify_artifacts()
         self.reconcile()
-        plans = self.store.list_tasks(status="done", kind="plan")
+        engineering = self.config.get("engineering_enabled")
+        plans = self.store.list_tasks(status="done", kind="contract-plan" if engineering else "plan")
         points, unresolved = [], []
         for task in plans:
             for point in task["result"]["testpoints"]:
                 points.append({**point, "id": task["id"] + ":" + point["id"], "task_id": task["id"]})
             unresolved.extend(task["result"]["unresolved"])
-        planning = effective_planning_tasks(self.store.list_tasks())
+        if engineering:
+            from .engineering import superseded_task_ids
+            superseded = superseded_task_ids(self)
+            planning = [task for task in self.store.list_tasks()
+                        if task["kind"] in {"model", "spec-contract", "contract-plan"} and task["id"] not in superseded]
+        else:
+            planning = effective_planning_tasks(self.store.list_tasks())
         value = {"schema_version": 1, "spec_sha256": self.config["spec_sha256"],
                  "scope": self.config["scope"], "testpoints": points, "unresolved": unresolved,
-                 "planning_complete": bool(planning) and all(t["status"] == "done" for t in planning),
+                 "planning_complete": bool(planning) and (not engineering or bool(plans) and bool(points))
+                                      and all(t["status"] == "done" for t in planning),
                  "execution_claim": "No simulation or coverage claim is implied by this plan"}
-        value["source_questions"] = self.store.list_issues()
-        value["semantic_review_complete"] = not any(issue["category"] in {"spec_blocker", "source_reference", "plan_blocker", "context_blocker"}
+        value["source_questions"] = [issue for issue in self.store.list_issues()
+                                     if not engineering or issue["task_id"] not in superseded]
+        value["semantic_review_complete"] = not any(issue["status"] == "open" and issue["category"] in {
+            "spec_blocker", "source_reference", "plan_blocker", "context_blocker", "contract_blocker"}
                                                      for issue in value["source_questions"])
         value["semantic_review_complete"] = value["semantic_review_complete"] and not any(
             issue["blocking"] for issue in unresolved)

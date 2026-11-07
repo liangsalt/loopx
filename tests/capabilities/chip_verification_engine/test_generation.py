@@ -2,14 +2,17 @@
 from __future__ import annotations
 
 import copy
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 from pathlib import Path
 import tempfile
+from threading import Barrier
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+from loopx.capabilities.chip_verification.engine import generation
 from loopx.capabilities.chip_verification.engine.generation import GenerationBudgetError, generation_scopes, run_generation
 from loopx.capabilities.chip_verification.engine.models import ConflictError, ValidationError
 from loopx.capabilities.chip_verification.engine.workflow import DVProject, save_json
@@ -552,6 +555,160 @@ class GenerationTests(unittest.TestCase):
         self.assertEqual(2, len(self.project.store.list_issues()))
         self.assertEqual([], self.project.store.list_issues(status="resolved"))
 
+    def test_targeted_budget_recovery_leaves_sibling_blocker_unchanged(self):
+        independent = blueprint()
+        independent["shared_contracts"][0]["description"] += "k" * 14000
+        independent["components"][1]["depends_on"] = []
+        independent["components"][1]["dependency_files"] = []
+        self.generate(CandidateRuntime(independent))
+        blocked = self.project.store.list_tasks(kind="implement", status="blocked")
+        self.assertEqual(2, len(blocked))
+        by_component = {task["payload"]["component"]["id"]: task for task in blocked}
+        sibling, target = by_component["shared"], by_component["uvc"]
+        sibling_issues = [issue for issue in self.project.store.list_issues()
+                          if issue["task_id"] == sibling["id"]]
+        dispatched = []
+        dispatcher = SimpleNamespace(expected_task_id=target["id"], completed=False,
+                                     owns=lambda task: False)
+
+        def dispatch(project, task, prompt, schema, agent, timeout, validate, accept, budget):
+            validate()
+            attempt = project.store.claim(task["id"], "targeted-connection")
+            dispatched.append((task["id"], attempt["id"]))
+            dispatcher.completed = True
+            return project.store.get_task(task["id"]), {"status": "claimed"}
+
+        dispatcher.dispatch = dispatch
+        run_generation(self.project, [self.rtl], "dut", context_chars=64000, dispatcher=dispatcher)
+        self.assertEqual([target["id"]], [task_id for task_id, _ in dispatched])
+        self.assertEqual(sibling, self.project.store.get_task(sibling["id"]))
+        self.assertEqual(sibling_issues, self.project.store.list_issues())
+        self.assertEqual("running", self.project.store.get_task(target["id"])["status"])
+
+    def _context_blocked_component(self):
+        large_contract = blueprint()
+        large_contract["shared_contracts"][0]["description"] += "k" * 14000
+        self.generate(CandidateRuntime(large_contract), max_components=1)
+        task = self.project.store.list_tasks(kind="implement", status="blocked")[0]
+        issue = self.project.store.list_issues()[0]
+        details = json.loads(issue["description"])
+        evidence = json.loads(Path(details["evidence_path"]).read_text(encoding="utf-8"))
+        return task, evidence
+
+    def test_two_connections_recover_same_snapshot_once_and_only_one_claims(self):
+        task, evidence = self._context_blocked_component()
+        projects = [DVProject(self.root), DVProject(self.root)]
+        ready = Barrier(2)
+
+        def recover(project):
+            return generation._prepare_dispatch_context(
+                project, task, evidence["prompt"], {}, 64000, evidence["agent"],
+                evidence["output_schema"], 64000, lambda: ready.wait(timeout=10))
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(recover, projects))
+        self.assertTrue(all(current["status"] == "pending" and prompt is not None
+                            for current, prompt, _ in results))
+        self.assertEqual(task["revision"] + 1, self.project.store.get_task(task["id"])["revision"])
+        self.assertEqual([], self.project.store.list_issues())
+        self.assertEqual(1, len(self.project.store.list_issues(status="resolved")))
+        events = self.project.store.events(limit=1000)
+        self.assertEqual(1, len([event for event in events if event["type"] == "task_requeued"
+                                and event["task_id"] == task["id"]]))
+        ready = Barrier(2)
+
+        def claim(index):
+            ready.wait(timeout=10)
+            try:
+                return projects[index].store.claim(task["id"], "connection-" + str(index))
+            except ConflictError:
+                return None
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            attempts = list(pool.map(claim, range(2)))
+        accepted = [attempt for attempt in attempts if attempt]
+        self.assertEqual(1, len(accepted))
+        self.assertEqual(accepted[0]["id"], self.project.store.get_task(task["id"])["attempt_id"])
+
+    def test_stale_budget_recovery_cannot_reset_running_lease_or_resolve_issues(self):
+        task, evidence = self._context_blocked_component()
+        other = DVProject(self.root)
+        running = []
+
+        def claimed_before_recovery():
+            other.store.requeue(task["id"])
+            other.store.claim(task["id"], "other-connection")
+            running.append(other.store.get_task(task["id"]))
+
+        issues = self.project.store.list_issues()
+        current, prompt, receipt = generation._prepare_dispatch_context(
+            self.project, task, evidence["prompt"], {}, 64000, evidence["agent"],
+            evidence["output_schema"], 64000, claimed_before_recovery)
+        self.assertIsNone(prompt)
+        self.assertIsNone(receipt)
+        self.assertEqual(running[0], current)
+        self.assertEqual(running[0], other.store.get_task(task["id"]))
+        self.assertEqual(issues, other.store.list_issues())
+        self.assertEqual([], other.store.list_issues(status="resolved"))
+
+    def test_stale_budget_recovery_cannot_clear_a_new_blocker_revision(self):
+        task, evidence = self._context_blocked_component()
+        other = DVProject(self.root)
+        issues = self.project.store.list_issues()
+        current, prompt, _ = generation._prepare_dispatch_context(
+            self.project, task, evidence["prompt"], {}, 64000, evidence["agent"],
+            evidence["output_schema"], 64000,
+            lambda: other.store.block(task["id"], "A separately discovered contract is missing"))
+        self.assertIsNone(prompt)
+        self.assertEqual("blocked", current["status"])
+        self.assertEqual("A separately discovered contract is missing", current["reason"])
+        self.assertEqual(issues, other.store.list_issues())
+
+    def test_pending_retry_resolves_same_input_context_issues_after_admission(self):
+        task, _ = self._context_blocked_component()
+        pending = self.project.store.requeue(task["id"])
+        self.assertEqual(1, len(self.project.store.list_issues()))
+        adapter = CandidateRuntime()
+        self.generate(adapter, context_chars=64000, max_components=1)
+        self.assertEqual("done", self.project.store.get_task(task["id"])["status"])
+        self.assertEqual([], self.project.store.list_issues())
+        resolved = self.project.store.list_issues(status="resolved")
+        self.assertEqual(1, len(resolved))
+        self.assertEqual(64000, json.loads(resolved[0]["resolution"])["context_chars"])
+        requeued = [event for event in self.project.store.events(limit=1000)
+                    if event["type"] == "task_requeued" and event["task_id"] == task["id"]]
+        self.assertEqual(1, len(requeued), "Budget admission must not requeue an already pending retry")
+        self.assertGreater(self.project.store.get_task(task["id"])["revision"], pending["revision"])
+
+    def test_context_blocking_cannot_stop_a_concurrently_claimed_attempt(self):
+        self.generate(CandidateRuntime(), max_components=0)
+        task = next(task for task in self.project.store.ready_tasks(100) if task["kind"] == "implement")
+        other = DVProject(self.root)
+        block_context = self.project.store.block_context
+        running = []
+
+        def claim_before_block(*args, **kwargs):
+            other.store.claim(task["id"], "concurrent-connection")
+            running.append(other.store.get_task(task["id"]))
+            return block_context(*args, **kwargs)
+
+        with patch.object(self.project.store, "block_context", side_effect=claim_before_block):
+            with self.assertRaises(ConflictError):
+                generation._prepare_dispatch_context(self.project, task, "Complete context", {}, 1,
+                    "host", {}, None, lambda: None)
+        self.assertEqual(running[0], other.store.get_task(task["id"]))
+        self.assertEqual([], other.store.list_issues())
+
+    def test_context_blocker_and_issue_rollback_together_on_persistence_failure(self):
+        self.generate(CandidateRuntime(), max_components=0)
+        task = next(task for task in self.project.store.ready_tasks(100) if task["kind"] == "implement")
+        with patch.object(self.project.store, "_add_issue_current", side_effect=OSError("write interrupted")):
+            with self.assertRaisesRegex(OSError, "write interrupted"):
+                generation._prepare_dispatch_context(self.project, task, "Complete context", {}, 1,
+                    "host", {}, None, lambda: None)
+        self.assertEqual(task, self.project.store.get_task(task["id"]))
+        self.assertEqual([], self.project.store.list_issues())
+
     def test_pi_schema_and_runtime_share_the_execution_budget(self):
         adapter = CandidateRuntime()
         with patch("loopx.capabilities.chip_verification.engine.generation.runtime", return_value=adapter) as factory:
@@ -575,6 +732,78 @@ class GenerationTests(unittest.TestCase):
                     run_generation(self.project, [self.rtl], "dut", context_chars=budget)
             adapter.assert_not_called()
         self.assertEqual(original, self.project.config_path.read_bytes())
+
+    def test_runtime_contexts_distinguish_dut_from_xsim_testbench_top(self):
+        adapter = CandidateRuntime()
+        self.generate(adapter, max_components=1)
+        self.assertEqual(2, len(adapter.calls))
+        for call in adapter.calls:
+            contract = call["context"]["build_manifest_contract"]
+            self.assertEqual("dut", contract["dut_top"])
+            self.assertEqual("vivado_xsim", contract["simulator"])
+            self.assertEqual("tb_top", contract["template"]["top"])
+            self.assertIn(".json", contract["output_suffixes"])
+            self.assertNotIn(".do", contract["output_suffixes"])
+            self.assertEqual([str(self.rtl)], contract["template"]["rtl_files"])
+        self.assertIn("DUT module identifier", adapter.calls[0]["schema"]["properties"]["top"]["description"])
+
+    def test_late_bound_manifest_example_matches_real_backend_and_observed_activity_contract(self):
+        from loopx.capabilities.chip_verification.engine.generation import _build_manifest_contract
+        from loopx.capabilities.chip_verification.engine.simulators.generic import (
+            ManifestError, load_build_manifest, parse_smoke_log,
+        )
+        from loopx.capabilities.chip_verification.engine.simulators.xsim import SimulationError
+
+        contract = _build_manifest_contract({"top": "dut", "rtl": [],
+                                             "shared_specification": {"task_id": "fixture-contract"}}, None)
+        self.assertEqual([], contract["template"]["rtl_files"])
+        self.assertIn("not a runnable build", contract["rtl_binding"])
+        self.assertIn("never create a fake DUT", contract["rtl_binding"])
+        candidate = self.root / "manifest-example"
+        candidate.mkdir()
+        (candidate / "tb_top.sv").write_text("module tb_top; dut dut_instance(); endmodule\n", encoding="utf-8")
+        manifest = candidate / "build.json"
+        value = copy.deepcopy(contract["template"])
+        save_json(manifest, value)
+        with self.assertRaisesRegex(ManifestError, "rtl_files"):
+            load_build_manifest(manifest)
+        # Emulate only the join's path binding, without claiming simulation.
+        value["rtl_files"] = [str(self.rtl)]
+        value["compile_order"].insert(0, str(self.rtl))
+        save_json(manifest, value)
+        parsed = load_build_manifest(manifest)
+        self.assertEqual("tb_top", parsed["top"])
+        self.assertEqual([str(self.rtl)], parsed["rtl_files"])
+        self.assertEqual("smoke_test", parsed["testname"])
+        log = "UVM Report Summary\nUVM_ERROR : 0\nUVM_FATAL : 0\nLOOPX_ACTIVITY checks=7 transactions=4\n"
+        observed = parse_smoke_log(log, parsed["activity_contract"])
+        self.assertEqual({"checks": 7, "transactions": 4}, observed["activity"]["counters"])
+        with self.assertRaises(SimulationError):
+            parse_smoke_log(log.replace("transactions=4", "transactions=0"), parsed["activity_contract"])
+
+    def test_execution_target_conflict_is_reported_without_overriding_sourced_profile(self):
+        profile_path, profile, _ = self.make_profile()
+        profile["testbench_choices"].append({"id": "execution_target", "statement": "Use the supplied Questa simulator choice",
+            "rationale": "Explicit profile runtime selection", "source_refs": [], "value": {"simulator": "questa"}})
+        save_json(profile_path, profile)
+        original = profile_path.read_bytes()
+        adapter = CandidateRuntime()
+        with self.assertRaisesRegex(ValidationError, "unsupported simulator"):
+            self.generate(adapter, profile_path=profile_path)
+        self.assertEqual([], adapter.calls)
+        self.assertEqual(original, profile_path.read_bytes())
+
+    def test_path_error_identifies_unsupported_script_without_unbounded_echo(self):
+        from loopx.capabilities.chip_verification.engine.generation import _safe_path
+
+        with self.assertRaises(ValidationError) as raised:
+            _safe_path("scripts/questa.do")
+        self.assertIn("scripts/questa.do", str(raised.exception))
+        self.assertIn("allowed suffixes", str(raised.exception))
+        self.assertIn(".json", str(raised.exception))
+        with self.assertRaises(ValidationError) as long_error:
+            _safe_path("x" * 10000 + ".do")
+        self.assertLess(len(str(long_error.exception)), 400)
 
 
 if __name__ == "__main__":

@@ -102,6 +102,17 @@ def test_command_with_spaces_uses_basename_and_interpreter_path(tmp_path, monkey
     assert entry["env"]["PATH"].startswith(str(executable.parent))
 
 
+def test_explicit_eda_bindings_survive_installed_host_restart(tmp_path, monkeypatch):
+    home = str(tmp_path / "eda-tool-home")
+    lint = str(tmp_path / "verible-verilog-lint")
+    monkeypatch.setenv("XILINX_VIVADO", home)
+    monkeypatch.setenv("LOOPX_VERIBLE_LINT", lint)
+    integration.install(tmp_path, execute=True)
+    environment = json.loads((tmp_path / ".trae/mcp.json").read_text())["mcpServers"]["loopx-dv"]["env"]
+    assert environment["XILINX_VIVADO"] == home
+    assert environment["LOOPX_VERIBLE_LINT"] == lint
+
+
 def test_write_failure_restores_existing_files(tmp_path, monkeypatch):
     real = integration._atomic_write
     attempts = 0
@@ -143,7 +154,10 @@ def test_mcp_schemas_fail_closed_and_writes_are_explicit(tmp_path):
 
     async def exercise():
         tools = {tool.name: tool for tool in await server.list_tools()}
-        assert len(tools) == 17
+        assert len(tools) == 22
+        assert {"dv_prepare_design", "dv_engineering_status", "dv_check_design", "dv_join_design"} <= tools.keys()
+        assert tools["dv_import"].inputSchema["properties"]["flow"]["default"] == "design-dv"
+        assert "rtl_files" not in tools["dv_generate_uvm"].inputSchema.get("required", [])
         assert tools["dv_import"].inputSchema["properties"]["context_chars"]["default"] == 24000
         assert tools["dv_build_uvm"].inputSchema["properties"]["run_smoke"]["default"] is True
         await server.call_tool("dv_status", {})

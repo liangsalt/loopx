@@ -24,8 +24,10 @@ ROLES = ["interface", "transaction", "config", "driver", "monitor", "sequencer",
          "reference_model", "scoreboard", "assertions", "coverage", "ral", "env", "sequence",
          "virtual_sequence", "test", "tb_top", "package", "build_manifest"]
 ROLE = {"type": "string", "enum": ROLES}
+_OUTPUT_SUFFIXES = (".sv", ".svh", ".v", ".f", ".tcl", ".md", ".json")
 ARCHITECTURE_SCHEMA = obj({
-    "top": TEXT, "uvm_version": TEXT,
+    "top": {"type": "string", "description": "The supplied DUT module identifier (top_declaration.module), not the generated testbench wrapper. The build manifest top names that wrapper separately."},
+    "uvm_version": TEXT,
     "interfaces": arr(obj({"name": TEXT, "description": TEXT, "signals": TEXTS})),
     "shared_contracts": arr(obj({"name": TEXT, "description": TEXT})),
     "components": arr(obj({
@@ -51,6 +53,9 @@ PROFILE_SCHEMA = obj({
 
 ARCHITECTURE_INSTRUCTION = """Design ONE coherent UVM testbench blueprint from the supplied DUT declaration, complete selected testpoints, related requirements and verification profile.
 Do not use tools, read a complete spec/testplan, edit files, or replace the RTL. Return only the requested JSON.
+Set blueprint.top to top_declaration.module: this is the DUT. Name the generated TB wrapper separately.
+Follow build_manifest_contract for the execution target and supported JSON manifest. Only .sv, .svh, .v, .f,
+.tcl, .md and .json output suffixes are supported; do not plan Questa .do or shell scripts.
 Use interface-oriented agents and reusable transaction/configuration contracts. Separate stimulus, observations,
 independent correctness checking and functional coverage. Distinguish testpoints, sequences and uvm_test classes.
 Plan all needed files: shared interface/types/config, UVCs, scoreboard or assertions, coverage, env, sequences,
@@ -66,6 +71,11 @@ Use provided clock period, reset stimulus, memory ABI and simulator choices; do 
 testbench choices are not normative spec requirements. Make additional harmless testbench-local choices explicit
 in shared_contracts. Never invent missing DUT behavior. Put essential design ambiguities in unresolved.
 Candidate validation is not compilation.
+When shared_specification is supplied, generate against its declared interface before RTL exists.
+Pending RTL file binding, elaboration, lint or CDC are later join obligations, not missing
+specification and not blueprint blockers. Record deferred tool obligations in shared_contracts;
+do not claim that UVM pin observations establish internal structural properties. Keep unresolved
+for essential undefined behavior/interface contradictions. The join supplies actual RTL paths.
 """
 COMPONENT_INSTRUCTION = """Implement ONE UVM component from the accepted blueprint and supplied testpoint excerpts.
 Do not use tools or read whole specs, testplans, RTL, or other sessions. Return files as JSON, without Markdown fences.
@@ -78,6 +88,16 @@ Use the complete mapped requirements and selected verification profile. Keep doc
 bindings and testbench choices distinct; configuration choices do not become independent correctness oracles.
 Use exactly the assigned file paths. If an essential design detail is missing, return an explicit unresolved item rather
 than guessing. These are candidate sources; never claim compile/simulation success or a coverage percentage.
+For shared-specification generation, RTL is deliberately late-bound by join-design. A build manifest
+may name its declared DUT path for later binding; do not create a fake DUT. Pending static tools are
+separate obligations; implement observable functional checks without claiming structural closure.
+Follow build_manifest_contract. A JSON build manifest names the TB wrapper as top, while the blueprint
+top remains the DUT. A .f file alone is not the executable JSON build manifest. Preserve assigned paths;
+an existing blueprint may leave JSON assembly to the host rather than permit an unowned extra file.
+Known downstream manifest assembly, RTL binding and tool execution are not unresolved items for a
+component that implements its assigned contract. Put those deferred obligations in notes. Reserve
+unresolved for a concrete missing specification or dependency needed to implement the owned files;
+identify that missing fact precisely rather than requiring downstream steps to finish first.
 """
 
 
@@ -105,6 +125,51 @@ def _hash(value):
 
 def _file_hash(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def _build_manifest_contract(basis, profile):
+    """A bounded projection of the shipped backend, never a new simulator owner."""
+    from .simulators.generic import _FIELDS
+
+    for section in ("documented_design_facts", "rtl_bindings", "testbench_choices"):
+        for item in (profile or {}).get(section, []):
+            value = item.get("value")
+            if not isinstance(value, dict) or "simulator" not in value:
+                continue
+            simulator = value["simulator"]
+            if not isinstance(simulator, str) or simulator.strip().lower() not in {"vivado", "xsim", "vivado_xsim", "vivado xsim"}:
+                question = "Verification profile item " + item["id"] + " selects an unsupported simulator; this provider currently executes Vivado XSim. Preserve the profile and select a supported adapter explicitly."
+                raise GenerationBlocked(question, [question])
+    late_bound = bool(basis.get("shared_specification"))
+    supplied_rtl = [item["path"] for item in basis["rtl"]]
+    # This is an example, not the authoritative file inventory. Large existing
+    # RTL inventories stay in the accepted task basis and must be bound locally.
+    inline_rtl = not late_bound and len(_encoded(supplied_rtl)) <= 1000
+    rtl = supplied_rtl if inline_rtl else []
+    return {
+        "simulator": "vivado_xsim", "schema_version": 1,
+        "allowed_fields": sorted(_FIELDS), "provider_owned_fields": ["engineering_binding"],
+        "dut_top": basis["top"], "output_suffixes": list(_OUTPUT_SUFFIXES),
+        "rules": [
+            "Emit a .json manifest for this backend; a .f list or Questa .do script is insufficient.",
+            "candidate_dir is relative to the manifest's parent. All listed relative paths are relative to candidate_dir. Use '.' when the manifest is at the output root.",
+            "top names the generated TB wrapper module; testname names its registered uvm_test class. Replace the example names and file list with the actual planned ones.",
+            "tb_files contains each .sv/.v translation unit once, in dependency order. Do not also compile .svh files included by a package; list their directories in include_dirs.",
+            "compile_order lists each RTL and TB translation unit once. In a late-binding template, order TB units only; join-design inserts actual RTL first.",
+            "Use UVM_NO_DPI with this backend. Do not introduce DUT defines, omit checks, or disable assertions to make a run pass.",
+            "Print the activity marker from actual monitor/scoreboard counters at report/end of test: checks counts comparisons executed and transactions counts observed DUT transfers. Never print fabricated constants or infer coverage percentage.",
+            "engineering_binding is written by join-design. Omit optional tool paths/extra_inputs/coverage_manifest unless real provided artifacts require them; do not invent paths or coverage evidence.",
+        ],
+        "rtl_binding": ("rtl_files=[] is a preparation template before join-design, not a runnable build. Missing RTL is not a TB-generation blocker; never create a fake DUT."
+                        if late_bound else "Use the complete actual RTL inventory in the generation basis; do not generate or replace DUT files. An empty example inventory means the host must bind that complete inventory before build."),
+        "rtl_inventory": {"file_count": len(supplied_rtl), "sha256": _hash(basis["rtl"]), "included_in_example": inline_rtl},
+        "template": {"schema_version": 1, "candidate_dir": ".", "top": "tb_top", "rtl_files": rtl,
+                     "tb_files": ["tb_top.sv"], "compile_order": [*rtl, "tb_top.sv"], "include_dirs": [],
+                     "defines": ["UVM_NO_DPI"], "uvm_no_dpi": True, "testname": "smoke_test", "runtime": "all",
+                     "seed": 1, "timescale": "1ns/1ps",
+                     "activity_contract": {"pattern": r"LOOPX_ACTIVITY checks=(?P<checks>[0-9]+) transactions=(?P<transactions>[0-9]+)",
+                                           "minimums": {"checks": 1, "transactions": 1}}},
+    }
 
 
 def load_generation_profile(project, profile_path, top):
@@ -196,18 +261,24 @@ def _requirement_views(project, points):
 
 
 def _safe_path(value: str) -> str:
+    def reject(message):
+        rendered = repr(value)
+        if len(rendered) > 160:
+            rendered = rendered[:157] + "..."
+        raise ValidationError(message + ": " + rendered + "; allowed suffixes: " + ", ".join(_OUTPUT_SUFFIXES))
+
     if (not isinstance(value, str) or not value or "\\" in value or any(char in value for char in '<>:"|?*') or
             any(ord(character) < 32 for character in value)):
-        raise ValidationError("Generated path must be a nonempty relative POSIX path")
+        reject("Generated path must be a nonempty relative POSIX path")
     path = PurePosixPath(value)
     if path.is_absolute() or PureWindowsPath(value).is_absolute() or any(part in ("..", ".") for part in value.split("/")):
-        raise ValidationError("Generated path escapes its component output directory")
-    if "" in value.split("/") or path.suffix.lower() not in {".sv", ".svh", ".v", ".f", ".tcl", ".md", ".json"}:
-        raise ValidationError("Unsupported or ambiguous generated file path")
+        reject("Generated path escapes its component output directory")
+    if "" in value.split("/") or path.suffix.lower() not in _OUTPUT_SUFFIXES:
+        reject("Unsupported or ambiguous generated file path")
     reserved = {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"} | {
         prefix + suffix for prefix in ("COM", "LPT") for suffix in "123456789¹²³"}
     if any(part.endswith((" ", ".")) or part.split(".", 1)[0].rstrip(" ").upper() in reserved for part in path.parts):
-        raise ValidationError("Generated path contains a reserved or aliased Windows filename")
+        reject("Generated path contains a reserved or aliased Windows filename")
     return path.as_posix()
 
 
@@ -283,15 +354,20 @@ def _rtl_view(paths: list[Path], top: str) -> tuple[list[dict], dict]:
     return inventory, matches[0]
 
 
-def _plans(project):
-    plans = project.store.list_tasks(status="done", kind="plan")
+def _plans(project, contract_task_id=None):
+    kind = "contract-plan" if project.config.get("engineering_enabled") or contract_task_id else "plan"
+    plans = project.store.list_tasks(status="done", kind=kind)
+    if contract_task_id:
+        plans = [task for task in plans if task["payload"].get("contract_task_id") == contract_task_id]
     points = {}
     for task in plans:
         for point in task["result"].get("testpoints", []):
             reference = task["id"] + ":" + point["id"]
             if reference in points:
                 raise ValidationError("Accepted plan contains duplicate testpoint identity")
-            points[reference] = {**point, "id": reference, "plan_task_id": task["id"]}
+            points[reference] = {**point, "id": reference, "plan_task_id": task["id"],
+                                 **({"contract_task_id": task["payload"]["contract_task_id"]}
+                                    if task["payload"].get("contract_task_id") else {})}
     if not points:
         raise ValidationError("UVM generation requires at least one accepted testpoint; run planning first")
     return plans, points
@@ -313,8 +389,9 @@ def _scope_entries(project, points):
             for name in tags:
                 tags[name].update(value for value in metadata.get(name, []) if isinstance(value, str) and value.strip())
         normalized = {name: sorted(values) for name, values in tags.items()}
-        key = _encoded(normalized)
-        grouped.setdefault(key, {"tags": normalized, "points": []})["points"].append((reference, point))
+        binding = point.get("contract_task_id")
+        key = _encoded([normalized, binding])
+        grouped.setdefault(key, {"tags": normalized, "contract_task_id": binding, "points": []})["points"].append((reference, point))
     # Reserve space for the DUT declaration, UVM contracts and dependency
     # artifacts. Count complete testpoint text, not only catalog headlines.
     point_budget = max(1, project.config["context_chars"] * 3 // 10)
@@ -331,6 +408,7 @@ def _scope_entries(project, points):
         semantic_chars = len(_encoded(semantics(batch)))
         identifier = "scope_" + _hash({"tags": group["tags"], "testpoint_ids": refs})[:20]
         scopes.append({"id": identifier, "tags": group["tags"], "testpoint_ids": refs,
+                       "contract_task_id": group.get("contract_task_id"),
                        "plan_task_ids": sorted({point["plan_task_id"] for _, point in batch}),
                        "testpoint_count": len(refs), "testpoint_characters": chars,
                        "semantic_context_characters": semantic_chars,
@@ -372,18 +450,38 @@ def generation_scopes(project, *, refresh=True) -> dict:
             "composition_status": "Independent generation scopes; cross-scope integration is a separate verification obligation."}
 
 
-def _snapshot(project, rtl_files, top, scope_id=None, profile_path=None):
+def _snapshot(project, rtl_files, top, scope_id=None, profile_path=None, contract_task_id=None):
     project.assert_inputs_current()
     project.store.verify_artifacts()
-    plans, points = _plans(project)
+    plans, points = _plans(project, contract_task_id)
     scopes = _scope_entries(project, points)
-    inventory, declaration = _rtl_view(rtl_files, top)
+    shared = None
+    if contract_task_id:
+        from .engineering import get_contract, declaration as contract_declaration
+        shared = get_contract(project, contract_task_id)
+        if shared["contract"]["top"] != top:
+            raise ValidationError("DUT top differs from the shared specification contract")
+        inventory = []
+        declaration = {"module": top, "path": "shared-contract:" + contract_task_id,
+                       "header": contract_declaration(shared), "body_declarations": [],
+                       "parser_limitations": "Declared interface contract; actual RTL binding must be checked at the simulation join."}
+        if rtl_files:
+            inventory, _ = _rtl_view(rtl_files, top)
+    else:
+        if project.config.get("engineering_enabled"):
+            raise ValidationError("Design/DV generation requires a shared contract_task_id")
+        inventory, declaration = _rtl_view(rtl_files, top)
     requirements = _requirement_views(project, points)
     profile = load_generation_profile(project, profile_path, top)
 
     def select(scope):
         selected_points = {reference: points[reference] for reference in scope["testpoint_ids"]}
         selected_plans = [task for task in plans if task["id"] in scope["plan_task_ids"]]
+        if shared:
+            questions = [item["question"] for task in selected_plans for item in task["result"].get("unresolved", [])
+                         if item.get("blocking")]
+            if questions:
+                raise GenerationBlocked("Selected shared-contract testplan has unresolved verification obligations", questions)
         selected_requirements = {identifier: requirements[identifier] for identifier in sorted({
             identifier for point in selected_points.values() for identifier in point["requirement_ids"]})}
         basis = {"generator_contract_version": 2,
@@ -394,6 +492,9 @@ def _snapshot(project, rtl_files, top, scope_id=None, profile_path=None):
                      "path": profile["profile_path"], "sha256": profile["profile_sha256"],
                      "sources": [{key: source[key] for key in ("id", "path", "sha256")} for source in profile["sources"]]},
                  "plans": [{"id": task["id"], "result_sha256": _hash(task["result"])} for task in selected_plans]}
+        if shared:
+            basis["shared_specification"] = {"task_id": shared["task_id"], "hash": shared["hash"],
+                                              "contract": shared["contract"]}
         return basis, selected_plans, selected_points, declaration, scopes, selected_requirements, profile
 
     if scope_id is not None:
@@ -431,7 +532,8 @@ def _bounded(instruction, context, budget, agent, schema):
 
 
 def _context_issues(project, task):
-    if task["status"] != "blocked" or not (task["reason"] or "").startswith("uvm_context_blocker:"):
+    if task["status"] not in {"blocked", "pending"} or (task["status"] == "blocked" and
+            not (task["reason"] or "").startswith("uvm_context_blocker:")):
         return []
     records = []
     for issue in project.store.list_issues():
@@ -457,20 +559,23 @@ def _block_context(project, task, instruction, context, budget, agent, schema, e
                "prompt_chars": len(prompt), "schema_chars": _schema_characters(agent, schema),
                "agent": agent, "context_sha256": identity, "evidence_path": str(path), "reason": str(error)}
     for issue, previous in _context_issues(project, task):
-        if previous == details:
+        if previous == details and task["status"] == "blocked":
             return task, {"status": "blocked", "issue_id": issue["id"], **details}
     save_json(path, {"schema_version": 1, **details, "prompt": prompt, "output_schema": schema})
     current = project.store.get_task(task["id"])
     if current["status"] not in {"pending", "blocked"} or current["revision"] != task["revision"]:
         raise ConflictError("Task changed while preparing its context budget blocker")
-    blocked = project.store.block(task["id"], "uvm_context_blocker: " + str(error) + " Evidence: " + str(path))
-    issue = project.store.add_issue("uvm_context_blocker", _encoded(details), task_id=task["id"])
+    blocked, issue = project.store.block_context(
+        task["id"], task["revision"], "uvm_context_blocker: " + str(error) + " Evidence: " + str(path), _encoded(details))
     return blocked, {"status": "blocked", "issue_id": issue["id"], **details}
 
 
 def _prepare_dispatch_context(project, task, instruction, context, budget, agent, schema,
                               explicit_budget, validate, dispatcher=None):
     """Apply identical durable budget admission to architecture and components."""
+    selected = getattr(dispatcher, "expected_task_id", None)
+    if selected and task["id"] != selected:
+        return task, None, None
     budget_issues = _context_issues(project, task)
     if task["status"] != "pending" and not budget_issues and not (dispatcher and dispatcher.owns(task)):
         return task, None, None
@@ -484,12 +589,12 @@ def _prepare_dispatch_context(project, task, instruction, context, budget, agent
         if explicit_budget is None or budget <= max(details["context_chars"] for _, details in budget_issues):
             return task, None, None
         validate()
-        task = project.store.requeue(task["id"])
         resolution = _encoded({"reason": "Complete required context was rebuilt and fits the explicitly increased execution budget; no input was truncated.",
                                "required_chars": len(prompt) + _schema_characters(agent, schema),
                                "context_chars": budget, "input_fingerprint": task["payload"]["input_fingerprint"]})
-        for issue, _ in budget_issues:
-            project.store.resolve_issue(issue["id"], resolution)
+        task, recovered = project.store.recover_context(task, [issue for issue, _ in budget_issues], resolution)
+        if not recovered:
+            return task, None, None
     return task, prompt, None
 
 
@@ -642,7 +747,7 @@ def _publish(project, directory, tasks, blueprint, basis):
 def run_generation(project, rtl_files: list, top: str, agent: str = "codex", timeout: int = 600,
                    max_components: int | None = None, notify=None, scope_id: str | None = None,
                    profile_path: str | Path | None = None, context_chars: int | None = None,
-                   dispatcher=None) -> dict:
+                   dispatcher=None, contract_task_id: str | None = None) -> dict:
     """Generate/resume one UVM candidate graph for the current accepted plan scope.
 
     ``project`` is a DVProject. Each component is a fresh model session. Completed
@@ -654,7 +759,7 @@ def run_generation(project, rtl_files: list, top: str, agent: str = "codex", tim
     if (agent not in {"codex", "pi", "host"} or (agent == "host" and dispatcher is None)
             or timeout <= 0 or (max_components is not None and max_components < 0)):
         raise ValueError("Invalid generation runtime, timeout or component limit")
-    if not rtl_files:
+    if not rtl_files and not contract_task_id:
         raise ValidationError("Provide the actual RTL source files; specification prose is not RTL")
     budget = project.config["context_chars"] if context_chars is None else context_chars
     if not isinstance(budget, int) or isinstance(budget, bool) or budget <= 0:
@@ -663,7 +768,8 @@ def run_generation(project, rtl_files: list, top: str, agent: str = "codex", tim
     if any(not path.is_file() for path in paths):
         raise ValidationError("An explicitly supplied RTL file does not exist")
     project.store.recover_expired()
-    basis, plans, points, declaration, scopes, requirements, profile = _snapshot(project, paths, top, scope_id, profile_path)
+    basis, plans, points, declaration, scopes, requirements, profile = _snapshot(project, paths, top, scope_id, profile_path, contract_task_id)
+    build_manifest_contract = _build_manifest_contract(basis, profile)
     selected_scope = basis["generation_scope"]
     fingerprint = _hash(basis)
     generation_id = "gen_" + fingerprint[:24]
@@ -676,7 +782,7 @@ def run_generation(project, rtl_files: list, top: str, agent: str = "codex", tim
         if not directory.resolve().is_relative_to(project.root.resolve()):
             raise ConflictError("Generation output directory moved outside the project")
         try:
-            current, *_ = _snapshot(project, paths, top, selected_scope["id"], profile_path)
+            current, *_ = _snapshot(project, paths, top, selected_scope["id"], profile_path, contract_task_id)
         except (ValidationError, OSError) as error:
             raise ConflictError("Generation inputs changed or became invalid during generation: " + str(error)) from error
         if _hash(current) != fingerprint:
@@ -686,6 +792,8 @@ def run_generation(project, rtl_files: list, top: str, agent: str = "codex", tim
                 "uvm_components": point["uvm_components"], "requirement_ids": point["requirement_ids"]}
                for reference, point in points.items()]
     architecture_context = {"scope": basis["scope"], "generation_scope": selected_scope,
+                            "shared_specification": basis.get("shared_specification"),
+                            "build_manifest_contract": build_manifest_contract,
                             "top_declaration": declaration,
                             "verification_profile": profile,
                             "testpoints": list(points.values()), "requirements": list(requirements.values()),
@@ -699,7 +807,8 @@ def run_generation(project, rtl_files: list, top: str, agent: str = "codex", tim
     architecture = project.store.add_task("architecture", f"Design UVM architecture for {top}",
                                            {"generation_id": generation_id, "generation_scope_id": selected_scope["id"],
                                             "input_fingerprint": fingerprint, "basis": basis},
-                                           depends_on=[task["id"] for task in plans], task_id="uvm_arch_" + fingerprint[:24])
+                                           depends_on=[task["id"] for task in plans] + ([contract_task_id] if contract_task_id else []),
+                                           task_id="uvm_arch_" + fingerprint[:24])
 
     def accept_architecture(response, attempt, attempt_dir):
         _ordered_components(response, points, top)
@@ -736,7 +845,9 @@ def run_generation(project, rtl_files: list, top: str, agent: str = "codex", tim
     for component in ordered:
         project.store.add_task("implement", f"Generate UVM {component['id']} for {top}",
                               {"generation_id": generation_id, "generation_scope_id": selected_scope["id"],
-                               "input_fingerprint": fingerprint, "component": component},
+                               "input_fingerprint": fingerprint, "component": component,
+                               **({"contract_task_id": contract_task_id, "contract_hash": basis["shared_specification"]["hash"]}
+                                  if contract_task_id else {})},
                               depends_on=[architecture["id"]] + [task_ids[identifier] for identifier in component["depends_on"]],
                               task_id=task_ids[component["id"]])
     completed_now, dispatched_now = 0, 0
@@ -745,6 +856,9 @@ def run_generation(project, rtl_files: list, top: str, agent: str = "codex", tim
             break
         if max_components is not None and dispatched_now >= max_components:
             break
+        selected = getattr(dispatcher, "expected_task_id", None)
+        if selected and task_ids[component["id"]] != selected:
+            continue
         task = project.store.get_task(task_ids[component["id"]])
         budget_issues = _context_issues(project, task)
         if task["status"] != "pending" and not budget_issues and not (dispatcher and dispatcher.owns(task)):
@@ -769,6 +883,8 @@ def run_generation(project, rtl_files: list, top: str, agent: str = "codex", tim
         if {record["path"].casefold() for record in dependency_files} != requested_files:
             raise ValidationError("A required UVM dependency file is absent")
         context = {"scope": basis["scope"], "top_declaration": declaration, "uvm_version": blueprint["uvm_version"],
+                   "shared_specification": basis.get("shared_specification"),
+                   "build_manifest_contract": build_manifest_contract,
                    "verification_profile": profile,
                    "shared_contracts": blueprint["shared_contracts"], "interfaces": blueprint["interfaces"],
                    "component": component, "prerequisite_contracts": [by_id[identifier] for identifier in sorted(ancestors)],
@@ -838,7 +954,12 @@ def run_generation(project, rtl_files: list, top: str, agent: str = "codex", tim
     result["components_generated_this_call"] = completed_now
     result["components_dispatched_this_call"] = dispatched_now
     result["context_chars"] = budget
-    planning = effective_planning_tasks(project.store.list_tasks())
+    planning = ([task for task in project.store.list_tasks() if task["kind"] in {"model", "spec-contract", "contract-plan"}]
+                if project.config.get("engineering_enabled") else effective_planning_tasks(project.store.list_tasks()))
+    if project.config.get("engineering_enabled"):
+        from .engineering import superseded_task_ids
+        superseded = superseded_task_ids(project)
+        planning = [task for task in planning if task["id"] not in superseded]
     result["planning_scope_complete"] = bool(planning) and all(task["status"] == "done" for task in planning)
     result["generation_scope"] = selected_scope
     result["scope_inventory"] = generation_scopes(project)
