@@ -196,7 +196,7 @@ old character-based decomposition to the structural strategy, invalidating its
 derived work without rewriting earlier evidence; read-only status identifies
 when that migration is needed. Actual runtime/tool failures remain visible.
 
-An EDA invocation returns a background job ID immediately. Its process, input
+A native EDA invocation returns a background job ID immediately. Its process, input
 snapshot, logs and result outlive the MCP connection. A new connection polls it.
 A dead process is reported as interrupted; retry is explicit. Unsupported or
 ignored assertions make smoke evidence unqualified even when the UVM error
@@ -210,12 +210,27 @@ reports or changed inputs do not pass. A clockless design is not silently marked
 CDC-not-applicable. Evidence retains the check target, tool identity, commands,
 input hashes and raw report/log hashes for revalidation.
 
+An explicit generation profile can instead select `cadence_xcelium`. The
+architecture and component tasks then receive one external Cadence manifest
+contract, including the complete RTL/TB source closure, separate DUT and TB
+tops, native UVM, test/seed, constraints and a frozen coverage model. Unknown
+or conflicting simulator choices block generation. Omitting a profile preserves
+the existing Vivado target; Cadence never silently falls back to it.
+`build-uvm` infers the target from the generated manifest and returns
+`external_execution_required` with the staged `eda/cadence_runner.py` entrypoint.
+It launches no native job and claims no compilation, simulation or coverage.
+The Cadence host performs those steps with its installed tools and qualified
+scripts. Native `check-design` and `join-design` remain Vivado-specific; external
+composition must preserve the same accepted shared contract and full input
+closure. Run events and Watchdog observations do not accept tool evidence or
+mark those checks complete. See the [Cadence path](../README.md#cadence-题目执行路径).
+
 ## Public actions and owners
 
 Ordinary use remains conversational. `dv_import`, `dv_claim`, `dv_context` and
 `dv_submit` drive task-scoped work; `dv_engineering_status` exposes the shared state.
 `dv_generate_uvm` accepts `contract_task_id` for contract-first generation.
-`dv_check_design` and `dv_build_uvm` return durable background job receipts;
+Native `dv_check_design` and `dv_build_uvm` return durable background job receipts;
 `dv_job_status` reads them across reconnects. `dv_join_design` binds the accepted
 tracks before the design-backed simulation. `dv_report` distinguishes current
 evidence from unknown coverage. CLI actions use the same provider and TypeScript

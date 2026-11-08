@@ -121,26 +121,44 @@ def _file_hash(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def simulation_target(value):
+    """Normalize an explicit capability target without choosing a fallback."""
+    aliases = {
+        "vivado": "vivado_xsim", "xsim": "vivado_xsim", "vivado_xsim": "vivado_xsim",
+        "vivado xsim": "vivado_xsim", "cadence": "cadence_xcelium", "xcelium": "cadence_xcelium",
+        "cadence_xcelium": "cadence_xcelium", "cadence xcelium": "cadence_xcelium",
+    }
+    if not isinstance(value, str) or value.strip().lower() not in aliases:
+        raise ValidationError("Unsupported simulator target; select Vivado XSim or external Cadence Xcelium explicitly")
+    return aliases[value.strip().lower()]
+
+
 def _build_manifest_contract(basis, profile):
-    """A bounded projection of the shipped backend, never a new simulator owner."""
+    """Project a generation target; external Cadence work is not tool acceptance."""
     from .simulators.generic import _FIELDS
 
+    targets = set()
     for section in ("documented_design_facts", "rtl_bindings", "testbench_choices"):
         for item in (profile or {}).get(section, []):
             value = item.get("value")
             if not isinstance(value, dict) or "simulator" not in value:
                 continue
-            simulator = value["simulator"]
-            if not isinstance(simulator, str) or simulator.strip().lower() not in {"vivado", "xsim", "vivado_xsim", "vivado xsim"}:
-                question = "Verification profile item " + item["id"] + " selects an unsupported simulator; this provider currently executes Vivado XSim. Preserve the profile and select a supported adapter explicitly."
+            try:
+                targets.add(simulation_target(value["simulator"]))
+            except ValidationError as error:
+                question = "Verification profile item " + item["id"] + " selects an unsupported simulator. " + str(error)
                 raise GenerationBlocked(question, [question])
+    if len(targets) > 1:
+        question = "Verification profile has conflicting simulator targets; reconcile the supplied choices before generation."
+        raise GenerationBlocked(question, [question])
+    target = next(iter(targets), "vivado_xsim")
     late_bound = bool(basis.get("shared_specification"))
     supplied_rtl = [item["path"] for item in basis["rtl"]]
     # This is an example, not the authoritative file inventory. Large existing
     # RTL inventories stay in the accepted task basis and must be bound locally.
     inline_rtl = not late_bound and len(_encoded(supplied_rtl)) <= 1000
     rtl = supplied_rtl if inline_rtl else []
-    return {
+    contract = {
         "simulator": "vivado_xsim", "schema_version": 1,
         "allowed_fields": sorted(_FIELDS), "provider_owned_fields": ["engineering_binding"],
         "dut_top": basis["top"], "output_suffixes": list(_OUTPUT_SUFFIXES),
@@ -164,6 +182,37 @@ def _build_manifest_contract(basis, profile):
                      "activity_contract": {"pattern": r"LOOPX_ACTIVITY checks=(?P<checks>[0-9]+) transactions=(?P<transactions>[0-9]+)",
                                            "minimums": {"checks": 1, "transactions": 1}}},
     }
+    if target == "cadence_xcelium":
+        # Keep the generated JSON consumable by the public external kit. Do not
+        # send it through XSim's schema or require its DPI compatibility define.
+        cadence_fields = (_FIELDS - {"uvm_no_dpi", "uvm_dir", "vivado_home", "coverage_manifest", "engineering_binding"}) | {
+            "simulator", "execution", "dut_top", "coverage_model", "constraints", "scripts",
+        }
+        contract.update(
+            simulator=target, execution="external", allowed_fields=sorted(cadence_fields),
+            provider_owned_fields=[],
+            rules=[
+                "Emit a JSON Cadence manifest with simulator='cadence_xcelium' and execution='external'. Use ordinary SystemVerilog RTL, SV UVM and SVA with a complete, explicitly ordered source closure.",
+                "candidate_dir is relative to the manifest's parent; listed paths are relative to candidate_dir. top is the TB wrapper; dut_top is the design module; testname is a registered uvm_test class.",
+                "compile_order lists each RTL/TB translation unit once in dependency order. Headers included by a package belong in include_dirs and extra_inputs, not separate translation units. Preserve all interfaces, defines and required memory data.",
+                "Use the selected Cadence installation's native UVM library. Do not force UVM_NO_DPI, invent a UVM source path, disable assertions, or import a Vivado build setting.",
+                "Generate the reviewed frozen functional-bin contract named by coverage_model: schema_version=1, metric='functional', target_percent=90, and nonempty bins with unique id and nonempty requirement_ids arrays. Define sampling and exclusions from the accepted testplan; an absent model or incomplete denominator cannot earn coverage credit.",
+                "constraints lists supplied clock/reset/SDC/formal inputs; scripts names supplied site-qualified IMC, Jasper and Genus scripts. Do not invent their contents or claim unknown tool commands were verified.",
+                "Record the actual seed, timescale, testname and complete inputs. Report monitor/scoreboard activity from real counters, never fixed success constants. Functional coverage, code coverage, assertions and formal proof are separate evidence.",
+                "Use the staged eda/cadence_runner.py inspect|plan|run --project <manifest> on the Cadence host; run requires --execute to launch a tool. This manifest is a generated candidate; no tool has executed merely because it validates.",
+                "The current native check-design/join-design path is Vivado-specific. For this external target, bind the accepted RTL/TB/shared-contract revision and full source closure in the Cadence manifest; preserve unresolved composition/check obligations. Event completion is observation, not signoff.",
+            ],
+            rtl_binding=("rtl_files=[] is a preparation template before external RTL binding, not a runnable build. Bind every accepted RTL file and the shared contract/configuration revision before Cadence execution; never create a fake DUT."
+                         if late_bound else "Use the complete actual RTL inventory in the generation basis; do not generate or replace DUT files. Bind every file before external execution."),
+        )
+        template = contract["template"]
+        template.pop("uvm_no_dpi")
+        cadence_rtl = [] if late_bound else supplied_rtl
+        contract["rtl_inventory"]["included_in_example"] = not late_bound
+        template.update(simulator=target, execution="external", dut_top=basis["top"], defines=[],
+                        rtl_files=cadence_rtl, compile_order=[*cadence_rtl, "tb_top.sv"],
+                        coverage_model="coverage_model.json", constraints=[], scripts={}, extra_inputs=[])
+    return contract
 
 
 def load_generation_profile(project, profile_path, top):

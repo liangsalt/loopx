@@ -82,7 +82,25 @@ flowchart TD
 
 在安装 TRAE 接入前设置这两个环境变量，安装器会将明确的工具位置保留在项目 MCP 配置中，供重启后的后台工具进程使用。工具迁移后重新安装接入配置；`dv_doctor` 可读取当前绑定。
 
-设计路径先执行 `dv_join_design`，再把返回的清单交给 `dv_build_uvm`。参数化实例配置的联合验证目前未完成资格验证，会明确拒绝。`dv_build_uvm` 提交后台 EDA 作业，默认使用 Vivado 并执行 smoke；通过 `dv_job_status` 读取检查或仿真进度。`dv_report` 报告真实证据和限制；通用覆盖率目前未知，不能用任务完成率充当覆盖率。
+当前原生设计路径先执行 `dv_join_design`，再把返回的清单交给 `dv_build_uvm`。参数化实例配置的联合验证目前未完成资格验证，会明确拒绝。未选择外部目标的历史清单使用 Vivado 后台作业并默认执行 smoke；通过 `dv_job_status` 读取检查或仿真进度。`dv_report` 报告真实证据和限制；通用覆盖率目前未知，不能用任务完成率充当覆盖率。
+
+## Cadence 题目执行路径
+
+公开题库的 Cadence 题面要求交付自包含的标准 SystemVerilog、SV UVM/SVA 和完整源文件清单。Coral、OpenTitan 等上游工程用于规范出处和历史机制参考；题目完成不要求运行它们的 Scala/Chisel、Bazel、DVSim、FuseSoC 或 Verilator 构建流程。此路径使用 Xcelium、IMC，以及目标主机实际具备的 Jasper/Genus 阶段；源材料和运行 kit 的交付不代表这些工具已经通过验收。
+
+导出题目后，使用随附的 `eda/verification_profile.json` 生成 UVM：`dv_generate_uvm(..., profile_path="eda/verification_profile.json")`，或 CLI 的 `generate-uvm --profile-path eda/verification_profile.json`。该 profile 绑定题目合同正文的实际哈希与 DUT 顶层，明确选择 `cadence_xcelium`。架构与组件任务使用同一目标，生成 `simulator="cadence_xcelium"`、`execution="external"` 的构建清单，并使用 Cadence 原生 UVM；不强制加入 XSim 的 `UVM_NO_DPI`。混合或未知的仿真器选择会明确拒绝。没有显式 profile 的历史通用项目继续沿用 Vivado 兼容路径。
+
+Cadence 清单明确区分 DUT `dut_top` 与 TB `top`，保存完整 `rtl_files`、`tb_files`、`compile_order`、`include_dirs`、`defines`、测试与 seed；必要的 clock/reset/SDC、formal assumptions、共享约定与外部数据作为实际输入绑定。`coverage_model` 指向预先冻结的功能 bin 合同；`scripts` 引用按目标安装版本核实的 IMC/Jasper/Genus 脚本。不要用未提供的 IP、空模块或伪造数据补齐依赖闭包。
+
+`dv_build_uvm` 优先读取清单中的目标。Cadence 返回 `external_execution_required` 和以下外部入口，不启动 XSim，也不声称已经编译：
+
+```console
+python eda/cadence_runner.py inspect --project generated/cadence-build.json
+python eda/cadence_runner.py plan --project generated/cadence-build.json
+python eda/cadence_runner.py run --project generated/cadence-build.json --execute
+```
+
+这些命令在已导出的题目目录和具备 Cadence 安装/许可的 EDA 主机执行；先补齐生成产物，再核实实际版本、脚本与输入。当前原生 `check-design` / `join-design` 仍是 Vivado/Verible 路径，不能将其日志或结果替换成 Cadence 报告。Cadence 路径在外部 manifest 中绑定同一已接受设计/DV 约定与完整 RTL/TB，保留检查和集成义务，通过既有运行注册、事件与 Watchdog 接收观测。真实原生数据库、日志和报告仍需分别验证；事件 `completed` 不会变成设计通过、formal proved 或覆盖率达标。
 
 ## 会话与能力边界
 

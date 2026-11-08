@@ -861,5 +861,13 @@
       "kind": "related",
       "rationale": "Candidate; unproven. System Integration PULP Open / CVA6 Register are examples for other platforms. They inform review of cheshire_idma_wrap but do not establish its integration contract."
     }
-  ]
+  ],
+  "execution": {
+    "classification": "reading_corpus_not_runnable_soc",
+    "toolchain_family": "cadence",
+    "simulation": "xcelium",
+    "coverage": "imc",
+    "upstream_native_build_required": false,
+    "requires_authored_scope_before_implementation": true
+  }
 }

@@ -217,3 +217,65 @@ def test_changed_spec_prevents_old_attempt_acceptance(tmp_path: Path) -> None:
     assert status["inputs_current"] is False
     assert status["next_action"] == "import"
     assert status["signoff"] is False
+
+
+def test_cadence_manifest_routes_to_external_execution_without_native_job(tmp_path: Path, monkeypatch) -> None:
+    from loopx.capabilities.chip_verification import jobs
+    from loopx.capabilities.chip_verification.engine.workflow import DVProject
+
+    import_fixture(tmp_path)
+    manifest = tmp_path / "cadence-build.json"
+    manifest.write_text(json.dumps({"schema_version": 1, "simulator": "cadence_xcelium", "execution": "external",
+                                    "rtl_files": [], "tb_files": [], "top": "tb_top"}), encoding="utf-8")
+    calls = []
+    monkeypatch.setattr(jobs, "launch", lambda *args, **kwargs: calls.append((args, kwargs)))
+    result = invoke("build-uvm", workspace=tmp_path, arguments={"manifest": manifest.name}, execute=True)
+    assert result["status"] == "external_execution_required"
+    assert result["manifest_contract_declared"] is True
+    assert result["simulator"] == "cadence_xcelium"
+    assert result["commands"][0] == ["python", "eda/cadence_runner.py", "inspect", "--project", manifest.name]
+    assert result["commands"][-1][-1] == "--execute"
+    assert result["runner_available"] is False
+    assert all(result[name] is False for name in ("execution_performed", "compiled", "simulated", "coverage_verified", "signoff"))
+    assert calls == []
+    assert not DVProject(tmp_path).store.list_tasks(kind="build")
+    # A missing source closure is left to the external inspector, not reported
+    # as compiled simply because dispatch can identify its target.
+    assert not (tmp_path / "eda").exists()
+
+
+def test_explicit_cadence_never_uses_legacy_default_and_conflicts_fail(tmp_path: Path, monkeypatch) -> None:
+    from loopx.capabilities.chip_verification import jobs
+
+    import_fixture(tmp_path)
+    manifest = tmp_path / "m.json"
+    manifest.write_text('{"schema_version":1}', encoding="utf-8")
+    calls = []
+    monkeypatch.setattr(jobs, "launch", lambda *args, **kwargs: calls.append((args, kwargs)))
+    result = invoke("build-uvm", workspace=tmp_path,
+                    arguments={"manifest": manifest.name, "simulator": "xcelium"}, execute=True)
+    assert result["status"] == "external_execution_required" and result["manifest_contract_declared"] is False
+    assert calls == []
+    manifest.write_text('{"simulator":"cadence_xcelium","execution":"external"}', encoding="utf-8")
+    with pytest.raises(ValueError, match="conflicts"):
+        invoke("build-uvm", workspace=tmp_path,
+               arguments={"manifest": manifest.name, "simulator": "vivado"}, execute=True)
+    manifest.write_text('{"simulator":"unavailable_vendor"}', encoding="utf-8")
+    with pytest.raises(RuntimeError, match="Unsupported simulator"):
+        invoke("build-uvm", workspace=tmp_path, arguments={"manifest": manifest.name}, execute=True)
+    manifest.write_text('{"execution":"external"}', encoding="utf-8")
+    with pytest.raises(ValueError, match="explicit supported external"):
+        invoke("build-uvm", workspace=tmp_path, arguments={"manifest": manifest.name}, execute=True)
+    assert calls == []
+
+
+def test_legacy_manifest_still_launches_native_backend(tmp_path: Path, monkeypatch) -> None:
+    from loopx.capabilities.chip_verification import jobs
+
+    import_fixture(tmp_path)
+    manifest = tmp_path / "legacy.json"
+    manifest.write_text('{"schema_version":1}', encoding="utf-8")
+    calls = []
+    monkeypatch.setattr(jobs, "launch", lambda project, request: calls.append(request) or {"status": "queued"})
+    assert invoke("build-uvm", workspace=tmp_path, arguments={"manifest": manifest.name}, execute=True)["status"] == "queued"
+    assert calls == [{"manifest": str(manifest), "run_smoke": True, "timeout": 600}]

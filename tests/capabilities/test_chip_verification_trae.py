@@ -162,6 +162,7 @@ def test_mcp_schemas_fail_closed_and_writes_are_explicit(tmp_path):
         assert "context_chars" not in tools["dv_import"].inputSchema["properties"]
         assert "context_chars" not in tools["dv_generate_uvm"].inputSchema["properties"]
         assert tools["dv_build_uvm"].inputSchema["properties"]["run_smoke"]["default"] is True
+        assert tools["dv_build_uvm"].inputSchema["properties"]["simulator"]["default"] is None
         await server.call_tool("dv_status", {})
         await server.call_tool("dv_claim", {"session_id": "trae-worker-one", "task_id": "task-one"})
         await server.call_tool("dv_context", {"attempt_id": "attempt-one"})
@@ -213,6 +214,10 @@ def test_real_installed_stdio_reconnect_validation_and_idempotent_submit(tmp_pat
         "module": "timer",
         "requirements": ["Reset sets count to zero.", "Disabled timer retains its count."],
     }), encoding="utf-8")
+    (workspace / "cadence-build.json").write_text(json.dumps({
+        "schema_version": 1, "simulator": "cadence_xcelium", "execution": "external",
+        "rtl_files": [], "tb_files": [], "top": "tb_top",
+    }), encoding="utf-8")
     assert integration.install(workspace, execute=True)["files_verified"]
     entry = json.loads((workspace / ".trae/mcp.json").read_text())["mcpServers"]["loopx-dv"]
     params = StdioServerParameters(
@@ -236,6 +241,12 @@ def test_real_installed_stdio_reconnect_validation_and_idempotent_submit(tmp_pat
             assert "dv_claim" in {tool.name for tool in tools.tools}
             assert (await call(session, "dv_status"))["initialized"] is False
             assert (await call(session, "dv_import", {"spec": "spec.json"}))["status"] == "imported"
+            external = await call(session, "dv_build_uvm", {"manifest": "cadence-build.json"})
+            assert external["status"] == "external_execution_required"
+            assert external["execution_performed"] is False and external["signoff"] is False
+            assert "job_id" not in external
+            conflict = await session.call_tool("dv_build_uvm", {"manifest": "cadence-build.json", "simulator": "vivado"})
+            assert conflict.isError
             claim = await call(session, "dv_claim", {"session_id": "trae-protocol-worker-one"})
             attempt = claim["attempt_id"]
             context = await call(session, "dv_context", {"attempt_id": attempt})
@@ -269,6 +280,7 @@ def test_real_installed_stdio_reconnect_validation_and_idempotent_submit(tmp_pat
             assert rejected.isError
             report = await call(session, "dv_report")
             assert report["coverage"]["percent"] is None and report["signoff"] is False
+            assert report["execution_count"] == 0
             escape = await session.call_tool("dv_submit", {"attempt_id": attempt,
                                                              "response_file": "../../outside.json"})
             assert escape.isError

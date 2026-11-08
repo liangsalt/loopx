@@ -15,6 +15,7 @@ import sys
 import tempfile
 
 from fetch import git_blob, prose_text
+from cadence_case_kit import stage_execution_kit, validate_execution_kit
 
 
 CASES = Path(__file__).resolve().parent / "cases"
@@ -96,6 +97,8 @@ def check_input(root: Path, *, minimum: int = MINIMUM_BODY_BYTES) -> dict:
     for entry in licenses:
         require(PurePosixPath(entry["path"]).name in {"LICENSE", "NOTICE"}, "Unexpected license filename")
         allowed.add(entry["path"])
+    if (root / "eda/kit_manifest.json").exists():
+        allowed.update(validate_execution_kit(root))
     actual = {p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()}
     require(actual == allowed, f"Unexpected/missing input files: {sorted(actual ^ allowed)[:8]}")
     hashes = set()
@@ -147,6 +150,21 @@ def check_input(root: Path, *, minimum: int = MINIMUM_BODY_BYTES) -> dict:
     for doc in adjudications:
         require(sources[doc["id"]].get("count_toward_size") is False,
                 "Authored source adjudications cannot count toward the original specification size")
+    profile = read_json(root / "integration_profile.json")
+    require(profile.get("toolchain", {}).get("family") == "cadence"
+            and profile["toolchain"].get("simulation") == "xcelium"
+            and profile["toolchain"].get("native_build_required") is False,
+            "Cadence execution toolchain contract is required")
+    contract = docs.get("adjudication-CADENCE")
+    require(contract is not None and sources[contract["id"]]["path"] == "cadence_contract.md"
+            and contract["origin"].get("kind") == "source_adjudication",
+            "Missing routed Cadence execution contract")
+    require({target["document_id"] for target in contract["origin"]["targets"]}
+            == {entry["id"] for entry in sources.values() if entry.get("upstream_path")},
+            "Cadence execution contract must cover every original source")
+    require(profile.get("execution_contract", {}).get("document_id") == contract["id"]
+            and profile["execution_contract"].get("path") == "cadence_contract.md",
+            "Cadence profile and embedded execution contract diverge")
     return {"spec_bytes": (root / "spec.json").stat().st_size,
             "unique_specification_body_bytes": body_bytes,
             "unique_specification_prose_bytes": prose_bytes, "documents": len(docs),
@@ -294,10 +312,13 @@ def stage(case_id: str, destination: Path, cases: Path = CASES) -> dict:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(safe_path(source_root, item["path"]).read_bytes())
         check_files(staging, selected["input_files"])
+        kit = stage_execution_kit(staging, read_json(staging / "integration_profile.json"))
+        check_input(staging)
         require(not destination.exists(), "Destination appeared during staging")
         os.rename(staging, destination)
     return {"ok": True, "case": case_id, "input_files": len(selected["input_files"]),
             "destination": str(destination), "answers_exported": False,
+            "cadence_kit": kit,
             "isolation": "input-only export; host filesystem and network access are not sandboxed"}
 
 

@@ -1,13 +1,17 @@
 # 芯片设计与 UVM 验证案例
 
+本目录的四份正式题目统一采用 **独立 SystemVerilog RTL + SV UVM/SVA + Cadence**：Xcelium 仿真、IMC 覆盖率、Jasper lint/CDC/FPV、Genus 综合检查。原项目的构建系统和开源仿真工具不是解题依赖。每题的 `cadence_contract.md` 明确本题接口和作者约定，并作为必需来源送入设计、TP 和 UVM 任务；上游材料保持原始字节，仅按适用范围引用。
+
+导出命令同时生成 [Cadence 执行套件](cadence/README.md)，包括输入闭包检查、命令计划和真实进程回执。它不会把工具启动成功当成验收，也不会自动宣称覆盖率。当前仓库检查不包含有许可证的 Cadence 执行；最终编译、仿真、静态检查和覆盖率收敛在 EDA 主机完成。
+
 ## 仓库内的复杂题目与参考答案
 
 `cases/` 保存两个可离线使用的公开题目，以及同一 OpenTitan 固定版本的实际参考 RTL、UVM、测试计划和 FPV 文件。每题 `input/spec.json` 的**独立上游规格正文大于 512 KiB（524,288 字节）**，JSON 包装、重复文档、作者补充的系统题设、RTL、验证代码和许可证均不计入门槛。两题共享的协议资料在每题只计算一次。
 
 | 题目 | 设计范围 | spec.json 字节 | 独立规格正文字节 | 题目与答案 |
 | --- | --- | ---: | ---: | --- |
-| 串行 I/O 子系统 | SPI Host、SPI Device、USB Device；TL-UL 访问、FIFO/缓冲、模式切换、错误与中断、时钟复位和外部连接约束 | 953,979 | 567,411 | [opentitan-serial-io](cases/opentitan-serial-io/README.md) |
-| 常开控制子系统 | 电源、复位、时钟、系统复位、引脚复用与告警处理；低功耗进入/退出、唤醒、保持、复位原因、升级处理 | 1,152,997 | 592,589 | [opentitan-aon-control](cases/opentitan-aon-control/README.md) |
+| 串行 I/O 子系统 | SPI Host、SPI Device、USB Device；逻辑 TL-UL 访问、FIFO/缓冲、模式切换、错误与中断、时钟复位和外部连接约束 | 976,169 | 567,411 | [opentitan-serial-io](cases/opentitan-serial-io/README.md) |
+| 常开控制子系统 | 电源、复位、时钟、系统复位、引脚复用与告警处理；低功耗进入/退出、唤醒、保持、复位原因、升级处理 | 1,179,149 | 592,589 | [opentitan-aon-control](cases/opentitan-aon-control/README.md) |
 
 每题从作者明确标注的系统题设，连接到原始架构、微架构和模块/寄存器规格。设计线与 DV 线读取同一份 `module_graph.json` 和集成约束。这些文件是输入材料与验收依据，不是另一个任务状态管理器；运行状态仍由 LoopX 保存。
 
@@ -19,9 +23,9 @@
 python examples/chip-verification/semantic_partition_trial.py --destination ..\chip-runs\semantic-01
 ```
 
-两题现已直接修订 46 个不同的问题编号（串行题适用 27 项、常开题适用 25 项，部分共有）。`input/problem.md` 给出生效规则；`input/adjudications/` 的单项规则同时嵌入 `spec.json`，以原文哈希和行范围绑定。LoopX 分片后将相关规则作为必需依赖送入上下文，要求保留原文与修订的共同引用，再传向同一设计/DV契约。明确的练习约定标注作者权限，原始上游文件保持不变。ABI、pad 能力和少量精确时序缺口只约束依赖它们的验收项，不能伪装为已解决或已覆盖；背景差异不扩大 DUT 范围。
+两题现已直接修订 46 个不同的问题编号（串行题适用 27 项、常开题适用 25 项，部分共有）。`input/problem.md` 给出生效规则；`input/adjudications/` 的单项规则同时嵌入 `spec.json`，以原文哈希和行范围绑定。LoopX 分片后将相关规则作为必需依赖送入上下文，要求保留原文与修订的共同引用，再传向同一设计/DV契约。新增 Cadence 合同以作者约定明确数字 pad、时序与 `bench_tl_v1` 总线/CRC7 接口；这是本题接口，并非上游 TL-UL 二进制 ABI 或 SECDED 的等价实现。背景差异不扩大 DUT 范围。
 
-目录中的 `answer_guide.md` 和 `obligations.json` 解释预期行为、来源、负向测试、覆盖维度与已知歧义；共享 `reference/` 保存锁定版本的上游实现。答案用于语义和接口比较，不要求候选 RTL 与上游逐字一致。Pinmux 在该版本具有 FPV/安全测试计划，缺少同版本独立 UVM 环境，不能用其他模块的 UVM 代替其验收。
+目录中的 `answer_guide.md` 和 `obligations.json` 解释预期行为、来源、负向测试与覆盖维度；共享 `reference/` 保存锁定版本的上游实现。上游参考不是新合同的完整可执行 golden；比较前必须明确接口与行为差异。Pinmux 需要独立的本题验证环境，不能用其他模块的 UVM 代替其验收。
 
 先在仓库根目录离线校验，再导出一个**仓库外的新目录**作为待测宿主工作区：
 
@@ -35,7 +39,7 @@ python -m loopx.cli chip-verification --workspace ..\chip-runs\serial-io-01 impo
 
 Codex、TRAE 中国版及其他宿主使用现有 [chip-verification 能力](../../loopx/capabilities/chip_verification/README.md)，通过状态查询、领取任务、限定上下文和结果提交推进两条线。只有一个 Agent runtime 也可以运行；更换会话不改变项目状态。不要将整个大规格粘贴进对话。
 
-参考材料已锁定来源并保留许可证，但依赖闭包与本机仿真基线尚未合格。完整验收必须分别进行“候选 RTL × 参考 TB”“候选 TB × 参考 RTL”、错误变异检出，以及固定覆盖分母下的回归。`case_tool.py` 只证明文件完整性、输入隔离和大小；它不执行仿真，不生成覆盖率百分比。
+参考材料已锁定来源并保留许可证。完整验收需要独立于候选实现的协议/行为模型、checker 活动证据、错误变异检出及固定覆盖分母下的回归。若采用 RTL/TB 交叉验证，参考实现和环境也必须独立满足本题新合同，不能直接套用未适配的上游参考。`case_tool.py` 只证明文件完整性、输入隔离和大小；它不执行仿真，不生成覆盖率百分比。
 
 本目录的静态公开题库是明确选定、带许可证的仓库内容。下面的旧版下载式 starter 保持原有行为；其临时下载、用户设计、生成物和运行日志仍留在忽略目录，不因新增题库而变为应提交材料。
 
@@ -48,14 +52,14 @@ python -m pytest -q examples/chip-verification/test_opentitan_adjudications.py
 
 ## 来自 Coral NPU issue 的复杂题目
 
-[`issue_cases/`](issue_cases/README.md) 另存两份以真实故障为入口的系统集成题。题面贯穿系统观察、ISA/CSR、调度与微架构、模块边界、RTL 修复和独立 UVM 验证；候选输入保存修复前源码种子，参考修复、补丁和上游回归只在答案目录。
+[`issue_cases/`](issue_cases/README.md) 另存两份由真实故障启发的独立 SV 子系统题。题面贯穿系统观察、ISA/CSR、调度与微架构、模块边界、RTL 实现和独立 UVM 验证；候选输入保存修复前源码作为历史机制参考，参考修复、补丁和上游回归只在答案目录。它们不是要求复现或修复整个 Coral NPU。
 
 | 题目 | 来源 | spec.json 字节 | 独立原始上下文字节 |
 | --- | --- | ---: | ---: |
-| 零元素向量操作退休与前进性 | [Coral NPU #89](https://github.com/google-coral/coralnpu/issues/89) | 647,013 | 606,813 |
-| FENCE.TSO 合法性与内存排序 | [Coral NPU #130](https://github.com/google-coral/coralnpu/issues/130) | 666,546 | 625,849 |
+| 零元素向量操作退休与前进性 | [Coral NPU #89](https://github.com/google-coral/coralnpu/issues/89) | 669,251 | 606,813 |
+| FENCE.TSO 合法性与内存排序 | [Coral NPU #130](https://github.com/google-coral/coralnpu/issues/130) | 686,602 | 625,849 |
 
-Coral 的字节列统计保留的原始上下文，包含范围策略明确排除的 ISA 背景，不能等同于全部适用规范。规格锁定 RISC-V ISA 20240411 和各题修复前的 Coral 提交，不混用旧 Kelvin SIMD 与 RVV 配置。简短的范围策略随每个原文片段提供。两题均要求集成已固定的现有 IP，而非从通用 ISA 章节重造完整 NPU。
+Coral 的字节列统计保留的原始上下文，包含范围策略明确排除的 ISA 背景，不能等同于全部适用规范。规格锁定 RISC-V ISA 20240411 和各题修复前的 Coral 提交，不混用旧 Kelvin SIMD 与 RVV 配置。范围策略和新合同随相关原文片段提供。新合同定义普通 SV 类型与端口、四项命令队列、乱序响应与顺序退休、错误/flush、前进性和 UVM 检查义务；历史 `baseline/` 与 `sources/` 不能混入候选执行依赖。
 
 ```powershell
 python examples/chip-verification/coral_issue_cases.py validate
@@ -64,7 +68,9 @@ python -m loopx.cli chip-verification --workspace ..\chip-runs\coral-zero-01 imp
 python -m unittest discover -s examples/chip-verification -p test_coral_issue_cases.py -v
 ```
 
-另一题使用 `coralnpu-fence-tso-ordering` 和新的导出目录。完整仓库、构建依赖和 EDA 仍需在实验机器准备；补丁来源校验不代表 RTL/UVM 仿真通过。90% 功能覆盖率是冻结适用覆盖分母后的执行验收目标，不是题库生成结果。
+另一题使用 `coralnpu-fence-tso-ordering` 和新的导出目录。实验机器需要 Cadence 工具及许可证，不需要 Coral 原生工具链。补丁来源校验不代表 RTL/UVM 仿真通过。90% 功能覆盖率是冻结适用覆盖分母后的执行验收目标，不是题库生成结果。
+
+四题导出后，使用 `eda/verification_profile.json` 生成面向 Xcelium 的 UVM；完成 RTL/TB 后按 `eda/README.md` 检查并执行清单。设计阶段可先执行 lint、CDC、FPV 和综合检查，再与 DV 的 TB 汇合。原生 Cadence Tcl 与启动参数须按目标安装版本配置。套件的输入检查和回执不会替代工具报告审查。
 
 ## 下载式入门资料集合
 
@@ -75,7 +81,7 @@ python -m unittest discover -s examples/chip-verification -p test_coral_issue_ca
 | `opentitan_eg1` | Earlgrey 系统；电源、复位、时钟、常开定时器、引脚和跨模块唤醒约束；已有 UVM/RTL/软件参考 | [OpenTitan `c69eaea`](https://github.com/lowRISC/opentitan/tree/c69eaea24a57c581ed274779887cb4a0c1405e3b) |
 | `cheshire` | Cheshire SoC；CVA6 流水线/MMU、AXI 互连、LLC、iDMA、启动与软件接口；集成 RTL/测试参考 | [Cheshire `6c6dd5e`](https://github.com/pulp-platform/cheshire/tree/6c6dd5e834347f72c7be31cd6c41021ec293c5b9)，依赖资料固定在其依赖锁对应的提交 |
 
-这两个案例用于体验大型资料的分解、来源追踪、限定上下文、测试计划和跨会话恢复。它们不是可直接运行的完整 SoC 仿真工程，也不承诺 SoC 90% 覆盖率。生成候选 TP/UVM、资料解析完成或包大小达标均不能作为仿真覆盖率。后续仿真还需要完整 RTL/依赖、配置、可用 EDA、独立 checker 和明确覆盖率分母。
+这两个案例用于体验大型资料的分解、来源追踪、任务上下文、测试计划和跨会话恢复。获取器同样附带 Cadence 合同和执行套件，但它们仍是资料集合，需要先冻结具体子系统范围与接口，再实现完整 SV 依赖闭包；不能当成可直接仿真的完整 SoC。生成候选 TP/UVM、资料解析完成或包大小达标均不能作为仿真覆盖率。
 
 ## 生成并导入
 
@@ -101,7 +107,7 @@ loopx chip-verification --workspace .local/chip-starters/opentitan_eg1 design-ma
 loopx chip-verification --workspace .local/chip-starters/opentitan_eg1 install-trae --execute
 ```
 
-在 TRAE 中国版 IDE 打开该案例文件夹，按能力说明启用项目 MCP 和 Subagents，然后使用 `/loopx-dv`。主会话只读取状态和下一项工作，工作子智能体领取并读取一个限定大小的上下文包。每个案例使用独立工作区，不要将两个案例的状态混在一起。
+在 TRAE 中国版 IDE 打开该案例文件夹，按能力说明启用项目 MCP，然后使用 `/loopx-dv`。Runtime 读取状态和下一项工作，领取按模块、功能和工程步骤组织的完整上下文；可以由同一个 runtime 顺序执行，不要求拆成多个 Agent。每个案例使用独立工作区，不要将两个案例的状态混在一起。
 
 ## 来源、角色与重现
 

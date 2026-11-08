@@ -151,8 +151,8 @@ def create_server(workspace: str | Path, *, invoker: Callable[..., dict] | None 
                                     "contract_task_id": contract_task_id}, execute=True)
 
     @tool
-    def dv_build_uvm(manifest: str, simulator: str = "vivado", run_smoke: bool = True) -> dict:
-        """Start an EDA build job and return its receipt promptly; poll dv_job_status."""
+    def dv_build_uvm(manifest: str, simulator: str | None = None, run_smoke: bool = True) -> dict:
+        """Use the manifest target: native XSim returns a job; Cadence returns external execution instructions without launching or accepting EDA."""
         return call("build-uvm", {"manifest": manifest, "simulator": simulator,
                                   "run_smoke": run_smoke}, execute=True)
 

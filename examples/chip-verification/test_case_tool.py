@@ -171,10 +171,31 @@ class CorpusTests(unittest.TestCase):
             self.assertFalse(report["answers_exported"])
             expected = next(x for x in self.corpus["cases"] if x["id"] == self.first)
             self.assertEqual({p.relative_to(destination).as_posix() for p in destination.rglob("*") if p.is_file()},
-                             {x["path"] for x in expected["input_files"]})
+                             {x["path"] for x in expected["input_files"]} | set(report["cadence_kit"]["files"]))
+            case_tool.check_input(destination)
             self.assertFalse(any(destination.rglob("*.sv")))
             with self.assertRaisesRegex(ValueError, "Destination must be new"):
                 case_tool.stage(self.first, destination)
+
+    def test_cadence_contract_must_route_to_all_sources(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self.copy_input(temporary)
+            bundle = case_tool.read_json(root / "spec.json")
+            manifest = case_tool.read_json(root / "source_manifest.json")
+            contract = next(doc for doc in bundle["documents"] if doc["id"] == "adjudication-CADENCE")
+            contract["origin"]["targets"].pop()
+            self.save(root, bundle, manifest)
+            with self.assertRaisesRegex(ValueError, "every original source"):
+                case_tool.check_input(root)
+
+    def test_stage_rejects_tampered_kit(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            destination = Path(temporary) / "candidate"
+            case_tool.stage(self.first, destination)
+            runner = destination / "eda/cadence_runner.py"
+            runner.write_bytes(runner.read_bytes() + b"\n# altered\n")
+            with self.assertRaisesRegex(ValueError, "Cadence kit content changed"):
+                case_tool.check_input(destination)
 
     def test_answer_and_graph_anchors_cannot_drift_silently(self):
         reference = self.corpus["reference"]

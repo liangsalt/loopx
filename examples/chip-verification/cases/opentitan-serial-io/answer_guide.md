@@ -30,9 +30,9 @@ File sizes, extracted requirement counts, rubric completion and Python reference
 
 ## Reference source and build limits
 
-The [reference manifest](../reference/opentitan-c69eaea/manifest.json) identifies pinned original RTL, upstream UVM/formal sources, testplans and build descriptions by hash. Follow the original paths under `../reference/opentitan-c69eaea/upstream/`. Selected files are useful inspectable answers but do not prove a standalone dependency closure. Use the full pinned upstream checkout and its documented dependency/tool setup when resolving build targets.
+The [reference manifest](../reference/opentitan-c69eaea/manifest.json) identifies pinned original RTL, upstream UVM/formal sources, testplans and build descriptions by hash. Follow the original paths under `../reference/opentitan-c69eaea/upstream/`. Selected files are useful inspectable answers but do not prove a standalone dependency closure. The candidate supplies a complete portable SV/UVM/SVA closure for Cadence. A full upstream checkout and its native build are not required.
 
-The TL-UL README leaves its Bus Integrity Scheme unfilled. The input alone cannot define every integrity code or accepted fault. Explicitly supply a versioned normative addendum before claiming full integrity coverage. Do not inflate applicability exclusions to manufacture the requested percentage.
+The original TL-UL README has an unfilled integrity section. The authored input/cadence_contract.md now supplies bench_tl_v1 packed fields, CRC7, masks, errors and reset epochs. This is a logical exercise ABI, not upstream binary/SECDED compatibility; use it to build an independent SV oracle.
 
 ## Essential integrated behavior
 
@@ -43,18 +43,18 @@ The TL-UL README leaves its Bus Integrity Scheme unfilled. The input alone canno
 
 There is no direct USB-to-SPI data path in this case. USB and SPI share software access and infrastructure; SPI_DEVICE-to-SPI_HOST0 passthrough is the direct functional relationship.
 
-SH-05 fixes the exercise LEN contract to nine bits; SH-03/SH-04 fix period/timeslice formulas. Preserve the selected single-clock SPI_HOST interface. Event-interrupt temporal qualification still needs its separate assertion/deassertion and enable-while-active contract; resolved event identities do not supply that timing rule. Do not adjust the oracle to match the reference implementation.
+SH-05 fixes the exercise LEN contract to nine bits; SH-03/SH-04 fix period/timeslice formulas. Preserve the selected single-clock SPI_HOST interface. The registered enabled-level event IRQ timing, including enable-while-active, is defined by input/cadence_contract.md. Do not adjust the oracle to match the reference implementation.
 
 Upstream starting points: [SPI_HOST testplan](../reference/opentitan-c69eaea/upstream/hw/ip/spi_host/data/spi_host_testplan.hjson), [SPI_DEVICE testplan](../reference/opentitan-c69eaea/upstream/hw/ip/spi_device/data/spi_device_testplan.hjson), [USBDEV testplan](../reference/opentitan-c69eaea/upstream/hw/ip/usbdev/data/usbdev_testplan.hjson).
 
 <!-- BEGIN SOURCE-ADJUDICATIONS -->
 ## Revised-question acceptance
 
-Use `opentitan-adjudications-v1`: 27 applicable grouped issue records plus one routed scope policy. The reported historical 66 log rows are not 66 independent defects. See `input/problem.md` for the normative rules and `adjudication_obligations` in the rubric for the required checks. Original upstream prose is preserved as provenance; the authored corrections revise the question.
+Use `opentitan-adjudications-cadence-v2`: 27 applicable grouped issue records plus routed scope and Cadence execution policies. The reported historical 66 log rows are not 66 independent defects. See `input/problem.md` for the normative rules and `adjudication_obligations` in the rubric for the required checks. Original upstream prose is preserved as provenance; the authored corrections revise the question.
 
 For each applicable record, inspect RTL/TP/UVM traceability and execute its independent checker or scope audit. A defined contract is not a passing test. Classify observed results as passed, failed, untested or locally blocked. Background scope audits and not-a-conflict decisions do not add DUT coverage bins. Do not count unknown behavior as covered, delete unresolved requirements from the frozen denominator or treat all Q items as proven bugs.
 
-Precise remaining local dependencies: CT-01, Q-03, Q-04, D-02. Their documents identify the affected binding/behavior; they do not globally block extraction, design or DV of specified behavior. Additional temporal or integration gaps outside the attached list remain explicit where already listed in the rubric.
+The supplied cadence_contract.md closes the previous packed-ABI, integrity, digital pad, reset-leaf and timing gaps using explicit author choices. Derive the independent golden from this contract; the upstream implementation may differ. Run portable candidate SV/UVM/SVA through Xcelium/IMC, Jasper lint/CDC/FPV and Genus using the staged kit. No native OpenTitan build, full upstream checkout or production pad technology is required.
 
 The held-out pinned implementation is comparison material, not absolute authority over author-chosen conventions. If it disagrees with an exercise convention, record reference divergence and evaluate the generated candidate against the accepted exercise contract. No updated document establishes simulation success or a coverage percentage.
 <!-- END SOURCE-ADJUDICATIONS -->

@@ -6,7 +6,7 @@
     "commit": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
     "license": "Apache-2.0"
   },
-  "spec_sha256": "4e386060652043f00ba7bec6fed0f1c6560699442f22fb2c5640bf0b01630f7c",
+  "spec_sha256": "4a1803c24673d80a114cf745ad7357a87960bb0e9f8724c65b7bb68f560cfb09",
   "unique_specification_body_bytes": 592589,
   "total_specification_body_bytes": 996745,
   "documents": [
@@ -469,8 +469,8 @@
     {
       "id": "case-problem-md",
       "path": "problem.md",
-      "sha256": "e058833bb8e86ae29a11dfaf7027bb5f6a1ffc3886c570d53695c01060c3eab0",
-      "bytes": 13982,
+      "sha256": "deb5c72e8e0dba74eaac9af944b1721e447c0627f8690a1398607779ad1fea39",
+      "bytes": 13598,
       "layer": "system",
       "module": "aon_control_subsystem",
       "role": "specification",
@@ -479,8 +479,8 @@
     {
       "id": "case-integration_profile-json",
       "path": "integration_profile.json",
-      "sha256": "551fb89cc5391331f932e1d02b752b80abfaaa0f2adde39e9f1f8da4b309632b",
-      "bytes": 16012,
+      "sha256": "8be77519a77974a4ecd5ba55775862dbcf9d99d9a5ec7f7b58ddae182992b6e5",
+      "bytes": 16660,
       "layer": "architecture",
       "module": "aon_control_subsystem",
       "role": "specification",
@@ -607,8 +607,8 @@
     {
       "id": "adjudication-CT-01",
       "path": "adjudications/CT-01.md",
-      "sha256": "af221751e6bee3c8ed4f5ac25b0153bd65e0a306d92b8b41c977a6a9bd49f702",
-      "bytes": 1081,
+      "sha256": "0091d94eeb9ed379d4757380969aba6b8cffb560bb613faedb11cb7b4a1a1a45",
+      "bytes": 860,
       "layer": "architecture",
       "module": "aon_control_subsystem",
       "role": "specification",
@@ -703,8 +703,8 @@
     {
       "id": "adjudication-Q-10",
       "path": "adjudications/Q-10.md",
-      "sha256": "5070ad322e63e038dd0c8e2c37f4ac2bb131de45b184cbd406f097daf7282274",
-      "bytes": 1025,
+      "sha256": "7786af66e8e0f59f4e55828c905673d04c56dec030ccb796a49977e0172fe8ac",
+      "bytes": 855,
       "layer": "module",
       "module": "rstmgr",
       "role": "specification",
@@ -739,8 +739,8 @@
     {
       "id": "adjudication-Q-13",
       "path": "adjudications/Q-13.md",
-      "sha256": "b7ee3a16c56e9c843573bc2f393b9056735e360caf7dca03729dafc7fef18603",
-      "bytes": 1087,
+      "sha256": "8d45320ae0036fdccb00360675a03e55a827ffa2a0772f95503516914ca4d3a9",
+      "bytes": 817,
       "layer": "module",
       "module": "pinmux",
       "role": "specification",
@@ -751,8 +751,8 @@
     {
       "id": "adjudication-D-01",
       "path": "adjudications/D-01.md",
-      "sha256": "256ec5844f39fdb92cd11cfd5dbe943038dd515e29ee3ea4614d68a9adef97fd",
-      "bytes": 1248,
+      "sha256": "d93a47790fed14b17bc9d9837e49259d42e4d0fa1aa783f502c795ea22aca30e",
+      "bytes": 984,
       "layer": "module",
       "module": "pinmux",
       "role": "specification",
@@ -763,8 +763,8 @@
     {
       "id": "adjudication-D-02",
       "path": "adjudications/D-02.md",
-      "sha256": "accbfe944b6ba2ca87ac74709042877783d4be0e341da0ba50630ff1f7ec834e",
-      "bytes": 1165,
+      "sha256": "61fb66ff4070643a7feee1e0367f8e739f28600ba26d0c42552b1b048db94bf7",
+      "bytes": 895,
       "layer": "architecture",
       "module": "aon_control_subsystem",
       "role": "specification",
@@ -799,8 +799,20 @@
     {
       "id": "adjudication-SCOPE",
       "path": "adjudications/SCOPE.md",
-      "sha256": "a1c958c0f6233297f42ef19f0f99b273963e5e5067395748c8875bc9862c1121",
-      "bytes": 1424,
+      "sha256": "c7d8db085f7b90b325382e39444a475006d569c1276e70f88e841c23ef8b2355",
+      "bytes": 1432,
+      "layer": "architecture",
+      "module": "aon_control_subsystem",
+      "role": "specification",
+      "count_toward_size": false,
+      "authored": true,
+      "kind": "source_adjudication"
+    },
+    {
+      "id": "adjudication-CADENCE",
+      "path": "cadence_contract.md",
+      "sha256": "587522ac65a6fff37383fd54e1488b219cc83626d0d81cb7a8665a7b0133f686",
+      "bytes": 16723,
       "layer": "architecture",
       "module": "aon_control_subsystem",
       "role": "specification",
@@ -827,9 +839,10 @@
   ],
   "golden_excluded": true,
   "size_metric": "Unique unchanged upstream MD/RST/ADOC specification bodies only; authored content, HJSON and whole-top context excluded.",
-  "integration_profile_sha256": "551fb89cc5391331f932e1d02b752b80abfaaa0f2adde39e9f1f8da4b309632b",
+  "integration_profile_sha256": "8be77519a77974a4ecd5ba55775862dbcf9d99d9a5ec7f7b58ddae182992b6e5",
   "module_graph_sha256": "bee7f1c7cb3cf897197ece127a2d224d24489d6139771f965260cbb2f5417642",
-  "adjudication_revision": "opentitan-adjudications-v1",
+  "adjudication_revision": "opentitan-adjudications-cadence-v2",
   "adjudication_issue_count": 25,
-  "adjudication_scope_policy_count": 1
+  "adjudication_scope_policy_count": 1,
+  "execution_contract_policy_count": 1
 }

@@ -6,7 +6,7 @@
     "commit": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
     "license": "Apache-2.0"
   },
-  "spec_sha256": "f6ec3966784ed59d73f9e2929d1ca6e31c4959dd5b405f6e9334baf1b78c9530",
+  "spec_sha256": "1bdedcb080d406b53b7ddd2589117fa2d005ef4bd3d9cb8d07b512357dc9e0ef",
   "unique_specification_body_bytes": 567411,
   "total_specification_body_bytes": 827446,
   "documents": [
@@ -289,8 +289,8 @@
     {
       "id": "case-problem-md",
       "path": "problem.md",
-      "sha256": "23ac533b027326ea650963b873c23a5808e5683a1908d0ea3263458c96279b9c",
-      "bytes": 13834,
+      "sha256": "50b39ea9be8386fe9734a773e2520fc133188e9ebd65ff4c6cb7e2237f068acc",
+      "bytes": 13702,
       "layer": "system",
       "module": "serial_io_subsystem",
       "role": "specification",
@@ -299,8 +299,8 @@
     {
       "id": "case-integration_profile-json",
       "path": "integration_profile.json",
-      "sha256": "e25217b4976df54153e313864f811f2e4c5988c2b179ea4f00b3925ee4932898",
-      "bytes": 6687,
+      "sha256": "5f0db03453fcf13e53da4d28b1e9e3171ca596a26e23fc729d6e149ea1b00868",
+      "bytes": 7350,
       "layer": "architecture",
       "module": "serial_io_subsystem",
       "role": "specification",
@@ -475,8 +475,8 @@
     {
       "id": "adjudication-CT-01",
       "path": "adjudications/CT-01.md",
-      "sha256": "af221751e6bee3c8ed4f5ac25b0153bd65e0a306d92b8b41c977a6a9bd49f702",
-      "bytes": 1081,
+      "sha256": "0091d94eeb9ed379d4757380969aba6b8cffb560bb613faedb11cb7b4a1a1a45",
+      "bytes": 860,
       "layer": "architecture",
       "module": "serial_io_subsystem",
       "role": "specification",
@@ -559,8 +559,8 @@
     {
       "id": "adjudication-Q-03",
       "path": "adjudications/Q-03.md",
-      "sha256": "114074714a47de1cfde2f8446e8486340c6ff5ab651bb91eed959f9fbf0604a2",
-      "bytes": 1114,
+      "sha256": "4424460e962c8d4625e3bc432f8a4e8bbf1c4f7b2ee07e81ff74764d8bfbcb3c",
+      "bytes": 965,
       "layer": "module",
       "module": "spi_host",
       "role": "specification",
@@ -571,8 +571,8 @@
     {
       "id": "adjudication-Q-04",
       "path": "adjudications/Q-04.md",
-      "sha256": "365dc6db99287315132e2ead241945f06e0562672e4205e6d15cbb69a53b67f5",
-      "bytes": 1208,
+      "sha256": "c3534b4623e28f3759d780ae7f48c25b0d29d0d065d81bd7cd1cb0a7a7124e7f",
+      "bytes": 944,
       "layer": "module",
       "module": "spi_device",
       "role": "specification",
@@ -607,8 +607,8 @@
     {
       "id": "adjudication-D-02",
       "path": "adjudications/D-02.md",
-      "sha256": "accbfe944b6ba2ca87ac74709042877783d4be0e341da0ba50630ff1f7ec834e",
-      "bytes": 1165,
+      "sha256": "61fb66ff4070643a7feee1e0367f8e739f28600ba26d0c42552b1b048db94bf7",
+      "bytes": 895,
       "layer": "architecture",
       "module": "serial_io_subsystem",
       "role": "specification",
@@ -643,8 +643,20 @@
     {
       "id": "adjudication-SCOPE",
       "path": "adjudications/SCOPE.md",
-      "sha256": "cab00437048aeddd307ae51fb782e1780454a86338fa5a1946c73c8493d17454",
-      "bytes": 1390,
+      "sha256": "52b10f7264aead39d65228fd2800b3e9ef70dcd57892ad5be2f15d5d3d458fc6",
+      "bytes": 1398,
+      "layer": "architecture",
+      "module": "serial_io_subsystem",
+      "role": "specification",
+      "count_toward_size": false,
+      "authored": true,
+      "kind": "source_adjudication"
+    },
+    {
+      "id": "adjudication-CADENCE",
+      "path": "cadence_contract.md",
+      "sha256": "2062e6bfd7cfc882b9d1f549f3e3db2566079502ad5b51ba215a82138b63eebf",
+      "bytes": 16288,
       "layer": "architecture",
       "module": "serial_io_subsystem",
       "role": "specification",
@@ -671,9 +683,10 @@
   ],
   "golden_excluded": true,
   "size_metric": "Unique unchanged upstream MD/RST/ADOC specification bodies only; authored content, HJSON and whole-top context excluded.",
-  "integration_profile_sha256": "e25217b4976df54153e313864f811f2e4c5988c2b179ea4f00b3925ee4932898",
+  "integration_profile_sha256": "5f0db03453fcf13e53da4d28b1e9e3171ca596a26e23fc729d6e149ea1b00868",
   "module_graph_sha256": "48c6cd1ac7c2b43b0549034f78f83646b1ff9b82e79e3f9769c1ea57981ba908",
-  "adjudication_revision": "opentitan-adjudications-v1",
+  "adjudication_revision": "opentitan-adjudications-cadence-v2",
   "adjudication_issue_count": 27,
-  "adjudication_scope_policy_count": 1
+  "adjudication_scope_policy_count": 1,
+  "execution_contract_policy_count": 1
 }

@@ -85,9 +85,9 @@ def register_chip_verification_commands(
     generate.add_argument("--scope-id")
     generate.add_argument("--session-id", help="Optional current host session identity for the prepared attempt.")
     generate.add_argument("--context-chars", type=int, help=argparse.SUPPRESS)
-    build = action("build-uvm", "Start an explicit asynchronous EDA build and simulation job.")
+    build = action("build-uvm", "Build with the selected native backend or identify the external Cadence execution path.")
     build.add_argument("--manifest", required=True)
-    build.add_argument("--simulator", default="vivado")
+    build.add_argument("--simulator", help="Explicit target selection; must match any manifest target. Omission uses the manifest target, then legacy Vivado XSim.")
     build.add_argument("--timeout", type=int, default=600, help="Maximum simulator job duration in seconds.")
     build.add_argument("--run-smoke", action=argparse.BooleanOptionalAction, default=True,
                        help="Run smoke simulation after a successful build (default: enabled).")

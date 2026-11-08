@@ -37,15 +37,46 @@ class CoralIssueCasesTests(unittest.TestCase):
         self.assertFalse(report["simulation_executed"])
         self.assertIsNone(report["coverage_percent"])
 
-    def test_original_context_is_all_targeted_by_short_scope_policy(self):
+    def test_original_context_carries_complete_scope_and_cadence_contract(self):
         for identity in corpus.read_json(corpus.CASES / "corpus_manifest.json")["cases"]:
             bundle = corpus.read_json(corpus.CASES / identity / "input" / "spec.json")
             policy = next(d for d in bundle["documents"] if d["id"] == "case-scope-policy")
-            self.assertLess(len(policy["content"]), 2500)
             self.assertEqual(len(policy["origin"]["targets"]), 13)
             self.assertIn("NOT implemented requirement bytes", policy["content"])
+            contract = next(d for d in bundle["documents"] if d["id"] == "case-cadence-contract")
+            self.assertEqual({t["document_id"] for t in contract["origin"]["targets"]},
+                             {t["document_id"] for t in policy["origin"]["targets"]} | {"case-problem"})
+            self.assertIn("Exact interface assets", contract["content"])
+            self.assertIn("4096 cycles" if identity == self.FIRST else "1024 cycles", contract["content"])
 
-    def test_stage_cli_keeps_original_repair_seed_and_excludes_fixed_answer(self):
+    def test_real_semantic_import_keeps_entire_contract_with_original_tasks(self):
+        from loopx.capabilities.chip_verification.engine.context import build_context
+        from loopx.capabilities.chip_verification.engine.spec import ingest_spec, iter_sources
+        for identity in corpus.CADENCE_CASES:
+            with self.subTest(case=identity), tempfile.TemporaryDirectory() as directory:
+                source = corpus.CASES / identity / "input/spec.json"
+                manifest = ingest_spec(source, Path(directory) / "sources", max_chunk_chars=1)
+                records = {record["source_id"]: record for record in iter_sources(manifest)}
+                contract_ids = {sid for sid, record in records.items()
+                                if record["metadata"].get("document_id") == "case-cadence-contract"
+                                and record["metadata"].get("source_role") != "bundle_metadata"}
+                source_docs = corpus.read_json(source)["documents"]
+                original_ids = {d["id"] for d in source_docs if d["origin"].get("repository")}
+                selected = None
+                for task in manifest["extraction_tasks"]:
+                    if any(records[sid]["metadata"].get("document_id") in original_ids
+                           and records[sid]["metadata"].get("source_role") != "bundle_metadata"
+                           for sid in task["source_ids"]):
+                        self.assertTrue(contract_ids <= set(task["payload"]["dependency_source_ids"]))
+                        selected = task
+                self.assertIsNotNone(selected)
+                pack = build_context(manifest, selected, max_chars=1, max_tokens=1)
+                actual = sorted((s for s in pack["sources"] if s["source_id"] in contract_ids),
+                                key=lambda s: s["start_char"])
+                expected = next(d["content"] for d in source_docs if d["id"] == "case-cadence-contract")
+                self.assertEqual("".join(s["text"] for s in actual), expected)
+
+    def test_stage_cli_keeps_history_and_exports_cadence_kit_without_answer(self):
         with tempfile.TemporaryDirectory() as directory:
             destination = Path(directory) / "candidate"
             result = subprocess.run([sys.executable, str(Path(corpus.__file__)), "stage", self.FIRST,
@@ -54,11 +85,20 @@ class CoralIssueCasesTests(unittest.TestCase):
             self.assertFalse((destination / "answers").exists())
             manifest = corpus.read_json(destination / "source_manifest.json")
             seed = next(s for s in manifest["repair_seeds"] if s["path"].endswith("rvv_backend_decode_unit_lsu.sv"))
+            self.assertEqual(seed["role"], "historical_mechanism_reference")
+            self.assertFalse(seed["execution_required"])
             candidate = (destination / seed["path"]).read_bytes()
             self.assertIn(b"&check_evl_not_0", candidate)
             fixed = (corpus.CASES / self.FIRST / "answers/reference" / seed["origin"]["path"]).read_bytes()
             self.assertNotEqual(candidate, fixed)
             self.assertNotIn(b"&check_evl_not_0", fixed)
+            profile = corpus.read_json(destination / "integration_profile.json")
+            self.assertEqual(profile["toolchain"], corpus.CADENCE_TOOLCHAIN)
+            self.assertEqual(profile["forbidden_execution_roots"], ["baseline", "sources"])
+            self.assertTrue((destination / "eda/cadence_runner.py").is_file())
+            generation = corpus.read_json(destination / "eda/verification_profile.json")
+            self.assertEqual(generation["top"], profile["root_module"])
+            self.assertEqual(generation["sources"][0]["sha256"], profile["contract_sha256"])
             corpus.check_input(destination)
 
     def test_each_case_scope_restricts_acceptance_to_its_own_defect(self):
@@ -72,14 +112,15 @@ class CoralIssueCasesTests(unittest.TestCase):
         self.assertNotEqual(zero["content"], fence["content"])
         self.assertEqual(zero["origin"]["repair_boundary"], "zero_element_vector_command_retirement")
         self.assertIn("FENCE.TSO decode/ordering is a separate known defect", zero["content"])
-        self.assertIn("Exclude its opcode from pressure programs", zero["content"])
+        self.assertIn("outside the vector", zero["content"])
         self.assertNotIn("Run scalar-only checks", zero["content"])
-        self.assertEqual(zero_profile["pressure_constraints"]["excluded_opcodes"], ["0x8330000f"])
+        self.assertEqual(zero_profile["pressure_constraints"]["excluded_operations"], ["FENCE.TSO"])
         self.assertEqual(fence["origin"]["repair_boundary"], "fence_tso_decode_dispatch_ordering")
         self.assertIn("Zero-element compliance is background, NOT an additional repair target", fence["content"])
-        self.assertIn("independently baseline-qualified", fence["content"])
-        self.assertEqual(fence_profile["pressure_constraints"]["vector_vl"], "0<vl<=VLMAX")
-        self.assertEqual(fence_profile["pressure_constraints"]["vector_vstart"], 0)
+        self.assertIn("stronger full RW,RW serialization is legal", fence["content"])
+        self.assertIn("Do not require optional W->R", fence["content"])
+        self.assertEqual(fence_profile["pressure_constraints"]["excluded_operations"],
+                         ["vector_instructions", "FENCE.I"])
 
     def test_scope_policy_cannot_be_rebound_to_the_other_case(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -94,17 +135,17 @@ class CoralIssueCasesTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "different case or repair boundary"):
                 corpus.check_input(root)
 
-    def test_candidate_profile_is_bound_to_the_original_repository_revision(self):
-        mutations = [("candidate_revision", "main"),
-                     ("candidate_revision", "5c599a884fb07b25f12be6cd027c12e93a99de45"),
-                     ("candidate_repository", "https://github.com/another/repository")]
+    def test_historical_profile_is_bound_to_the_original_repository_revision(self):
+        mutations = [("historical_revision", "main"),
+                     ("historical_revision", "5c599a884fb07b25f12be6cd027c12e93a99de45"),
+                     ("historical_repository", "https://github.com/another/repository")]
         for field, value in mutations:
             with self.subTest(field=field, value=value), tempfile.TemporaryDirectory() as directory:
                 root = self.copy_input(directory)
                 profile = corpus.read_json(root / "integration_profile.json")
                 profile[field] = value
                 (root / "integration_profile.json").write_text(json.dumps(profile), encoding="utf-8")
-                with self.assertRaisesRegex(ValueError, "Candidate repository/revision differs"):
+                with self.assertRaisesRegex(ValueError, "Historical repository/revision differs"):
                     corpus.check_input(root)
 
     def test_candidate_root_module_cannot_disagree_with_shared_graph(self):
@@ -121,7 +162,7 @@ class CoralIssueCasesTests(unittest.TestCase):
             local_corpus = Path(directory) / "cases"
             root = self.copy_input(local_corpus / self.FIRST)
             profile = corpus.read_json(root / "integration_profile.json")
-            profile["candidate_revision"] = "5c599a884fb07b25f12be6cd027c12e93a99de45"
+            profile["historical_revision"] = "5c599a884fb07b25f12be6cd027c12e93a99de45"
             raw = json.dumps(profile).encode("utf-8")
             (root / "integration_profile.json").write_bytes(raw)
             case_manifest = corpus.read_json(corpus.CASES / self.FIRST / "case_manifest.json")
@@ -130,7 +171,7 @@ class CoralIssueCasesTests(unittest.TestCase):
             (root.parent / "case_manifest.json").write_text(json.dumps(case_manifest), encoding="utf-8")
             shutil.copyfile(corpus.CASES / "corpus_manifest.json", local_corpus / "corpus_manifest.json")
             destination = Path(directory) / "export"
-            with self.assertRaisesRegex(ValueError, "Candidate repository/revision differs"):
+            with self.assertRaisesRegex(ValueError, "Historical repository/revision differs"):
                 corpus.stage(self.FIRST, destination, local_corpus)
             self.assertFalse(destination.exists())
 
@@ -183,6 +224,92 @@ class CoralIssueCasesTests(unittest.TestCase):
             self.save_bundle(root, bundle, manifest)
             with self.assertRaisesRegex(ValueError, "Scope policy does not accompany"):
                 corpus.check_input(root)
+
+    def test_cadence_contract_cannot_lose_original_or_problem_targets(self):
+        for target_id in ("case-problem", None):
+            with self.subTest(target_id=target_id), tempfile.TemporaryDirectory() as directory:
+                root = self.copy_input(directory)
+                bundle = corpus.read_json(root / "spec.json")
+                manifest = corpus.read_json(root / "source_manifest.json")
+                contract = next(d for d in bundle["documents"] if d["id"] == "case-cadence-contract")
+                targets = contract["origin"]["targets"]
+                targets.remove(next(t for t in targets if t["document_id"] == target_id)
+                               if target_id else targets[0])
+                source = next(d for d in manifest["documents"] if d["id"] == contract["id"])
+                source["origin"] = contract["origin"]
+                self.save_bundle(root, bundle, manifest)
+                with self.assertRaisesRegex(ValueError, "must accompany all original sources and the problem"):
+                    corpus.check_input(root)
+
+    def test_execution_assets_are_explicitly_scoped_and_embedded(self):
+        for change in ("extra", "implementation", "different_ports"):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as directory:
+                root = self.copy_input(directory)
+                manifest = corpus.read_json(root / "source_manifest.json")
+                asset = manifest["execution_assets"][0]
+                if change == "extra":
+                    manifest["execution_assets"].append(dict(asset, path="contracts/hidden.sv"))
+                    error = "unexpected interface asset inventory"
+                elif change == "implementation":
+                    asset["role"] = "candidate_implementation"
+                    error = "Invalid interface asset role"
+                else:
+                    raw = (root / asset["path"]).read_bytes().replace(b"XLEN = 32", b"XLEN = 64")
+                    (root / asset["path"]).write_bytes(raw)
+                    asset.update(bytes=len(raw), sha256=corpus.digest(raw))
+                    error = "differs from the embedded normative contract"
+                (root / "source_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, error):
+                    corpus.check_input(root)
+
+    def test_cadence_profile_cannot_regress_to_native_build_or_reference_oracle(self):
+        changes = [{"native_build_required": True}, {"reference_is_execution_oracle": True},
+                   {"missing_build_dependencies": ["bazel"]}, {"entry_modes": ["native_repair"]},
+                   {"toolchain": {**corpus.CADENCE_TOOLCHAIN, "simulation": "verilator"}}]
+        for change in changes:
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as directory:
+                root = self.copy_input(directory)
+                profile = corpus.read_json(root / "integration_profile.json")
+                profile.update(change)
+                (root / "integration_profile.json").write_text(json.dumps(profile), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "must not require the upstream native build"):
+                    corpus.check_input(root)
+
+    def test_answer_rubric_cannot_drop_case_mutations_even_with_refreshed_inventory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            local_corpus = Path(directory) / "cases"
+            shutil.copytree(corpus.CASES, local_corpus)
+            root = local_corpus / self.FIRST
+            rubric = corpus.read_json(root / "answers/review_rubric.json")
+            rubric["required_mutation_checks"].remove("wrong fault prefix")
+            raw = json.dumps(rubric).encode("utf-8")
+            (root / "answers/review_rubric.json").write_bytes(raw)
+            manifest = corpus.read_json(root / "case_manifest.json")
+            entry = next(e for e in manifest["answer_files"] if e["path"] == "review_rubric.json")
+            entry.update(bytes=len(raw), sha256=corpus.digest(raw))
+            (root / "case_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "mutation checks differ"):
+                corpus.validate(local_corpus)
+
+    def test_kit_extra_file_and_rehashed_runner_are_rejected(self):
+        for change in ("extra", "runner"):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as directory:
+                destination = Path(directory) / "candidate"
+                corpus.stage(self.FIRST, destination)
+                if change == "extra":
+                    (destination / "eda/answer.sv").write_text("module answer; endmodule", encoding="utf-8")
+                    error = "Unexpected staged Cadence kit files"
+                else:
+                    runner = destination / "eda/cadence_runner.py"
+                    raw = runner.read_bytes() + b"\n# changed\n"
+                    runner.write_bytes(raw)
+                    manifest = corpus.read_json(destination / "eda/kit_manifest.json")
+                    entry = next(e for e in manifest["files"] if e["path"].endswith("cadence_runner.py"))
+                    entry.update(bytes=len(raw), sha256=corpus.digest(raw))
+                    (destination / "eda/kit_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+                    error = "Cadence kit content changed"
+                with self.assertRaisesRegex(ValueError, error):
+                    corpus.check_input(destination)
 
     def test_seed_cannot_claim_fixed_revision_as_candidate(self):
         with tempfile.TemporaryDirectory() as directory:

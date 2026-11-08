@@ -4,9 +4,11 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import os
+import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 _spec = importlib.util.spec_from_file_location("chip_starter_fetch", Path(__file__).with_name("fetch.py"))
 assert _spec and _spec.loader
@@ -15,6 +17,55 @@ _spec.loader.exec_module(fetch)
 
 
 class FetchIntegrityTests(unittest.TestCase):
+    def test_cadence_policy_routes_original_specs_and_cannot_pad_size(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            raw = b"Source requirement\r\nSecond exact line\r\n"
+            original = {"id": "public-spec", "role": "specification", "layer": "module",
+                        "module": "device", "features": [], "title": "Source",
+                        "origin": {"sha256": hashlib.sha256(raw).hexdigest()}, "content": raw.decode()}
+            docs = [original]
+            profile = fetch.add_cadence_context("cheshire", root, docs)
+            self.assertIs(docs[0], original)
+            self.assertEqual(docs[0]["content"].encode(), raw)
+            policy = docs[-1]
+            self.assertFalse(profile["scope_frozen"])
+            self.assertEqual(profile["toolchain"]["family"], "cadence")
+            self.assertFalse(profile["toolchain"]["native_build_required"])
+            self.assertEqual(policy["origin"]["targets"], [{"document_id": "public-spec",
+                "sha256": hashlib.sha256(raw).hexdigest(), "line_start": 1, "line_end": 2}])
+            self.assertIn("not a\ncomplete runnable SoC", policy["content"])
+            self.assertIn("dv_generate_uvm(profile_path='eda/verification_profile.json')", policy["content"])
+
+    def test_offline_build_stages_kit_and_keeps_authored_bytes_out_of_totals(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = Path(temporary)
+            raw = b"# Public spec\nRequired behavior.\n"
+            descriptor = {"id": "public-spec", "title": "Source", "layer": "system", "module": "chip",
+                "features": [], "role": "specification", "repository": "example/chip", "ref": "a" * 40,
+                "path": "doc/spec.md", "git_blob_sha1": fetch.git_blob(raw),
+                "sha256": hashlib.sha256(raw).hexdigest(), "license": "Apache-2.0"}
+            catalog = {"title": "Fixture", "documents": [descriptor], "licenses": [], "relations": []}
+            cached = workspace / "cache/cheshire/sources/example__chip/doc/spec.md"
+            cached.parent.mkdir(parents=True)
+            cached.write_bytes(raw)
+            with patch.object(fetch, "catalog_for", return_value=(catalog, b"{}")), \
+                 patch.object(fetch, "MINIMUM_PROSE_BYTES", 1):
+                report = fetch.build("cheshire", workspace / "out", offline=True, cache_root=workspace / "cache")
+                fetch.build("cheshire", workspace / "out", offline=True, cache_root=workspace / "cache")
+            output = workspace / "out/cheshire"
+            manifest = json.loads((output / "source_manifest.json").read_bytes())
+            self.assertEqual(manifest["specification_source_bytes"], len(raw))
+            self.assertEqual(manifest["specification_prose_bytes"], len(raw))
+            self.assertEqual(report["document_count"], 2)
+            self.assertFalse(manifest["sources"][-1]["count_toward_specification_prose_bytes"])
+            self.assertTrue((output / "eda/verification_profile.json").is_file())
+            self.assertEqual((output / "sources/example__chip/doc/spec.md").read_bytes(), raw)
+            (output / "eda/cadence_runner.py").write_bytes(b"tampered")
+            with patch.object(fetch, "catalog_for", return_value=(catalog, b"{}")), \
+                 patch.object(fetch, "MINIMUM_PROSE_BYTES", 1), self.assertRaisesRegex(ValueError, "kit content changed"):
+                fetch.build("cheshire", workspace / "out", offline=True, cache_root=workspace / "cache")
+
     def test_shipped_catalogs_pin_all_sources_and_retain_reference_roles(self):
         expected = {"opentitan_eg1": (28, 8, 1), "cheshire": (32, 14, 5)}
         for name, (documents, references, licenses) in expected.items():

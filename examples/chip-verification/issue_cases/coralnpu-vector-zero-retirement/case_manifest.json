@@ -28,9 +28,24 @@
       "sha256": "a7d84cdbc978a39d091cd311aca82ea5d85f00913aabec7e4d93ab0bfb933e85"
     },
     {
+      "path": "cadence_contract.md",
+      "bytes": 18095,
+      "sha256": "8c41b3f311f1b2a706a31215317cf8d258cedf84064fec88cc262ed599d5e546"
+    },
+    {
+      "path": "contracts/coral_vector_contract_pkg.sv",
+      "bytes": 1679,
+      "sha256": "b63595c563d72ee2390f2ea471397372b5e11d8d23e21853db2595fadd95c648"
+    },
+    {
+      "path": "contracts/coral_vector_ports.svh",
+      "bytes": 657,
+      "sha256": "9550f00f369fd7b65db3677d1e73d4220b5c0f5e66c4aae02d2eea1fcdf6ad2c"
+    },
+    {
       "path": "integration_profile.json",
-      "bytes": 1841,
-      "sha256": "e1ff475f99d56f1756f9fc027550ae61026e7d911848c63df0d8694639d6e93d"
+      "bytes": 3596,
+      "sha256": "e96587011078b4e81c127df6b70f8650a076935b910dae89dde54a1c7d00f0e6"
     },
     {
       "path": "licenses/google-coral-coralnpu/LICENSE",
@@ -44,23 +59,23 @@
     },
     {
       "path": "module_graph.json",
-      "bytes": 2798,
-      "sha256": "88615509d3d2ce419c6c4a7857022c6ce218eda73a1226ee92e718213aaa3683"
+      "bytes": 3596,
+      "sha256": "8ee2e7ac865ed7214b424761a587f079a4deedb3489c96298c881488066752a0"
     },
     {
       "path": "problem.md",
-      "bytes": 4596,
-      "sha256": "786404ec733cfa859c6fe3043381d8692a34eebec5816c6f7710eadf59ad18ae"
+      "bytes": 3263,
+      "sha256": "2ce9ad43d4aba55c71392bb071aba0c4c42e4f3358ab53ce93bab99a2ddb15d9"
     },
     {
       "path": "scope_policy.md",
-      "bytes": 2168,
-      "sha256": "a1612d72302a861f1624624a79d0af513da58fe84df44bb87f4fea1e868b1452"
+      "bytes": 2024,
+      "sha256": "60378cf41478fafebc780a14ff7c97c05e9294c30807391259a1eb0d97cf994f"
     },
     {
       "path": "source_manifest.json",
-      "bytes": 23126,
-      "sha256": "37556f592a9e8308d6cf164c6dac605d9ed845abdd6feaa7d70b0b606ee950d2"
+      "bytes": 28603,
+      "sha256": "298f47da15bf510c5e0e602cb90923900e5c9efa172f5e4acee47cea6282cf27"
     },
     {
       "path": "sources/google-coral-coralnpu/doc/integration_guide.md",
@@ -129,11 +144,16 @@
     },
     {
       "path": "spec.json",
-      "bytes": 647013,
-      "sha256": "3d4008c401833fb29cf98cd51207ded6d922a13f07375b1ef0228bbba2ed7d05"
+      "bytes": 669251,
+      "sha256": "be61720d8ff4c4f84523266ac832f1618a8918e21b551f56420f77bb132703ff"
     }
   ],
   "answer_files": [
+    {
+      "path": "behavior_oracle.md",
+      "bytes": 7027,
+      "sha256": "ed89879361af2a3459971c3aa6b0a653f926c39dcfe498ee3ea90d8a61b9849a"
+    },
     {
       "path": "LICENSE",
       "bytes": 11357,
@@ -141,8 +161,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 2052,
-      "sha256": "579197c3a89f429e3e4028121d852680ee246c48c7f78b403a30356a1a243997"
+      "bytes": 2690,
+      "sha256": "492fde950bf3800da1ab721eecdaf9ff279b21f6c59b453c0bd98b6e7d127b0a"
     },
     {
       "path": "reference/hdl/verilog/rvv/design/rvv_backend_decode_unit_ari.sv",
@@ -186,13 +206,13 @@
     },
     {
       "path": "reference_manifest.json",
-      "bytes": 4616,
-      "sha256": "45ffb5185d86856e5200d61aa5244b2e4b230687a02814e2347e12b1e039d698"
+      "bytes": 4882,
+      "sha256": "fce50e44a777ccbd2d09154252cbc3c1c9717682daa5f75d2520f985d833cb0d"
     },
     {
       "path": "review_rubric.json",
-      "bytes": 2980,
-      "sha256": "dab97dc5858e1607351c57a8aad99261b64da5cada52f0886f352bf696b046e3"
+      "bytes": 5107,
+      "sha256": "02808d149c9e037d773080b1d51391effbff093ab939e967ca6f444b8d10a393"
     },
     {
       "path": "upstream.patch",

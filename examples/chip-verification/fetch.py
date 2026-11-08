@@ -16,6 +16,8 @@ import re
 import urllib.error
 import urllib.request
 
+from cadence_case_kit import stage_execution_kit, validate_execution_kit
+
 CATALOGS = Path(__file__).resolve().parent / "catalogs"
 CASES = ("opentitan_eg1", "cheshire")
 LAYERS = {"system", "architecture", "microarchitecture", "module", "verification", "software"}
@@ -172,6 +174,68 @@ def write_json(path: Path, value: dict) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
+def add_cadence_context(name: str, root: Path, documents: list[dict]) -> dict:
+    """Route execution intent with original prose, without crediting authored bytes."""
+    top = name + "_subsystem"
+    profile = {"schema_version": 1, "case_id": name, "root_module": top,
+        "classification": "reading_corpus_requires_authored_subsystem_contract",
+        "scope_frozen": False, "forbidden_execution_roots": ["sources"],
+        "toolchain": {"family": "cadence", "simulation": "xcelium", "coverage": "imc",
+            "lint": "jasper_superlint", "cdc": "jasper_cdc", "formal": "jasper_fpv",
+            "synthesis": "genus", "execution": "external", "native_build_required": False},
+        "execution_contract": {"path": "cadence_contract.md", "document_id": "cadence-execution-policy",
+            "upstream_native_build_required": False},
+        "coverage_status": "not_run"}
+    content = f"""# {name}: Cadence reading-corpus execution policy
+
+Authority: benchmark author. This starter is a pinned reading collection, not a
+complete runnable SoC or a qualified dependency closure. Its proposed candidate
+top is `{top}`, not an upstream production top. No native tool execution or coverage
+percentage is claimed. The original files and licenses remain byte-exact.
+
+Before generating RTL or TP, choose a substantial connected subsystem from these
+sources and publish its module graph, scope, observable requirements and interfaces.
+Freeze one shared design/DV contract: top ports and packed widths; parameters and CSR
+address map; clocks, reset parents and release order; queue ownership, backpressure,
+error responses and timing; external boundary models and an independent oracle.
+Do not claim the full SoC is runnable based on the selected reference snippets.
+This explicit scope-design step is still pending; an empty profile cannot pass EDA.
+
+Implement the accepted scope as self-contained portable synthesizable SystemVerilog
+RTL/IP plus pure SV UVM/SVA, behavioral memory and controllable environment BFMs.
+Use Cadence Xcelium and IMC for simulation/coverage, Jasper Superlint/CDC/FPV for
+applicable analysis and Genus for elaboration/synthesis. No upstream FuseSoC, DVSim,
+regtool, Bender, Bazel, Verilator or other native build flow is a required dependency.
+No C/ELF software, custom DPI/PLI or technology macro is required: model digital
+interfaces directly and declare any physical abstraction before freezing scope.
+Reuse requires a complete reviewed portable SV closure; files below sources remain
+read-only reference material, not an executable project. Upstream RTL/tests cannot
+silently fill specification gaps or become the independent golden.
+
+Run dv_generate_uvm(profile_path='eda/verification_profile.json') with the accepted
+scope added as source-traced facts. Supply a complete reviewed eda/project.json,
+ordered RTL/TB filelists, include files and constraints for the common Cadence runner
+inspect/plan/run commands. No network fetch or code generation occurs during EDA.
+Retain tool versions, input hashes, seeds, checker activity, failures, native databases
+and reports; external events alone do not certify success. Freeze applicable functional
+bins and exclusions before iterations; any 90% target requires measured functional
+coverage and zero assertion/scoreboard failures, with code coverage separate.
+Reference divergence from an explicit author convention is recorded, not automatically
+classified as a candidate bug. These instructions add no original-prose size credit.
+"""
+    raw = content.encode("utf-8")
+    inside(root, "cadence_contract.md").write_bytes(raw)
+    write_json(inside(root, "integration_profile.json"), profile)
+    targets = [{"document_id": doc["id"], "sha256": doc["origin"]["sha256"],
+                "line_start": 1, "line_end": len(doc["content"].splitlines())}
+               for doc in documents if doc["role"] == "specification" and doc["content"].splitlines()]
+    documents.append({"id": "cadence-execution-policy", "title": "Authored Cadence execution scope policy",
+        "layer": "architecture", "module": top, "features": ["execution_contract"], "role": "specification",
+        "origin": {"authored": True, "kind": "source_adjudication", "sha256": hashlib.sha256(raw).hexdigest(),
+            "local_path": "cadence_contract.md", "bytes": len(raw), "targets": targets}, "content": content})
+    return profile
+
+
 def build(name: str, workspace: Path, *, offline: bool = False, cache_root: Path | None = None, timeout: float = 20) -> dict:
     catalog, catalog_bytes = catalog_for(name)
     root = inside(workspace, name)
@@ -205,6 +269,10 @@ def build(name: str, workspace: Path, *, offline: bool = False, cache_root: Path
                                  "prose_bytes": prose_bytes, "origin": origin})
     if counts["specification_prose_bytes"] < MINIMUM_PROSE_BYTES:
         raise ValueError("Unique specification prose must reach 200 KiB; references and licenses do not count")
+    profile = add_cadence_context(name, root, documents)
+    authored = documents[-1]
+    manifest_sources.append({key: authored[key] for key in ("id", "role", "layer", "module", "features", "origin")}
+                            | {"prose_bytes": 0, "count_toward_specification_prose_bytes": False})
     bundle = {"schema": "dvflow.spec_bundle", "schema_version": 1, "title": catalog["title"],
               "documents": documents, "relations": catalog["relations"]}
     write_json(inside(root, "spec.json"), bundle)
@@ -222,7 +290,8 @@ def build(name: str, workspace: Path, *, offline: bool = False, cache_root: Path
                            "relation_endpoints_valid": True, "upstream_licenses_retained": True},
                 "size_policy": "Only specification-role Markdown/RST/AsciiDoc prose counts; fenced or indented code, comments and RST directive bodies are excluded. Original document bytes remain intact.",
                 "relationship_policy": "Edges are unproven candidate relations; source applicability still requires review for the selected RTL configuration.",
-                "coverage_policy": "This corpus qualifies source integrity and bounded-context input only, not measured chip coverage or SoC signoff.",
+                "toolchain": profile["toolchain"], "execution_scope_frozen": False,
+                "coverage_policy": "This corpus qualifies source integrity and semantic context input only, not measured chip coverage or SoC signoff.",
                 "sources": manifest_sources}
     write_json(inside(root, "source_manifest.json"), manifest)
     inside(root, "catalog.json").write_bytes(catalog_bytes)
@@ -241,8 +310,10 @@ def build(name: str, workspace: Path, *, offline: bool = False, cache_root: Path
                "sources": acquisitions, "spec_sha256": manifest["spec_sha256"],
                "network_failure_fallback_is_explicit": True}
     write_json(inside(root, "fetch_receipt.json"), receipt)
+    kit = ({"files": validate_execution_kit(root), "native_tool_execution_performed": False}
+           if (root / "eda").exists() else stage_execution_kit(root, profile))
     return {key: manifest[key] for key in ("corpus", "spec_bytes", "spec_sha256", "document_count", "relation_count",
-            "specification_prose_bytes", "layers", "roles")} | {"acquisition_counts": receipt["acquisition_counts"]}
+            "specification_prose_bytes", "layers", "roles")} | {"acquisition_counts": receipt["acquisition_counts"], "cadence_kit": kit}
 
 
 def main() -> None:

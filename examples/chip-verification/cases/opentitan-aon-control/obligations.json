@@ -1154,16 +1154,15 @@
         "CT-01",
         "D-02"
       ],
-      "resolution_state": "local_obligation_open"
+      "resolution_state": "contract_defined"
     }
   ],
   "reference_gaps": [
-    "Upstream leaf RTL/DV is not an existing implementation or verification suite for the authored reduced subsystem wrapper.",
-    "Selected reference files are not a proved standalone dependency closure; use a full pinned checkout to resolve build dependencies.",
-    "No simulation, CDC/lint signoff, formal proof or coverage percentage is certified.",
-    "Pinmux has FPV/security testplans and formal sources but no upstream UVM environment at this revision; generated pinmux UVM remains a new implementation/review/execution obligation."
+    "Historical upstream RTL/UVM/testpoint names are comparison evidence, not required execution dependencies or the authored golden.",
+    "The candidate must supply its own complete portable SV/UVM/SVA closure and independent contract-derived oracle.",
+    "Cadence execution, checker activity and coverage remain not_run until actual external tool evidence is verified."
   ],
-  "adjudication_revision": "opentitan-adjudications-v1",
+  "adjudication_revision": "opentitan-adjudications-cadence-v2",
   "adjudication_obligations": [
     {
       "issue_id": "AC-01",
@@ -1284,14 +1283,14 @@
     },
     {
       "issue_id": "CT-01",
-      "classification": "scoped_gap",
-      "resolution_state": "local_obligation_open",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
       "module": "aon_control_subsystem",
-      "requirement": "Use the current logical sidebands a_user={instr_type,cmd_intg,data_intg} and d_user={rsp_intg,data_intg}. The old reserved/parity typedef and TL_DUW=4 example are not a fixed-version ABI. D-02 owns the remaining public type/encoding contract; logical request/response planning can continue.",
+      "requirement": "Use the logical instr_type/cmd_intg/data_intg and rsp_intg/data_intg sidebands with the explicit bench_tl_v1 packed ABI in cadence_contract.md. Historical reserved/parity typedefs do not define this exercise's ABI.",
       "checks": [
-        "Check field identity in the shared interface contract; require D-02 evidence before byte/bit-level integrity acceptance."
+        "Check field ordering, width and CRC7 oracle against cadence_contract.md and D-02 on both RTL and UVM sides."
       ],
-      "local_gate": "Only TL-UL packed interface binding and integrity-oracle acceptance await the D-02 normative type/encoding addendum.",
+      "local_gate": null,
       "status": "not_run",
       "source_document_id": "adjudication-CT-01"
     },
@@ -1388,14 +1387,14 @@
     },
     {
       "issue_id": "Q-10",
-      "classification": "scoped_gap",
-      "resolution_state": "local_obligation_open",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
       "module": "rstmgr",
-      "requirement": "Treat the LC/SYS chains as reset classes, not proof that every leaf has multiple drivers. The named peripheral module-reset class derives from LC. For each additional consumer, retain one explicit reset parent and domain in the shared integration map, supported by the selected configuration.",
+      "requirement": "Use the explicit exercise reset map in cadence_contract.md: all six selected peripheral leaves derive from LC; the external CPU derives from SYS. POR asserts both, LC propagates to SYS and isolated SYS reset does not assert LC. Each leaf has one parent and synchronized release.",
       "checks": [
-        "Review one parent per leaf and propagation through the relevant chain; run reset tests for mapped leaves. Record unknown consumers individually."
+        "Check one reset parent per selected leaf; cover POR, LC, SYS, stopped-clock assertion and domain-specific release without stale state."
       ],
-      "local_gate": "Only an unmapped leaf's reset binding/propagation acceptance awaits its documented parent; already mapped reset paths can proceed.",
+      "local_gate": null,
       "status": "not_run",
       "source_document_id": "adjudication-Q-10"
     },
@@ -1427,40 +1426,40 @@
     },
     {
       "issue_id": "Q-13",
-      "classification": "scope_interpretation",
-      "resolution_state": "local_obligation_open",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
       "module": "pinmux",
-      "requirement": "Use the selected top special-signal mapping with exposed dft0=IOR5 and dft1=IOR7, plus tap0=IOC8 and tap1=IOC5. Three generic DFT straps do not imply a third external pad in this selected profile. Any extra internal generic strap remains an explicit wrapper boundary with a separately declared binding.",
+      "requirement": "Use dft0=IOR5, dft1=IOR7, tap0=IOC8 and tap1=IOC5. Any optional third generic DFT strap is tied zero by this authored wrapper contract and tested as zero; no third external pad is required.",
       "checks": [
-        "Check selected named straps and capture conditions; prevent an unbound internal generic port from being silently tied off or counted as verified."
+        "Check named straps, sampling and lifecycle gating plus the constant third strap if instantiated; no unbound configuration port is permitted."
       ],
-      "local_gate": "If the chosen generic IP exposes an additional strap port, only that port's binding awaits an explicit configuration decision.",
+      "local_gate": null,
       "status": "not_run",
       "source_document_id": "adjudication-Q-13"
     },
     {
       "issue_id": "D-01",
-      "classification": "configuration_gap",
-      "resolution_state": "local_obligation_open",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
       "module": "pinmux",
-      "requirement": "Per-pad attribute WARL support is a technology/profile dependency, not a contradictory spec. TAP strap0 is identified as IOC8 in the selected mapping; preserve its documented pull-enable reset exception. Parameterize the capability/readback mapping and record the chosen pad profile before claiming exact physical behavior.",
+      "requirement": "Use the explicit digital pad capability/WARL/reset table in cadence_contract.md, including IOC8 pull-enable reset=1. This authored profile exercises mux, attributes, retention and wake without production IO technology assets.",
       "checks": [
-        "Check named-field plumbing and configured masks separately. Exact per-pad WARL/reset acceptance must cite a public or authored, reviewed pad capability table."
+        "Check all 47 MIO and 16 DIO named-field mappings, unsupported native-OD zero readback, slew/drive clipping and IOC8 reset exception; do not claim analog signoff."
       ],
-      "local_gate": "Only precise technology-dependent pad masks/readback/reset qualification remains pending; mux routing and declared logical attributes can proceed.",
+      "local_gate": null,
       "status": "not_run",
       "source_document_id": "adjudication-D-01"
     },
     {
       "issue_id": "D-02",
-      "classification": "definition_gap",
-      "resolution_state": "local_obligation_open",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
       "module": "aon_control_subsystem",
-      "requirement": "The current input does not supply a complete normative packed TL-UL type and integrity-code algorithm. Before compatible interface/encoding acceptance, supply a pinned public interface package or explicit reviewed specification addendum covering widths, ordering, encoding and error policy. Keep the logical protocol requirements; CT-01 rejects obsolete ABI examples.",
+      "requirement": "cadence_contract.md defines bench_tl_v1 field widths/order, CRC7 polynomial, bit iteration, protected words, known vectors, masks and error policy. This logical bus exercise does not claim binary or SECDED compatibility with upstream TL-UL.",
       "checks": [
-        "Validate the supplied type/encoding contract on both RTL and UVM sides with known vectors and invalid-code tests before counting integrity bins."
+        "Independently calculate known vectors, single-bit protected-word faults and invalid requests; check rejection has no CSR or FIFO side effects."
       ],
-      "local_gate": "TL-UL ABI and integrity encoding/fault bins remain unverified until a normative interface/algorithm addendum is accepted.",
+      "local_gate": null,
       "status": "not_run",
       "source_document_id": "adjudication-D-02"
     },
@@ -1489,6 +1488,38 @@
       "local_gate": null,
       "status": "not_run",
       "source_document_id": "adjudication-N-04"
+    },
+    {
+      "issue_id": "CADENCE",
+      "classification": "execution_contract",
+      "resolution_state": "contract_defined",
+      "module": "aon_control_subsystem",
+      "requirement": "Implement the selected subsystem as self-contained synthesizable SystemVerilog with an independent SystemVerilog UVM/SVA environment. Cadence Xcelium/IMC and Jasper/Genus are the execution targets. Upstream RTL, build descriptions and tests are historical comparison material, not required build inputs or an independent golden for this authored contract.",
+      "checks": [
+        "No network fetch or code generation may occur during EDA execution."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CADENCE"
     }
-  ]
+  ],
+  "evaluation_contract": {
+    "toolchain": {
+      "family": "cadence",
+      "simulation": "xcelium",
+      "coverage": "imc",
+      "lint": "jasper_superlint",
+      "cdc": "jasper_cdc",
+      "formal": "jasper_fpv",
+      "synthesis": "genus",
+      "execution": "external",
+      "native_build_required": false
+    },
+    "normative_input": "input/cadence_contract.md",
+    "reference_testpoint_role": "historical_review_hints",
+    "upstream_native_regression_required": false,
+    "independent_oracle_required": true,
+    "functional_coverage_percent": 90,
+    "execution_status": "not_run"
+  }
 }

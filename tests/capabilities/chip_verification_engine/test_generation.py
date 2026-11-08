@@ -779,6 +779,67 @@ class GenerationTests(unittest.TestCase):
         self.assertEqual([], adapter.calls)
         self.assertEqual(original, profile_path.read_bytes())
 
+    def test_cadence_profile_reaches_architecture_and_components_without_xsim_settings(self):
+        path, profile, _ = self.make_profile()
+        profile["testbench_choices"].append({"id": "execution_target", "statement": "Execute with native Cadence UVM",
+            "rationale": "Selected external Cadence toolchain", "source_refs": [], "value": {"simulator": "Xcelium"}})
+        save_json(path, profile)
+        adapter = CandidateRuntime()
+        result = self.generate(adapter, profile_path=path, max_components=1)
+        self.assertFalse(result["compiled"])
+        self.assertEqual(2, len(adapter.calls))
+        for call in adapter.calls:
+            contract = call["context"]["build_manifest_contract"]
+            self.assertEqual("cadence_xcelium", contract["simulator"])
+            self.assertEqual("external", contract["execution"])
+            template = contract["template"]
+            self.assertEqual("cadence_xcelium", template["simulator"])
+            self.assertEqual("external", template["execution"])
+            self.assertEqual("dut", template["dut_top"])
+            self.assertEqual("tb_top", template["top"])
+            self.assertEqual([str(self.rtl)], template["rtl_files"])
+            self.assertEqual([str(self.rtl), "tb_top.sv"], template["compile_order"])
+            self.assertNotIn("UVM_NO_DPI", template["defines"])
+            self.assertNotIn("uvm_no_dpi", template)
+            self.assertNotIn("vivado_home", contract["allowed_fields"])
+            self.assertIn("coverage_model", contract["allowed_fields"])
+            self.assertEqual("coverage_model.json", template["coverage_model"])
+            self.assertIn("constraints", contract["allowed_fields"])
+            self.assertIn("Event completion is observation, not signoff", "\n".join(contract["rules"]))
+
+    def test_mixed_simulator_profile_is_rejected_before_model_dispatch(self):
+        path, profile, _ = self.make_profile()
+        for index, target in enumerate(("cadence_xcelium", "vivado")):
+            profile["testbench_choices"].append({"id": f"execution_{index}", "statement": "Fixture simulator choice",
+                "rationale": "Conflicting fixture targets must not be resolved by list order", "source_refs": [],
+                "value": {"simulator": target}})
+        save_json(path, profile)
+        before = path.read_bytes()
+        adapter = CandidateRuntime()
+        with self.assertRaisesRegex(ValidationError, "conflicting simulator"):
+            self.generate(adapter, profile_path=path)
+        self.assertEqual([], adapter.calls)
+        self.assertEqual(before, path.read_bytes())
+
+    def test_cadence_aliases_share_one_explicit_target(self):
+        profile = {"testbench_choices": [{"id": str(index), "value": {"simulator": value}}
+                                        for index, value in enumerate(("Cadence", "xcelium", "cadence_xcelium"))]}
+        contract = generation._build_manifest_contract({"top": "dut", "rtl": [],
+                                                       "shared_specification": {"task_id": "fixture"}}, profile)
+        self.assertEqual("cadence_xcelium", contract["simulator"])
+        self.assertEqual([], contract["template"]["rtl_files"])
+        self.assertFalse(contract["rtl_inventory"]["included_in_example"])
+        self.assertIn("not a runnable build", contract["rtl_binding"])
+
+    def test_cadence_template_keeps_full_supplied_rtl_inventory(self):
+        rtl = ["rtl/subsystem/" + str(index) + "/implementation.sv" for index in range(80)]
+        contract = generation._build_manifest_contract(
+            {"top": "dut", "rtl": [{"path": path} for path in rtl]},
+            {"testbench_choices": [{"id": "target", "value": {"simulator": "cadence_xcelium"}}]})
+        self.assertEqual(rtl, contract["template"]["rtl_files"])
+        self.assertEqual([*rtl, "tb_top.sv"], contract["template"]["compile_order"])
+        self.assertTrue(contract["rtl_inventory"]["included_in_example"])
+
     def test_path_error_identifies_unsupported_script_without_unbounded_echo(self):
         from loopx.capabilities.chip_verification.engine.generation import _safe_path
 

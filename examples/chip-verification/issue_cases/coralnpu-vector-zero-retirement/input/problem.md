@@ -1,22 +1,47 @@
-# RVV zero-element retirement under memory and pipeline pressure
+# Vector command execution and retirement in Cadence
 
-This authored integration exercise originates in public CoralNPU issue #89, which reports a legal zero-VL vector load/store leaving the pipeline unable to retire. It expands the reported symptom into a system-to-module verification task; it is not an upstream official system specification.
+This authored exercise is inspired by public CoralNPU issue #89. Implement
+the independent standard-SystemVerilog subsystem `coral_vector_retirement_subsystem` defined completely by
+`cadence_contract.md` and its interface-only assets under `contracts/`. The focus
+is zero-element completion, legality before shortcut, active-lane effects, special vector operation rules, fault prefixes and ordered retirement. It is not an upstream whole-core repair or a bit-exact CoralNPU port.
 
-Select a vector-enabled AXI core with the profile in the scope policy. Run scalar work, vector memory operations and integer vector operations through shared dispatch/retirement while injecting bounded memory backpressure. For supported legal ordinary element operations with vl=0 or vstart>=vl, verify forward progress and absence of active-element register/memory effects. Preserve distinct rules for whole-register transfers, scalar/vector moves, configuration and illegal encodings. Reconfigure to a nonzero VL and prove subsequent scalar/vector work completes with correct state and masks. Do not repair liveness by deleting completion records, globally suppressing exceptions or resetting the core.
+Read the shared module graph, the complete Cadence contract and the source scope
+policy before deriving the RTL microarchitecture or TP/UVM. The two tracks must
+use the same interface and configuration revision. Original upstream documents
+remain unchanged and attributed; they are broader context, not permission to
+expand the selected instruction/operation subset. The full original repository,
+Scala/Chisel/firtool, Bazel, FuseSoC, Cocotb, Verilator, MPACT, ELF programs and a
+RISC-V compiler are not required for any stage of this exercise.
 
-The public reproducer sets AVL through a nonzero scalar register containing zero, then issues a vector store. Avoid confusing this with the special vsetvli x0,x0 AVL case. Use a separate valid base-address register and an independently initialized memory/register sentinel; instruction retirement and no element writes are both observable obligations. Timeout is failure, not a no-op result.
+`baseline/` preserves historical source bytes behind the reported issue. Those
+files are not a compilable candidate seed and must not be added to the candidate
+file list. Build a new SV implementation of the declared boundary. Do not use
+the separately held upstream patch or reference implementation as the behavioral
+oracle for the new subsystem. Its oracle is the authored contract and applicable
+ISA clauses, implemented independently in the UVM scoreboard and assertions.
 
-Partition into system execution/observer contracts, ISA/CSR behavior, frontend/configuration and dispatch, ALU/LSU command generation, vector register/memory handshakes, and completion/retirement. Apply the same relationship graph to RTL and UVM generation. FENCE.TSO is a separate known defect in this candidate: exclude its opcode from this experiment rather than requiring its repair or treating it as harmless scalar pressure. Qualify other background controls independently. The issue report is an observation, not a proof of root cause or of a correction on this machine.
+Required outputs are shared requirements/contracts, a microarchitecture and
+synthesizable SV RTL, a source-derived TP, pure-SV UVM agents/sequences/monitors,
+independent scoreboards, SVA, covergroups, constraints and complete ordered
+filelists. The supplied packages and port includes define interfaces only;
+they are not a DUT, a stimulus generator or a reference model.
 
-Two explicitly different entry modes are supported:
+On the Cadence host use Xcelium for SV/UVM simulation, IMC for native coverage,
+Jasper Superlint/CDC/FPV for the corresponding static/formal obligations and
+Genus for synthesizability. The staged `eda/cadence_runner.py` offers
+inspect/plan/run, `eda/project.example.json` shows the candidate inventory and
+`eda/verification_profile.json` is the profile_path for `dv_generate_uvm`.
+Materialize the actual candidate configuration as `eda/project.json`. Tool
+versions/licenses and command compatibility are checked on the EDA host.
 
-1. **Spec-first boundary exercise:** derive the shared module/interface contracts, a microarchitecture amendment, RTL for the affected decode/control boundary, and an independent UVM test plan/environment/test cases. Integrate this boundary with the existing pinned CoralNPU IP; do not attempt to recreate an entire undocumented NPU from ISA chapters. Classify unresolved interfaces before generation.
-2. **Repair exercise:** use `baseline/` as the unmodified candidate repair seed and fetch the complete public repository at the immutable `candidate_revision` in `integration_profile.json`. The seed is intentionally not a standalone compilable checkout: transitive Chisel/RTL, Bazel toolchains, packages and simulator dependencies are supplied by that pinned repository. Do not silently substitute main. The repair source bytes do not count toward the specification-size threshold.
+Freeze the applicable functional-bin denominator before regression and require
+more than 90%, all mandatory directed obligations and negative/mutation checks,
+with no unexpected UVM/SVA failures. Code, toggle and assertion metrics remain
+separate. A tool exit or LoopX event completion is not functional acceptance.
+Record raw reports/databases, seeds, tool versions and source/constraint/model
+hashes. No Cadence compilation, simulation, CDC/formal proof or measured coverage
+is claimed by this packaged question.
 
-Design and DV must share `module_graph.json` and `integration_profile.json`. Source-specific scope adjudication is embedded in spec.json and targeted at every original source range so a fragmented runtime receives it with the source. Every derived obligation needs both an original source citation and the scope-policy citation.
-
-Use UVM agents for AXI/control observation, a virtual sequence coordinating programs and backpressure, passive retirement/architectural-state monitors, an independent scoreboard and covergroups tied to TP requirements. Seed reproducibility, a cycle deadline, architectural completion, traps and infrastructure failure are separate observations. A simulator exiting successfully is not proof that instructions retired.
-
-Freeze the supported feature profile and planned functional-bin denominator before running. Report feature/code/toggle/assertion coverage separately with simulator run IDs and merged-bin provenance. More than 90% is an acceptance target for applicable functional bins, not a result delivered by this corpus; do not omit hard bins or treat source/requirement counts as hardware coverage. Assertion failures, wrong results and deadlocks fail independently of percentage.
-
-The original context exceeds 512KiB without duplicate bodies or authored padding. It intentionally includes broader ISA reference chapters. The manifest's byte metric is NOT a claim that all those bytes are applicable normative requirements. Apply scope-policy exclusions and cite exact clauses. No commercial EDA, RTL simulation or model experiment has been executed to qualify this packaged exercise.
+Independent original source bodies exceed 512 KiB without duplicate documents
+or authored padding. That is a context-size measure, NOT implemented requirement
+bytes. The case intentionally retains broader ISA/history for scope reasoning.

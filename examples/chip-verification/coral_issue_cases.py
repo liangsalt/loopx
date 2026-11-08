@@ -1,4 +1,4 @@
-"""Offline source qualification and input-only export for CoralNPU issue cases.
+"""Offline qualification and Cadence input export for issue-inspired SV cases.
 
 This Python example manages public benchmark files, not control-plane decisions.
 It never invokes an agent, EDA, a reference model, or a coverage scorer.
@@ -17,6 +17,23 @@ import tempfile
 
 CASES = Path(__file__).resolve().parent / "issue_cases"
 MINIMUM_BYTES = 512 * 1024
+CADENCE_CASES = {
+    "coralnpu-vector-zero-retirement": ("coral_vector_retirement_subsystem", "coral_vector"),
+    "coralnpu-fence-tso-ordering": ("coral_memory_order_subsystem", "coral_memory_order"),
+}
+CADENCE_TOOLCHAIN = {
+    "family": "cadence", "simulation": "xcelium", "coverage": "imc",
+    "lint": "jasper_superlint", "cdc": "jasper_cdc", "formal": "jasper_fpv",
+    "synthesis": "genus", "execution": "external", "native_build_required": False,
+}
+CADENCE_MUTATIONS = {
+    "coralnpu-vector-zero-retirement": ["missing zero-element completion", "disabled legality check",
+        "dropped masked condition", "wrong fault prefix", "duplicate retirement",
+        "misassociated response ID", "dropped flush cancellation"],
+    "coralnpu-fence-tso-ordering": ["illegal TSO decode", "fence treated as a no-op",
+        "violation of an R->W edge", "swapped response ID", "duplicate retirement",
+        "wrong sign extension", "dropped flush cancellation"],
+}
 
 
 def require(condition: bool, message: str) -> None:
@@ -126,7 +143,8 @@ def check_input(root: Path) -> dict:
     require(total > MINIMUM_BYTES, f"Unique original bodies must exceed {MINIMUM_BYTES}; got {total}")
     require(total == manifest["unique_original_body_bytes"], "Body size declaration differs")
     for seed in manifest["repair_seeds"]:
-        require(seed["role"] == "repair_seed" and seed["path"].startswith("baseline/"),
+        require(seed["role"] == "historical_mechanism_reference"
+                and seed.get("execution_required") is False and seed["path"].startswith("baseline/"),
                 "Invalid baseline role")
         raw = safe_path(root, seed["path"]).read_bytes()
         origin = seed["origin"]
@@ -136,6 +154,24 @@ def check_input(root: Path) -> dict:
                 and len(raw) == seed["bytes"] and git_blob(raw) == origin["git_blob_sha1"],
                 "Unpinned baseline repair seed")
         allowed.add(seed["path"])
+    top, asset_prefix = CADENCE_CASES[manifest["case_id"]]
+    expected_assets = {f"contracts/{asset_prefix}_contract_pkg.sv", f"contracts/{asset_prefix}_ports.svh"}
+    assets = manifest.get("execution_assets", [])
+    require(len(assets) == len(expected_assets) and {entry["path"] for entry in assets} == expected_assets,
+            "Incomplete or unexpected interface asset inventory")
+    for asset in assets:
+        require(asset.get("role") == "interface_contract" and asset.get("top") == top
+                and asset.get("count_toward_size") is False, "Invalid interface asset role")
+        raw = safe_path(root, asset["path"]).read_bytes()
+        require(len(raw) == asset["bytes"] and digest(raw) == asset["sha256"],
+                "Interface asset digest/size mismatch")
+        require(raw.decode("utf-8").replace("\r\n", "\n")
+                in docs["case-cadence-contract"]["content"].replace("\r\n", "\n"),
+                "Interface asset differs from the embedded normative contract")
+        allowed.add(asset["path"])
+    if (root / "eda" / "kit_manifest.json").exists():
+        from cadence_case_kit import validate_execution_kit
+        allowed.update(validate_execution_kit(root))
     actual = {p.relative_to(root).as_posix() for p in root.rglob("*")
               if safe_path(root, p.relative_to(root).as_posix()).is_file()}
     require(actual == allowed, f"Unexpected/missing input files: {sorted(actual ^ allowed)}")
@@ -144,10 +180,20 @@ def check_input(root: Path) -> dict:
     graph = read_json(root / "module_graph.json")
     profile = read_json(root / "integration_profile.json")
     require(profile["case_id"] == graph["case_id"] == manifest["case_id"], "Case identities differ")
-    require(profile.get("candidate_repository") == "https://github.com/google-coral/coralnpu"
-            and profile.get("candidate_revision") == revisions["google-coral/coralnpu"],
-            "Candidate repository/revision differs from original baseline")
+    require(profile.get("historical_repository") == "https://github.com/google-coral/coralnpu"
+            and profile.get("historical_revision") == revisions["google-coral/coralnpu"],
+            "Historical repository/revision differs from original baseline")
     require(profile.get("root_module") == graph["root_module"], "Profile/graph root module differs")
+    require(profile.get("root_module") == profile.get("execution_top") == top,
+            "Cadence execution top differs from authored interface")
+    require(profile.get("toolchain") == CADENCE_TOOLCHAIN and profile.get("native_build_required") is False
+            and profile.get("reference_is_execution_oracle") is False
+            and profile.get("entry_modes") == ["spec_first_standard_sv"]
+            and profile.get("missing_build_dependencies") == [],
+            "Cadence exercise must not require the upstream native build or reference oracle")
+    require(profile.get("forbidden_execution_roots") == ["baseline", "sources"]
+            and set(profile.get("interface_assets", [])) == expected_assets,
+            "Cadence interface/history execution boundary differs")
     require(profile["module_graph_sha256"] == digest((root / "module_graph.json").read_bytes()),
             "Design/DV graph differs")
     policy = docs[profile["scope_policy_id"]]
@@ -166,6 +212,25 @@ def check_input(root: Path) -> dict:
         require(target["sha256"] == source["sha256"] and target["line_start"] == 1
                 and target["line_end"] == len(docs[identity]["content"].splitlines()),
                 "Scope policy target range differs from original")
+    contract = docs.get("case-cadence-contract", {})
+    origin = contract.get("origin", {})
+    require(profile.get("contract_document_id") == "case-cadence-contract"
+            and profile.get("contract_document") == "cadence_contract.md"
+            and profile.get("contract_sha256") == digest(contract.get("content", "").encode("utf-8"))
+            and origin.get("sha256") == profile["contract_sha256"]
+            and origin.get("kind") == "source_adjudication" and origin.get("authored") is True
+            and origin.get("case_id") == manifest["case_id"]
+            and origin.get("repair_boundary") == profile["repair_boundary"],
+            "Cadence contract is missing, stale or bound to another exercise")
+    contract_targets = origin.get("targets", [])
+    require(len(contract_targets) == len(originals) + 1
+            and {entry["document_id"] for entry in contract_targets} == set(originals) | {"case-problem"},
+            "Cadence contract must accompany all original sources and the problem")
+    for target in contract_targets:
+        source = sources[target["document_id"]]
+        require(target["sha256"] == source["sha256"] and target["line_start"] == 1
+                and target["line_end"] == len(docs[source["id"]]["content"].splitlines()),
+                "Cadence contract target differs from its source")
     nodes = {node["id"] for node in graph["nodes"]}
     require(len(nodes) == len(graph["nodes"]) and graph["root_module"] in nodes, "Invalid module graph")
     for edge in graph["edges"]:
@@ -175,7 +240,9 @@ def check_input(root: Path) -> dict:
                 "Module edge source anchor absent")
     return {"case": manifest["case_id"], "spec_bytes": (root / "spec.json").stat().st_size,
             "unique_original_body_bytes": total, "documents": len(docs),
-            "normative_applicability": "bounded_by_scope_policy", "applicable_behavior_bytes": None}
+            "normative_applicability": "bounded_by_authored_cadence_contract", "applicable_behavior_bytes": None,
+            "execution_toolchain": "cadence", "native_upstream_build_required": False,
+            "execution_top": top, "interface_assets": len(assets)}
 
 
 def validate(cases: Path = CASES) -> dict:
@@ -203,6 +270,27 @@ def validate(cases: Path = CASES) -> dict:
                     "Fixed reference blob differs")
         require(reference["simulation_executed"] is False and reference["coverage_percent"] is None,
                 "Packaged source is not simulation evidence")
+        require(reference.get("role") == "historical_mechanism_reference"
+                and reference.get("required_for_cadence_execution") is False
+                and reference.get("oracle_for_standalone_subsystem") is False,
+                "Historical upstream reference cannot be a mandatory Cadence dependency/oracle")
+        rubric = read_json(root / "answers" / "review_rubric.json")
+        profile = read_json(root / "input" / "integration_profile.json")
+        require(rubric.get("cadence_contract_sha256") == profile["contract_sha256"]
+                and rubric.get("execution_top") == profile["execution_top"]
+                and rubric.get("native_upstream_regression_required") is False,
+                "Answer rubric differs from standalone Cadence contract")
+        require(rubric.get("required_mutation_checks") == CADENCE_MUTATIONS[identity],
+                "Answer mutation checks differ from the case contract")
+        oracle = rubric.get("behavior_oracle", {})
+        require(oracle.get("path") == "behavior_oracle.md"
+                and oracle.get("kind") == "authored_behavioral_oracle"
+                and oracle.get("sha256") == digest(answers.get("behavior_oracle.md", b""))
+                and oracle.get("source_contract_sha256") == profile["contract_sha256"]
+                and set(oracle.get("source_document_ids", [])) == {"case-cadence-contract", "case-scope-policy",
+                    "riscv-riscv-isa-manual--src--v-st-ext-adoc" if identity == "coralnpu-vector-zero-retirement"
+                    else "riscv-riscv-isa-manual--src--rv32-adoc"},
+                "Authored behavioral oracle differs from the source-bound rubric")
         results.append(report)
     return {"cases": results, "simulation_executed": False, "coverage_percent": None,
             "qualification": "offline_source_integrity_only"}
@@ -229,6 +317,9 @@ def stage(identity: str, destination: Path, cases: Path = CASES) -> dict:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(raw)
         check_inventory(temporary, case["input_files"])
+        from cadence_case_kit import stage_execution_kit
+        stage_execution_kit(temporary, read_json(temporary / "integration_profile.json"))
+        check_input(temporary)
         require(not destination.exists(), "Stage destination appeared during export")
         os.rename(temporary, destination)
     finally:

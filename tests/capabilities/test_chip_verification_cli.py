@@ -131,3 +131,9 @@ def test_import_has_no_character_defaults_and_hides_legacy_options(capsys) -> No
     assert "--chunk-chars" not in help_text and "--context-chars" not in help_text
     legacy = parse(["chip-verification", "import", "--spec", "spec.json", "--chunk-chars", "32", "--context-chars", "1"])
     assert (legacy.chunk_chars, legacy.context_chars) == (32, 1)
+
+
+def test_build_preserves_manifest_target_unless_user_selects_override() -> None:
+    default = parse(["chip-verification", "build-uvm", "--manifest", "cadence.json"])
+    selected = parse(["chip-verification", "build-uvm", "--manifest", "cadence.json", "--simulator", "xcelium"])
+    assert default.simulator is None and selected.simulator == "xcelium"

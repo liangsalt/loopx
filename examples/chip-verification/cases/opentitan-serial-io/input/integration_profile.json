@@ -51,7 +51,7 @@
   ],
   "design_choices": [
     "Implement one SPI_DEVICE, SPI_HOST0 and USBDEV subsystem. SPI_HOST1 is outside the case.",
-    "Preserve source-defined parameters, clocks/resets and CSR semantics in a versioned configuration. Reduced counts/widths form a distinct profile and cannot inherit full-profile coverage.",
+    "Preserve source-defined CSR fields and configured geometry; use the authored digital clock/reset/ABI convention in cadence_contract.md. Reduced counts/widths form a distinct profile and cannot inherit full-profile coverage.",
     "Boundary models expose controllable latency, withheld acknowledgement, errors and stopped clocks. Permanently-ready tieoffs cannot substantiate startup/low-power scenarios.",
     "Use one shared interface/module graph for RTL and DV planning; runtime sessions receive relevant source shards and durable state handles.",
     "RTL microarchitecture choices may vary; observable specified behavior and declared integration relationships form the acceptance contract."
@@ -102,7 +102,7 @@
   "context_size_credit": 0,
   "source_precedence": "Benchmark-author policy: explicit declared field names, bit ranges, access types and selected integration configuration govern over obsolete narrative references. This is an authored exercise policy, not an attributed user instruction or a universal upstream priority rule. Conflicts inside HJSON and behavioral ambiguities use the individually named adjudications; no blanket HJSON-wins rule resolves them. Authored decisions supersede only their stated scope. Preserve original source bytes and provenance. Local open obligations gate only affected acceptance claims. Candidate/golden RTL and UVM are not specification authority. No correction is simulation or coverage evidence.",
   "source_adjudications": {
-    "revision": "opentitan-adjudications-v1",
+    "revision": "opentitan-adjudications-cadence-v2",
     "authority": "benchmark_author",
     "issue_ids": [
       "SH-01",
@@ -134,12 +134,30 @@
       "N-03"
     ],
     "scope_policy": "adjudications/SCOPE.md",
-    "open_local_obligations": [
-      "CT-01",
-      "Q-03",
-      "Q-04",
-      "D-02"
-    ],
+    "execution_policy": "cadence_contract.md",
+    "open_local_obligations": [],
     "no_simulation_claim": true
+  },
+  "toolchain": {
+    "family": "cadence",
+    "simulation": "xcelium",
+    "coverage": "imc",
+    "lint": "jasper_superlint",
+    "cdc": "jasper_cdc",
+    "formal": "jasper_fpv",
+    "synthesis": "genus",
+    "execution": "external",
+    "native_build_required": false
+  },
+  "forbidden_execution_roots": [
+    "sources"
+  ],
+  "execution_contract": {
+    "path": "cadence_contract.md",
+    "document_id": "adjudication-CADENCE",
+    "authority": "benchmark_author",
+    "interface_revision": "bench_tl_v1",
+    "upstream_native_build_required": false,
+    "reference_role": "historical_semantic_comparison"
   }
 }

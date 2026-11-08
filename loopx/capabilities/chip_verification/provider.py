@@ -117,7 +117,7 @@ def invoke(action: str, *, workspace: str | Path, arguments: dict | None = None,
     if action == "doctor":
         return {"capability_id": "chip-verification", "initialized": (root / STATE / "project.json").is_file(),
                 "optional_dependencies": {name: importlib.util.find_spec(name) is not None for name in ("jsonschema", "mcp")},
-                "executables": {name: shutil.which(name) for name in ("node", "vivado", "xvlog", "xelab", "xsim", "verible-verilog-lint")},
+                "executables": {name: shutil.which(name) for name in ("node", "vivado", "xvlog", "xelab", "xsim", "verible-verilog-lint", "xrun", "imc", "jg", "genus")},
                 "tool_bindings": {name: os.environ.get(name) for name in ("XILINX_VIVADO", "LOOPX_VERIBLE_LINT")},
                 "host": "trae-cn-ide", "host_ui_validated": False,
                 "instruction": "Enable the project MCP server in the selected runtime. One active session can claim a module, function or engineering-stage task; child sessions are optional. Tool discovery alone is not an end-to-end verification run."}
@@ -236,10 +236,35 @@ def invoke(action: str, *, workspace: str | Path, arguments: dict | None = None,
             params["profile_path"] = str(_path(root, args["profile_path"]))
         return host_work.generate(project, params)
     if action == "build-uvm":
-        if args.get("simulator", "vivado") not in {"vivado", "xsim"}:
-            raise ValueError("This provider currently qualifies Vivado XSim; another simulator needs its own evidence adapter")
+        from .engine.generation import simulation_target
+
+        manifest = _path(root, args["manifest"])
+        value = json.loads(manifest.read_text(encoding="utf-8-sig"))
+        if not isinstance(value, dict):
+            raise ValueError("Build manifest must be a JSON object")
+        requested = simulation_target(args["simulator"]) if args.get("simulator") is not None else None
+        declared = simulation_target(value["simulator"]) if "simulator" in value else None
+        if requested and declared and requested != declared:
+            raise ValueError("Requested simulator conflicts with the manifest; preserve the selected execution target")
+        target = requested or declared or "vivado_xsim"
+        if target == "cadence_xcelium":
+            project.assert_inputs_current()
+            if value.get("execution") not in (None, "external"):
+                raise ValueError("Cadence manifests must declare external execution; this provider has no native Cadence evidence adapter")
+            relative = manifest.relative_to(root).as_posix()
+            runner = "eda/cadence_runner.py"
+            return {"status": "external_execution_required", "simulator": target,
+                    "manifest": relative, "manifest_contract_declared": declared == target and value.get("execution") == "external",
+                    "runner": runner, "runner_available": (root / runner).is_file(),
+                    "commands": [["python", runner, phase, "--project", relative] + (["--execute"] if phase == "run" else [])
+                                 for phase in ("inspect", "plan", "run")],
+                    "execution_performed": False, "compiled": False, "simulated": False,
+                    "coverage_verified": False, "signoff": False,
+                    "instruction": "Use the staged Cadence kit on the EDA host with an explicit cadence_xcelium/external manifest. Inspect and freeze the complete RTL/TB, shared contract, constraints, coverage model and site-qualified scripts first. No native build job was launched. Publish run observations through run-register/event-ingest; native reports still require validation, and completed events are not acceptance."}
+        if value.get("execution") == "external":
+            raise ValueError("An external build manifest needs an explicit supported external simulator target")
         from .jobs import launch
-        return launch(project, {"manifest": str(_path(root, args["manifest"])),
+        return launch(project, {"manifest": str(manifest),
                                "run_smoke": args.get("run_smoke", True), "timeout": args.get("timeout", 600)})
     if action == "job-status":
         from .jobs import status

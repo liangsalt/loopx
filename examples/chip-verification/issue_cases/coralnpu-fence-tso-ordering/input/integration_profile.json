@@ -1,35 +1,32 @@
 {
   "schema_version": 1,
   "case_id": "coralnpu-fence-tso-ordering",
-  "root_module": "CoralNPU",
-  "candidate_repository": "https://github.com/google-coral/coralnpu",
-  "candidate_revision": "08eadd1caede64ac4ee99dbbfc9cc70b74c2c5ca",
+  "root_module": "coral_memory_order_subsystem",
   "reported_affected_revision": "9f31e14e7d105b99b8c99b3a3f4bd569a8e835f9",
   "scope_policy_id": "case-scope-policy",
-  "module_graph_sha256": "7625bbacb04e6586b44c677de3ae0cdcfd41adc20abedb81f71ea21755932bcf",
+  "module_graph_sha256": "03e8b63410029b77834485c6f644bcd91920abcb8fd7f13d8902f417840d37a7",
   "entry_modes": [
-    "spec_first_boundary",
-    "repair_existing_design"
+    "spec_first_standard_sv"
   ],
   "complete_build_checkout_included": false,
-  "missing_build_dependencies": [
-    "Full pinned CoralNPU source tree and Bazel dependency lockfiles",
-    "Chisel/firtool and RV32 compiler configured by upstream",
-    "UVM-compatible simulator and its required toolchain/license",
-    "AXI/control/retirement monitor binding for selected generated top"
-  ],
+  "missing_build_dependencies": [],
   "profile": {
     "xlen": 32,
-    "vlen": 128,
-    "elen": 32,
-    "vector_registers": 32,
-    "extensions": [
-      "RV32I",
-      "M",
-      "F-background",
-      "Zicsr",
-      "Zve32x"
-    ]
+    "isa_subset": [
+      "ADDI",
+      "ADD",
+      "LB",
+      "LH",
+      "LW",
+      "LBU",
+      "LHU",
+      "SB",
+      "SH",
+      "SW",
+      "FENCE",
+      "FENCE.TSO"
+    ],
+    "instruction_cache": false
   },
   "issue": {
     "url": "https://github.com/google-coral/coralnpu/issues/130",
@@ -40,18 +37,92 @@
   "coverage": {
     "target_functional_percent": 90,
     "observed_percent": null,
-    "denominator": "Freeze applicable functional bins before execution; exclude unsupported features with reviewed rationale."
+    "denominator": "Freeze applicable functional bins and reviewed exclusions before execution; preserve all required directed obligations.",
+    "target_relation": "strictly_greater_than"
   },
   "source_precedence": [
-    "source-adjudication + supported ISA clause",
-    "selected immutable baseline interfaces/configuration",
-    "historical documentation as scoped context"
+    "case-cadence-contract for authored standalone interfaces/subset",
+    "case-scope-policy plus applicable immutable ISA clauses",
+    "historical Coral documentation and source as provenance only"
   ],
   "repair_boundary": "fence_tso_decode_dispatch_ordering",
   "pressure_constraints": {
-    "baseline_qualification_required": true,
-    "vector_vl": "0<vl<=VLMAX",
-    "vector_vstart": 0,
-    "exclude_unrelated_failures": true
-  }
+    "read_responses_may_reorder": true,
+    "maximum_outstanding_reads": 4,
+    "excluded_operations": [
+      "vector_instructions",
+      "FENCE.I"
+    ]
+  },
+  "historical_repository": "https://github.com/google-coral/coralnpu",
+  "historical_revision": "08eadd1caede64ac4ee99dbbfc9cc70b74c2c5ca",
+  "execution_top": "coral_memory_order_subsystem",
+  "classification": "authored_issue_inspired_standard_sv_subsystem",
+  "native_build_required": false,
+  "candidate_implementation_included": false,
+  "reference_is_execution_oracle": false,
+  "forbidden_execution_roots": [
+    "baseline",
+    "sources"
+  ],
+  "required_design_outputs": [
+    "candidate/rtl/*.sv",
+    "candidate/tb/*.sv",
+    "candidate/constraints/*",
+    "candidate/coverage/*",
+    "eda/project.json"
+  ],
+  "toolchain": {
+    "family": "cadence",
+    "simulation": "xcelium",
+    "coverage": "imc",
+    "lint": "jasper_superlint",
+    "cdc": "jasper_cdc",
+    "formal": "jasper_fpv",
+    "synthesis": "genus",
+    "execution": "external",
+    "native_build_required": false
+  },
+  "contract_document": "cadence_contract.md",
+  "contract_document_id": "case-cadence-contract",
+  "clocks": [
+    {
+      "name": "clk_i",
+      "period_ns": 10,
+      "kind": "exercise_choice"
+    }
+  ],
+  "resets": [
+    {
+      "name": "rst_ni",
+      "active_level": 0,
+      "assertion": "asynchronous",
+      "release": "synchronous_after_two_edges"
+    }
+  ],
+  "runtime_assumptions": {
+    "ready_interval_cycles": 8,
+    "response_deadline_cycles": 32,
+    "retirement_deadline_cycles": 1024
+  },
+  "static_profile": {
+    "xlen": 32,
+    "command_slots": 4,
+    "read_slots": 4,
+    "tag_bits": 8,
+    "memory_id_bits": 8
+  },
+  "required_host_resources": [
+    "Cadence Xcelium and IMC licenses",
+    "Jasper Superlint/CDC/FPV app licenses",
+    "Genus license"
+  ],
+  "elaboration_verified": false,
+  "simulation_executed": false,
+  "coverage_percent": null,
+  "contract_sha256": "d3684c68feb2a1d65c174bcced406a174715531e0c803ce18db18c63bb0daa1e",
+  "interface_assets": [
+    "contracts/coral_memory_order_contract_pkg.sv",
+    "contracts/coral_memory_order_ports.svh"
+  ]
 }

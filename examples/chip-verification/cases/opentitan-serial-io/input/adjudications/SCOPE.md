@@ -1,6 +1,6 @@
 # SCOPE: opentitan-serial-io exercise contract
 
-Benchmark-author authority (opentitan-adjudications-v1). DUT module types are exactly spi_device, spi_host, usbdev; the wrapper is serial_io_subsystem. Preserve the selected instance/configuration identities in integration_profile.json and the shared module_graph.json. Whole-chip chapters, UART, ROM, CPU, pads/technology and other external consumers are context or boundaries unless explicitly listed as DUTs. Do not create new RTL modules/coverage obligations or global blockers from unrelated background discrepancies.
+Benchmark-author authority (opentitan-adjudications-cadence-v2). DUT module types are exactly spi_device, spi_host, usbdev; the wrapper is serial_io_subsystem. Preserve the selected instance/configuration identities in integration_profile.json and the shared module_graph.json. Whole-chip chapters, UART, ROM, CPU, pads/technology and other external consumers are context or boundaries unless explicitly listed as DUTs. Do not create new RTL modules/coverage obligations or global blockers from unrelated background discrepancies.
 
 Source-adjudication documents supersede only their named statements/scopes; cite them with the original source. Literal field/access/bit declarations and selected configuration govern over obsolete names. Intra-source behavioral conflicts need the individual author decision, not a universal HJSON-wins rule. Do not infer a different source variant to excuse contradictions.
 

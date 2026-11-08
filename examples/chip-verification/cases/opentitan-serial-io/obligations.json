@@ -860,7 +860,7 @@
         "CT-01",
         "D-02"
       ],
-      "resolution_state": "local_obligation_open"
+      "resolution_state": "contract_defined"
     },
     {
       "id": "SPI-LEN-WIDTH",
@@ -951,15 +951,16 @@
         }
       ],
       "issue": "Theory describes state-entry-only event interrupts, while read-only/status interrupt register descriptions and event predicates require careful level-versus-event interpretation. The source texts do not provide a single unambiguous temporal oracle.",
-      "required_resolution": "Record exact assertion/deassertion and enable-while-condition-active behavior before generating SPI-06 expected interrupts; cover entry, sustained condition, mask changes and repeat entry separately."
+      "required_resolution": "Use the registered enabled-level event IRQ timing defined in cadence_contract.md; test enable-while-active and assertion/deassertion.",
+      "resolution_state": "contract_defined"
     }
   ],
   "reference_gaps": [
-    "Upstream leaf RTL/DV is not an existing implementation or verification suite for the authored reduced subsystem wrapper.",
-    "Selected reference files are not a proved standalone dependency closure; use a full pinned checkout to resolve build dependencies.",
-    "No simulation, CDC/lint signoff, formal proof or coverage percentage is certified."
+    "Historical upstream RTL/UVM/testpoint names are comparison evidence, not required execution dependencies or the authored golden.",
+    "The candidate must supply its own complete portable SV/UVM/SVA closure and independent contract-derived oracle.",
+    "Cadence execution, checker activity and coverage remain not_run until actual external tool evidence is verified."
   ],
-  "adjudication_revision": "opentitan-adjudications-v1",
+  "adjudication_revision": "opentitan-adjudications-cadence-v2",
   "adjudication_obligations": [
     {
       "issue_id": "SH-01",
@@ -1132,14 +1133,14 @@
     },
     {
       "issue_id": "CT-01",
-      "classification": "scoped_gap",
-      "resolution_state": "local_obligation_open",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
       "module": "serial_io_subsystem",
-      "requirement": "Use the current logical sidebands a_user={instr_type,cmd_intg,data_intg} and d_user={rsp_intg,data_intg}. The old reserved/parity typedef and TL_DUW=4 example are not a fixed-version ABI. D-02 owns the remaining public type/encoding contract; logical request/response planning can continue.",
+      "requirement": "Use the logical instr_type/cmd_intg/data_intg and rsp_intg/data_intg sidebands with the explicit bench_tl_v1 packed ABI in cadence_contract.md. Historical reserved/parity typedefs do not define this exercise's ABI.",
       "checks": [
-        "Check field identity in the shared interface contract; require D-02 evidence before byte/bit-level integrity acceptance."
+        "Check field ordering, width and CRC7 oracle against cadence_contract.md and D-02 on both RTL and UVM sides."
       ],
-      "local_gate": "Only TL-UL packed interface binding and integrity-oracle acceptance await the D-02 normative type/encoding addendum.",
+      "local_gate": null,
       "status": "not_run",
       "source_document_id": "adjudication-CT-01"
     },
@@ -1223,27 +1224,27 @@
     },
     {
       "issue_id": "Q-03",
-      "classification": "scoped_gap",
-      "resolution_state": "local_obligation_open",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
       "module": "spi_host",
-      "requirement": "Require conservation/order of accepted one-byte segments and correct READY/backpressure behavior. Six-versus-seven pipeline examples do not define a universal first-stall cycle: record initial queue/FSM/divider conditions and accepted commands when evaluating that observation.",
+      "requirement": "Require accepted command conservation, ordered completion and correct READY/backpressure. Freeze candidate capacity/initial state; a universal sixth/seventh-command first-stall cycle is outside this exercise's acceptance model.",
       "checks": [
-        "Exercise bursts around six/seven segments; check no data loss and captured stalls. Keep an exact-first-stall timing claim pending a reviewed pipeline timing contract."
+        "Exercise capacity-1/capacity/capacity+1 bursts and six/seven-command observations with captured initial conditions; prove no drop/duplicate and eventual ordered completion under declared fairness."
       ],
-      "local_gate": "Only a cycle-exact first-stall latency bin requires a versioned initial-state/acceptance/pipeline-depth contract.",
+      "local_gate": null,
       "status": "not_run",
       "source_document_id": "adjudication-Q-03"
     },
     {
       "issue_id": "Q-04",
       "classification": "exercise_convention",
-      "resolution_state": "local_obligation_open",
+      "resolution_state": "contract_defined",
       "module": "spi_device",
-      "requirement": "For this exercise use the detailed staged/committed contract: SW requests cross via the asynchronous queue; serial Read Status emits atomic bytes from the latest committed state and can observe BUSY changes during one transaction at eight-SPI-clock commit boundaries. Passthrough gating changes only at CSb release using committed BUSY. Do not invent a fixed SW-to-SPI CDC latency.",
+      "requirement": "Use staged SW-to-SPI delivery and atomic committed status at eight-SPI-clock byte boundaries. Hardware set wins over SW clear of the same status bit at one commit; distinct bits update independently. Passthrough gating changes at CSb release. The running-domain delivery bound is in cadence_contract.md.",
       "checks": [
-        "Poll multiple status bytes while issuing a non-racing SW clear; check byte atomicity and delayed passthrough reopening. Keep simultaneous HW/SW same-bit priority separate."
+        "Race same-bit HW set/SW clear and distinct-bit updates, poll multiple bytes and check atomic visibility, queue conservation and CSb-based passthrough reopening."
       ],
-      "local_gate": "Only simultaneous HW/SW updates to the same status bit await an explicit arbitration rule; serialized updates and byte-boundary polling are specified.",
+      "local_gate": null,
       "status": "not_run",
       "source_document_id": "adjudication-Q-04"
     },
@@ -1275,14 +1276,14 @@
     },
     {
       "issue_id": "D-02",
-      "classification": "definition_gap",
-      "resolution_state": "local_obligation_open",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
       "module": "serial_io_subsystem",
-      "requirement": "The current input does not supply a complete normative packed TL-UL type and integrity-code algorithm. Before compatible interface/encoding acceptance, supply a pinned public interface package or explicit reviewed specification addendum covering widths, ordering, encoding and error policy. Keep the logical protocol requirements; CT-01 rejects obsolete ABI examples.",
+      "requirement": "cadence_contract.md defines bench_tl_v1 field widths/order, CRC7 polynomial, bit iteration, protected words, known vectors, masks and error policy. This logical bus exercise does not claim binary or SECDED compatibility with upstream TL-UL.",
       "checks": [
-        "Validate the supplied type/encoding contract on both RTL and UVM sides with known vectors and invalid-code tests before counting integrity bins."
+        "Independently calculate known vectors, single-bit protected-word faults and invalid requests; check rejection has no CSR or FIFO side effects."
       ],
-      "local_gate": "TL-UL ABI and integrity encoding/fault bins remain unverified until a normative interface/algorithm addendum is accepted.",
+      "local_gate": null,
       "status": "not_run",
       "source_document_id": "adjudication-D-02"
     },
@@ -1311,6 +1312,38 @@
       "local_gate": null,
       "status": "not_run",
       "source_document_id": "adjudication-N-03"
+    },
+    {
+      "issue_id": "CADENCE",
+      "classification": "execution_contract",
+      "resolution_state": "contract_defined",
+      "module": "serial_io_subsystem",
+      "requirement": "Implement the selected subsystem as self-contained synthesizable SystemVerilog with an independent SystemVerilog UVM/SVA environment. Cadence Xcelium/IMC and Jasper/Genus are the execution targets. Upstream RTL, build descriptions and tests are historical comparison material, not required build inputs or an independent golden for this authored contract.",
+      "checks": [
+        "No network fetch or code generation may occur during EDA execution."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CADENCE"
     }
-  ]
+  ],
+  "evaluation_contract": {
+    "toolchain": {
+      "family": "cadence",
+      "simulation": "xcelium",
+      "coverage": "imc",
+      "lint": "jasper_superlint",
+      "cdc": "jasper_cdc",
+      "formal": "jasper_fpv",
+      "synthesis": "genus",
+      "execution": "external",
+      "native_build_required": false
+    },
+    "normative_input": "input/cadence_contract.md",
+    "reference_testpoint_role": "historical_review_hints",
+    "upstream_native_regression_required": false,
+    "independent_oracle_required": true,
+    "functional_coverage_percent": 90,
+    "execution_status": "not_run"
+  }
 }

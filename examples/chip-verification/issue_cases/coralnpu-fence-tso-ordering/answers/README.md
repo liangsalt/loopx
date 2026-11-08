@@ -1,22 +1,39 @@
-# Reference answer and evidence boundary
+# Reference answer for the independent Cadence exercise
 
-The upstream correction adds the exact FENCE.TSO decode entry, carries its decoded flag, and routes it through fence dispatch. Serializing it as the existing full fence is permitted by the ISA. This upstream test primarily covers legality; the authored ordering/backpressure rubric requires additional independent tests.
+The executable acceptance boundary is `coral_memory_order_subsystem` as specified in the input's
+`cadence_contract.md`. The answer is a behavior and interface oracle, not a claim
+that upstream Coral code implements the new authored port contract.
+`review_rubric.json` maps acceptance to each normative section. A correct solution
+uses `behavior_oracle.md` for source-traceable expected-state reasoning and
+concrete input/result witnesses; these are not executed EDA results. A solution
+may choose different microarchitecture if it meets all observable obligations,
+including four accepted command slots and concurrent independent reads.
 
-Issue: https://github.com/google-coral/coralnpu/issues/130
-Observed 2026-11-08: issue remains open. An open tracker state does not imply no upstream correction exists.
-Candidate/fix parent: `08eadd1caede64ac4ee99dbbfc9cc70b74c2c5ca`
-Upstream correction: https://github.com/google-coral/coralnpu/commit/40be297c9472a24a7baba3c6bdee6578e5e33407
+The standard reasoning is to separate legality, execution completion and ordered
+retirement. Keep per-command state and unique outstanding-memory identities;
+complete legal empty work without waiting for nonexistent effects, enforce all
+required ordering edges, and commit only defined retirement effects. A flush
+drains physical work already issued and cannot undo a store accepted by memory.
+The UVM scoreboard must compute expected values and ordering independently from
+the input stream and authored contract. Include the stated mutations and retain
+unreachable-bin review separately from observed coverage.
 
-`reference/` contains original changed files at that immutable correction, not a complete simulator checkout. `upstream.patch` preserves its source hunks. `review_rubric.json` extends the original regression to system-level requirements and UVM methodology; it is our acceptance proposal, not a claim of an upstream approved test plan.
+Coral issue #130 and correction `40be297c9472a24a7baba3c6bdee6578e5e33407` remain historical
+evidence of the FENCE.TSO decode entry and routing through fence dispatch. `reference/` and
+`upstream.patch` are preserved at their immutable Git blobs. They are not a
+standalone build, an execution dependency or the golden implementation of the
+new exercise. Upstream Bazel/Chisel/Cocotb targets are not acceptance commands.
+Reproducing the original Coral whole core would be a separate benchmark.
 
-In a complete pinned checkout, use a separate copy of the parent, apply the patch, and run matched baseline/fixed regressions. Upstream names these targets:
+Cadence acceptance uses the candidate's complete SV/UVM closure with Xcelium,
+native IMC coverage, Jasper lint/CDC/FPV and Genus synthesizability evidence.
+The required interface is single-clock; report actual CDC assumptions/results.
+More than 90% applies to the frozen applicable functional-bin denominator and
+does not replace mandatory directed checks, mutation detections or zero
+unexpected UVM/SVA errors. Source/patch validation is not simulation or proof.
+No Cadence compilation, simulation, formal/CDC result or measured percentage is
+claimed for this package. Tool versions and licenses belong to the EDA host.
 
-```text
-//hdl/chisel/src/coralnpu:coralnpu_decode_tests
-//tests/cocotb:core_mini_axi_sim_cocotb_core_mini_axi_coralnpu_isa_test
-//tests/cocotb:rvv_core_mini_axi_sim_cocotb_core_mini_axi_coralnpu_isa_test
-```
-
-Offline validation applied the patch to original parent files and all 4 changed files matched the fixed-revision Git blobs. This validates patch lineage only. These simulator commands have NOT been run locally for this package. Testbench generation, elaboration, actual baseline failure/fixed success, EDA functional/code coverage and >90% acceptance remain unqualified. The package validator checks source integrity and export boundaries only.
-
-Source license: Apache-2.0; retained in LICENSE. Issue descriptions in this package are short authored paraphrases with attribution links; no assumption is made that issue comments carry the repository license. RISC-V source documents and their CC-BY-4.0 license remain in the input with original attribution and immutable URLs.
+The original reference files and LICENSE retain Apache-2.0 attribution. RISC-V
+documents and their CC-BY-4.0 license remain unchanged in the input. New authored
+contract/port assets are Apache-2.0 under this repository's license.

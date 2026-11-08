@@ -122,11 +122,31 @@
     }
   ],
   "limitations": [
-    "The stored RTL/UVM/FPV/testplan subset is an inspectable upstream reference, not a proved standalone build closure.",
-    "Candidate dependency roots are discovery hints, not an exhaustive list or a claim that every file under them is required.",
-    "Reggen/topgen artifacts, shared primitives/packages/VIPs, build tooling and third-party/tool dependencies must be resolved against this same upstream revision before execution.",
-    "Use upstream build descriptors and DVSim/FuseSoC configuration as source material; no Vivado compatibility or runnable top-level is qualified by this corpus.",
-    "A complete upstream reference build and its independent checker activity must pass before comparison results are accepted.",
-    "The system input is a selected subsystem exercise, not a provided production SoC integration or implementation signoff."
+    "Stored original RTL/UVM/FPV/core files retain historical provenance; they are not a qualified standalone Cadence build closure.",
+    "Listed upstream dependency roots and build descriptors are optional investigation hints, not required candidate dependencies.",
+    "No full upstream checkout, reggen/topgen, DVSim, FuseSoC or upstream regression is required by the authored exercise.",
+    "If an optional upstream comparison is attempted, its own complete dependencies and checker activity must first be qualified separately.",
+    "Digital bus/pad/clock/reset conventions in input/cadence_contract.md define the oracle; production physical signoff is outside scope.",
+    "No Cadence elaboration, simulation, lint/CDC, proof, synthesis or coverage result has been performed by this pack."
+  ],
+  "toolchain": {
+    "family": "cadence",
+    "simulation": "xcelium",
+    "coverage": "imc",
+    "lint": "jasper_superlint",
+    "cdc": "jasper_cdc",
+    "formal": "jasper_fpv",
+    "synthesis": "genus",
+    "execution": "external",
+    "native_build_required": false
+  },
+  "native_build_required": false,
+  "stored_reference_role": "historical_semantic_comparison_not_build_closure",
+  "required_build_inputs": [
+    "candidate ordered portable SV RTL and packages",
+    "candidate SV UVM/SVA and BFMs",
+    "candidate local include/memory files",
+    "Cadence installation UVM",
+    "reviewed eda/project.json and constraints"
   ]
 }

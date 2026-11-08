@@ -1,86 +1,110 @@
 {
   "schema_version": 1,
   "case_id": "coralnpu-vector-zero-retirement",
-  "root_module": "CoralNPU",
+  "root_module": "coral_vector_retirement_subsystem",
   "nodes": [
     {
-      "id": "CoralNPU",
-      "kind": "integration_boundary"
+      "id": "coral_vector_retirement_subsystem",
+      "kind": "authored_subsystem"
     },
     {
-      "id": "dispatch",
-      "kind": "integration_boundary"
+      "id": "command_snapshot",
+      "kind": "functional_module"
     },
     {
-      "id": "configuration",
-      "kind": "integration_boundary"
+      "id": "legality_decode",
+      "kind": "functional_module"
     },
     {
-      "id": "vector_backend",
-      "kind": "integration_boundary"
+      "id": "vector_arithmetic",
+      "kind": "functional_module"
     },
     {
-      "id": "lsu",
-      "kind": "integration_boundary"
+      "id": "element_address",
+      "kind": "functional_module"
     },
     {
-      "id": "memory",
-      "kind": "integration_boundary"
+      "id": "memory_tracker",
+      "kind": "functional_module"
     },
     {
-      "id": "retirement",
-      "kind": "integration_boundary"
+      "id": "completion_buffer",
+      "kind": "functional_module"
+    },
+    {
+      "id": "ordered_retirement",
+      "kind": "functional_module"
+    },
+    {
+      "id": "memory_environment",
+      "kind": "external_boundary"
     }
   ],
   "edges": [
     {
       "id": "edge-0",
-      "from": "CoralNPU",
-      "to": "dispatch",
-      "source_id": "google-coral-coralnpu--doc--microarch--dispatch-md",
-      "anchor_exact": "CoralNPU is an in-order core.",
-      "interpretation": "Authored functional partition grounded in cited interface prose; verify exact instance/wiring in the candidate baseline."
+      "from": "coral_vector_retirement_subsystem",
+      "to": "command_snapshot",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
     },
     {
       "id": "edge-1",
-      "from": "dispatch",
-      "to": "lsu",
-      "source_id": "google-coral-coralnpu--doc--microarch--lsu-md",
-      "anchor_exact": "The LSU has a command interface",
-      "interpretation": "Authored functional partition grounded in cited interface prose; verify exact instance/wiring in the candidate baseline."
+      "from": "command_snapshot",
+      "to": "legality_decode",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
     },
     {
       "id": "edge-2",
-      "from": "vector_backend",
-      "to": "lsu",
-      "source_id": "google-coral-coralnpu--doc--microarch--lsu-md",
-      "anchor_exact": "RvvCore",
-      "interpretation": "Authored functional partition grounded in cited interface prose; verify exact instance/wiring in the candidate baseline."
+      "from": "legality_decode",
+      "to": "vector_arithmetic",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
     },
     {
       "id": "edge-3",
-      "from": "lsu",
-      "to": "memory",
-      "source_id": "google-coral-coralnpu--doc--microarch--lsu-md",
-      "anchor_exact": "memory transactions",
-      "interpretation": "Authored functional partition grounded in cited interface prose; verify exact instance/wiring in the candidate baseline."
+      "from": "vector_arithmetic",
+      "to": "element_address",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
     },
     {
       "id": "edge-4",
-      "from": "configuration",
-      "to": "vector_backend",
-      "source_id": "riscv-riscv-isa-manual--src--v-st-ext-adoc",
-      "anchor_exact": "vtype",
-      "interpretation": "Authored functional partition grounded in cited interface prose; verify exact instance/wiring in the candidate baseline."
+      "from": "element_address",
+      "to": "memory_tracker",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
     },
     {
       "id": "edge-5",
-      "from": "lsu",
-      "to": "retirement",
-      "source_id": "google-coral-coralnpu--doc--microarch--lsu-md",
-      "anchor_exact": "Writeback",
-      "interpretation": "Authored functional partition grounded in cited interface prose; verify exact instance/wiring in the candidate baseline."
+      "from": "memory_tracker",
+      "to": "completion_buffer",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
+    },
+    {
+      "id": "edge-6",
+      "from": "completion_buffer",
+      "to": "ordered_retirement",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
+    },
+    {
+      "id": "edge-7",
+      "from": "memory_tracker",
+      "to": "memory_environment",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
     }
   ],
-  "classification": "Shared functional decomposition; not an extracted netlist."
+  "classification": "Authored standalone SV functional decomposition, shared by design and DV; not an upstream netlist."
 }

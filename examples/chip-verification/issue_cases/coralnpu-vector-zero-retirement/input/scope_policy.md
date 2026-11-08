@@ -1,8 +1,30 @@
-# Case-specific scope adjudication for every source fragment
-Cite BOTH original source and this policy for requirements, microarchitecture, TP, RTL and UVM checks. General ISA clauses become DUT requirements only where they constrain this case's selected boundary. Unrelated defects are separate findings, never presumed harmless stress or expanded acceptance targets.
-Use the shared module_graph.json and pinned profile: RV32IMF + Zicsr + Zve32x integer-vector subset, XLEN32, VLEN128, ELEN32, 32 vector registers. Confirm configuration and interfaces in the baseline. Unknowns remain explicit evidence gaps.
-Full chapters are reference context. Exclude RV64, D/Q, vector FP, SEW64, full-V-only features, A/atomics, Zvt/VME, S/H privilege, virtual memory, PMP and other optional facilities unless explicitly rescoped and baseline-supported. Scalar F is background; no FPU redesign.
-Legacy custom-SIMD claims (64 vector registers, VLEN256, private opcodes, matrix MAC/cache organization, no interrupts) do not describe this RVV profile. Confirm slot counts, bus widths, timing and debug features in the baseline; do not invent interfaces from old diagrams. RVWMO scalar formal chapters do not prove all RVV memory ordering.
-The >512KiB metric counts unique retained source context including excluded background, NOT implemented requirement bytes, semantic coverage or EDA coverage. Freeze applicable bins within the selected boundary; do not exclude a failing in-scope obligation to pass.
-Selected boundary: ordinary legal zero-element RVV ALU/LSU command generation and retirement. For vl=0 or supported vstart>=vl, prove progress without active-element side effects and correct recovery to nonzero work. Configuration, scalar moves, whole-register operations and exceptions retain their own ISA rules; vl=0 never legalizes an illegal encoding.
-FENCE.TSO decode/ordering is a separate known defect in this candidate, NOT this case's acceptance target. Exclude its opcode from pressure programs; do not treat it as harmless existing functionality. Other scalar controls must be baseline-qualified. This case does not require repairing the independent FENCE.TSO issue.
+# Scope policy: independent Cadence subsystem
+
+The acceptance target is `coral_vector_retirement_subsystem`, the authored standalone SV boundary in
+case-cadence-contract (`cadence_contract.md`), not the original Coral whole core.
+The Cadence contract defines exact ports, widths, clocks/resets, supported
+operations, memory handshakes, fault/flush rules and liveness assumptions.
+It accompanies original source fragments as mandatory source adjudication.
+Derive obligations from that contract plus applicable ISA clauses; source size
+is broader context, NOT implemented requirement bytes.
+
+Coral issue #89, its original source and pinned correction explain the
+historical symptom. They are not a required RTL dependency or a golden model.
+Do not require the original repository, Chisel/firtool, Bazel, Cocotb, Verilator,
+MPACT, a RISC-V compiler or ELF execution. Candidate RTL/TB is standard SV/UVM
+with an explicit closure and executes on Cadence Xcelium/IMC, Jasper and Genus.
+The baseline/ files are historical_mechanism_reference only; they are excluded
+from the candidate compile inventory. Missing native build tools do not block
+this new exercise; missing candidate RTL, valid constraints or Cadence licenses
+are reported honestly and never counted as successful execution.
+
+FENCE.TSO decode/ordering is a separate known defect and outside the vector
+command interface. The selected vector subset and special-operation exceptions
+are exactly V03. Legality precedes zero-element completion. Whole-register and
+scalar/vector moves do not inherit a blanket vl=0 NOP rule. CSR/operand snapshots
+come from the external producer; this is not a complete RVV CPU specification.
+
+Never turn descriptive examples, unsupported extensions, full-chip software or
+upstream build recipes into new implementation obligations. Preserve concrete
+ambiguities locally. Coverage requires frozen applicable bins and actual native
+Cadence evidence; these authored scope decisions are not simulation evidence.

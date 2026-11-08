@@ -70,5 +70,9 @@
   "patch_application_checked": true,
   "patched_files_matching_fixed_git_blobs": 8,
   "coverage_percent": null,
-  "reference_validity": "Verified upstream parent/fix relationship and original file digests. The patch was applied to original parent files locally and every changed file matched its fixed Git blob. Upstream tests are claimed in its commit, not locally reproduced. Extended system/UVM acceptance is an authored rubric, not upstream signoff."
+  "reference_validity": "Verified upstream parent/fix relationship and original file digests. The patch was applied to original parent files locally and every changed file matched its fixed Git blob. Upstream tests are claimed in its commit, not locally reproduced. Extended system/UVM acceptance is an authored rubric, not upstream signoff.",
+  "role": "historical_mechanism_reference",
+  "required_for_cadence_execution": false,
+  "oracle_for_standalone_subsystem": false,
+  "execution_toolchain": "cadence_external_standard_sv"
 }

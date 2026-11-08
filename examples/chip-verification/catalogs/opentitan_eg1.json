@@ -740,5 +740,13 @@
       "kind": "related",
       "rationale": "Candidate; unproven. The pwrmgr module connects the slow and fast sequencing domains described by Slow Clock Domain FSM / Fast Clock Domain FSM. RTL is preserved as a reference and contributes zero bytes to the natural-specification size gate."
     }
-  ]
+  ],
+  "execution": {
+    "classification": "reading_corpus_not_runnable_soc",
+    "toolchain_family": "cadence",
+    "simulation": "xcelium",
+    "coverage": "imc",
+    "upstream_native_build_required": false,
+    "requires_authored_scope_before_implementation": true
+  }
 }

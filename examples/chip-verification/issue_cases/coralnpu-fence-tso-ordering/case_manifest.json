@@ -23,9 +23,24 @@
       "sha256": "cb9fa4389c904af530544f026d3e60ad2f2058ac8973e45fbeccdd4f5345bf17"
     },
     {
+      "path": "cadence_contract.md",
+      "bytes": 16135,
+      "sha256": "d3684c68feb2a1d65c174bcced406a174715531e0c803ce18db18c63bb0daa1e"
+    },
+    {
+      "path": "contracts/coral_memory_order_contract_pkg.sv",
+      "bytes": 1038,
+      "sha256": "4ebcc9ca527ca888e893d09143f7e244973af62e93a65a3c5d0a48920a71a7ab"
+    },
+    {
+      "path": "contracts/coral_memory_order_ports.svh",
+      "bytes": 662,
+      "sha256": "96c1ecceed76f00236849d445c35990949a5f65a6923de885b726bdd48e20b46"
+    },
+    {
       "path": "integration_profile.json",
-      "bytes": 1916,
-      "sha256": "daffddb961761f015e8d217513fea804899b40d700cc252e5b47132d6079ef0f"
+      "bytes": 3774,
+      "sha256": "5ef50233e307090b6717b83eece8a5a9f66e0809e483dd79c28e3cfd0bfb7522"
     },
     {
       "path": "licenses/google-coral-coralnpu/LICENSE",
@@ -39,23 +54,23 @@
     },
     {
       "path": "module_graph.json",
-      "bytes": 2795,
-      "sha256": "7625bbacb04e6586b44c677de3ae0cdcfd41adc20abedb81f71ea21755932bcf"
+      "bytes": 3583,
+      "sha256": "03e8b63410029b77834485c6f644bcd91920abcb8fd7f13d8902f417840d37a7"
     },
     {
       "path": "problem.md",
-      "bytes": 4677,
-      "sha256": "4f5811a826cd6e73f059b0c92e7cc0d36a2b11a36b78525e3f398ad126aa1c07"
+      "bytes": 3236,
+      "sha256": "ad93b8c5554816a60cc0fc80c3a965d1ae7e81c68b7f7d2b235cf621d2548856"
     },
     {
       "path": "scope_policy.md",
-      "bytes": 2169,
-      "sha256": "4d526cf3fcd251c2d0ee8eadbea24bf3e83be1bc2ee4a3d6d633c8d546dabeac"
+      "bytes": 2005,
+      "sha256": "b134638c21719255ba8d3b1b93eb2acab5b16a4480d3f2a2711916bfba5146f5"
     },
     {
       "path": "source_manifest.json",
-      "bytes": 22149,
-      "sha256": "d406d0c85420bd83494cf625cba980bb50ef4990052e8391778850f13267fb80"
+      "bytes": 27550,
+      "sha256": "49c9b0ee142e3175f5029f95bee4cc9dac0ee296faf01e8c8cc6060529f430f1"
     },
     {
       "path": "sources/google-coral-coralnpu/doc/integration_guide.md",
@@ -124,11 +139,16 @@
     },
     {
       "path": "spec.json",
-      "bytes": 666546,
-      "sha256": "e5dd42bd772a8604854d4512c621d7a7540b5bc8e5a8db2aad4f1e881c8135f9"
+      "bytes": 686602,
+      "sha256": "7b75d1721db3c1207262b17f2cc4d9bf085141a7fc34bc37161393dcbd0e608a"
     }
   ],
   "answer_files": [
+    {
+      "path": "behavior_oracle.md",
+      "bytes": 7162,
+      "sha256": "91203e7ba110cf5d665942349a4e1f3931ad41cf7573805de47f216a12fa45d4"
+    },
     {
       "path": "LICENSE",
       "bytes": 11357,
@@ -136,8 +156,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 2187,
-      "sha256": "2bbb0d1317edfa719ef62637fa1fe982b1bf8f6fa09c8ff0c622ff298177e9fc"
+      "bytes": 2692,
+      "sha256": "428ea79ad586100e20a34a57a92000c37ad6d0de45ab586b6f766c9183e1de51"
     },
     {
       "path": "reference/hdl/chisel/src/coralnpu/scalar/Decode.scala",
@@ -161,13 +181,13 @@
     },
     {
       "path": "reference_manifest.json",
-      "bytes": 2900,
-      "sha256": "22f0772a17bf443c373cd7836904d6413ffe26497902398cf7d385238b9e055d"
+      "bytes": 3138,
+      "sha256": "59aa66d98932f1bd5dc1909f32633545bb04960b9d238324fa95a05a03cd26df"
     },
     {
       "path": "review_rubric.json",
-      "bytes": 3038,
-      "sha256": "ed4dc992f9042df5c39479e88c8962db9f3dca1fbc51c3b9119176d2c57676ee"
+      "bytes": 5643,
+      "sha256": "7d63f9f4cb18bc65f673c750771c8741408d78f99a1bbb877678ec1089575440"
     },
     {
       "path": "upstream.patch",
