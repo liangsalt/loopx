@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "case_id": "coralnpu-fence-tso-ordering",
+  "execution_top": "coral_memory_order_subsystem",
+  "oracle": "Authored cadence_contract.md plus scoped immutable ISA clauses; upstream patch is historical lineage, never executable golden for this new subsystem.",
+  "criteria": [
+    {
+      "id": "M01",
+      "source_document_id": "case-cadence-contract",
+      "source_heading": "M01.",
+      "acceptance": "Satisfy every mandatory behavior and assumption in this contract section, independently checked against command/memory/retirement observations.",
+      "required_evidence": [
+        "source clause and TP ID",
+        "independent SV oracle/SVA implementation",
+        "actual Xcelium run and seed",
+        "observed architectural effects and failures",
+        "input/constraint/coverage-model hashes"
+      ]
+    },
+    {
+      "id": "M02",
+      "source_document_id": "case-cadence-contract",
+      "source_heading": "M02.",
+      "acceptance": "Satisfy every mandatory behavior and assumption in this contract section, independently checked against command/memory/retirement observations.",
+      "required_evidence": [
+        "source clause and TP ID",
+        "independent SV oracle/SVA implementation",
+        "actual Xcelium run and seed",
+        "observed architectural effects and failures",
+        "input/constraint/coverage-model hashes"
+      ]
+    },
+    {
+      "id": "M03",
+      "source_document_id": "case-cadence-contract",
+      "source_heading": "M03.",
+      "acceptance": "Satisfy every mandatory behavior and assumption in this contract section, independently checked against command/memory/retirement observations.",
+      "required_evidence": [
+        "source clause and TP ID",
+        "independent SV oracle/SVA implementation",
+        "actual Xcelium run and seed",
+        "observed architectural effects and failures",
+        "input/constraint/coverage-model hashes"
+      ]
+    },
+    {
+      "id": "M04",
+      "source_document_id": "case-cadence-contract",
+      "source_heading": "M04.",
+      "acceptance": "Satisfy every mandatory behavior and assumption in this contract section, independently checked against command/memory/retirement observations.",
+      "required_evidence": [
+        "source clause and TP ID",
+        "independent SV oracle/SVA implementation",
+        "actual Xcelium run and seed",
+        "observed architectural effects and failures",
+        "input/constraint/coverage-model hashes"
+      ]
+    },
+    {
+      "id": "M05",
+      "source_document_id": "case-cadence-contract",
+      "source_heading": "M05.",
+      "acceptance": "Satisfy every mandatory behavior and assumption in this contract section, independently checked against command/memory/retirement observations.",
+      "required_evidence": [
+        "source clause and TP ID",
+        "independent SV oracle/SVA implementation",
+        "actual Xcelium run and seed",
+        "observed architectural effects and failures",
+        "input/constraint/coverage-model hashes"
+      ]
+    },
+    {
+      "id": "M06",
+      "source_document_id": "case-cadence-contract",
+      "source_heading": "M06.",
+      "acceptance": "Satisfy every mandatory behavior and assumption in this contract section, independently checked against command/memory/retirement observations.",
+      "required_evidence": [
+        "source clause and TP ID",
+        "independent SV oracle/SVA implementation",
+        "actual Xcelium run and seed",
+        "observed architectural effects and failures",
+        "input/constraint/coverage-model hashes"
+      ]
+    },
+    {
+      "id": "M07",
+      "source_document_id": "case-cadence-contract",
+      "source_heading": "M07.",
+      "acceptance": "Satisfy every mandatory behavior and assumption in this contract section, independently checked against command/memory/retirement observations.",
+      "required_evidence": [
+        "source clause and TP ID",
+        "independent SV oracle/SVA implementation",
+        "actual Xcelium run and seed",
+        "observed architectural effects and failures",
+        "input/constraint/coverage-model hashes"
+      ]
+    }
+  ],
+  "scope_policy": "case-scope-policy",
+  "coverage_percent": null,
+  "cadence_contract_sha256": "d3684c68feb2a1d65c174bcced406a174715531e0c803ce18db18c63bb0daa1e",
+  "required_functional_coverage_relation": ">90%",
+  "required_mutation_checks": [
+    "illegal TSO decode",
+    "fence treated as a no-op",
+    "violation of an R->W edge",
+    "swapped response ID",
+    "duplicate retirement",
+    "wrong sign extension",
+    "dropped flush cancellation"
+  ],
+  "mutation_scope": "Observable contract violations only; equivalent/redundant edits are inapplicable negative controls; stronger legal TSO ordering must pass.",
+  "behavior_oracle": {
+    "path": "behavior_oracle.md",
+    "sha256": "91203e7ba110cf5d665942349a4e1f3931ad41cf7573805de47f216a12fa45d4",
+    "kind": "authored_behavioral_oracle",
+    "source_contract_sha256": "d3684c68feb2a1d65c174bcced406a174715531e0c803ce18db18c63bb0daa1e",
+    "source_document_ids": [
+      "case-cadence-contract",
+      "case-scope-policy",
+      "riscv-riscv-isa-manual--src--rv32-adoc"
+    ]
+  },
+  "uvm_components": [
+    "Command agent and virtual sequences",
+    "Memory responder and passive protocol monitors",
+    "Independent architectural and order scoreboard",
+    "SVA and requirement-linked covergroups"
+  ],
+  "native_upstream_regression_required": false,
+  "simulation_executed": false
+}

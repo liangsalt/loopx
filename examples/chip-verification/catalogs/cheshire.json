@@ -1,0 +1,873 @@
+{
+  "title": "Cheshire pinned SoC: system boot, LLC scratchpad, iDMA, AXI fabric and CVA6 microarchitecture",
+  "documents": [
+    {
+      "id": "cheshire_system",
+      "title": "Cheshire integrated system architecture",
+      "layer": "system",
+      "module": "cheshire_soc",
+      "features": [
+        "boot",
+        "llc",
+        "dma",
+        "interconnect",
+        "interrupt",
+        "debug",
+        "clock",
+        "reset"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/cheshire",
+      "ref": "6c6dd5e834347f72c7be31cd6c41021ec293c5b9",
+      "path": "docs/um/arch.md",
+      "git_blob_sha1": "cb24b139286bf130bbad6e91363ce8075e1be93b",
+      "license": "SHL-0.51",
+      "sha256": "8f03e8cbd20986ed4154222175ec9e306eca9151ffefbef635dbeccf58e3d497"
+    },
+    {
+      "id": "cheshire_sw",
+      "title": "Cheshire boot and software contract",
+      "layer": "software",
+      "module": "cheshire_soc",
+      "features": [
+        "boot",
+        "llc",
+        "software_protocol",
+        "memory_map"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/cheshire",
+      "ref": "6c6dd5e834347f72c7be31cd6c41021ec293c5b9",
+      "path": "docs/um/sw.md",
+      "git_blob_sha1": "d0d25120284a0bf082428da5a31a59d9fa0fed23",
+      "license": "SHL-0.51",
+      "sha256": "a16b880eeae0df5283b24daf40f8757b94b6f4bfd1ee2d72f565a7728edc5b37"
+    },
+    {
+      "id": "cheshire_integration",
+      "title": "Cheshire integration contracts",
+      "layer": "architecture",
+      "module": "cheshire_soc",
+      "features": [
+        "clock",
+        "reset",
+        "boot",
+        "debug",
+        "integration"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/cheshire",
+      "ref": "6c6dd5e834347f72c7be31cd6c41021ec293c5b9",
+      "path": "docs/tg/integr.md",
+      "git_blob_sha1": "7c2cc9e243930aae6003af699d7b84ffd735f12c",
+      "license": "SHL-0.51",
+      "sha256": "9a705e7449fa6922917a0f9cf1cec8f7a6fb0dd91e99d36551ce888fc570e853"
+    },
+    {
+      "id": "llc_microarch",
+      "title": "AXI last-level cache and scratchpad microarchitecture",
+      "layer": "microarchitecture",
+      "module": "axi_llc",
+      "features": [
+        "cache",
+        "llc",
+        "scratchpad",
+        "bist",
+        "flush",
+        "axi",
+        "atomics"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/axi_llc",
+      "ref": "cb9a8a14a68ec89e17ef59ae30de2044a743f665",
+      "path": "doc/axi_llc.md",
+      "git_blob_sha1": "f7ebbc0267a0e7fa86eb0b431ebcc6f6194695f2",
+      "license": "SHL-0.51",
+      "sha256": "bcd976e8d8956dfe946f98a26efdfb183d1b070c898d9d819bb9e69544960e80"
+    },
+    {
+      "id": "idma_backend",
+      "title": "iDMA backend and request interface",
+      "layer": "microarchitecture",
+      "module": "idma_backend",
+      "features": [
+        "dma",
+        "axi",
+        "burst",
+        "alignment",
+        "backpressure"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/iDMA",
+      "ref": "ff5d56fffb3767814db88d6bf8f381974ea33aa5",
+      "path": "doc/src/backend.rst",
+      "git_blob_sha1": "2e9953b4c26ed4b6fa17793e6709248c5683e8f0",
+      "license": "SHL-0.51",
+      "sha256": "90de96246f8c800df607d5cc6de7ceeba1175b67ef1165c778ea9faa3ae062c9"
+    },
+    {
+      "id": "idma_errors",
+      "title": "iDMA error handling proposal (implementation applicability requires review)",
+      "layer": "module",
+      "module": "idma_backend",
+      "features": [
+        "dma",
+        "bus_error",
+        "recovery"
+      ],
+      "role": "reference",
+      "repository": "pulp-platform/iDMA",
+      "ref": "ff5d56fffb3767814db88d6bf8f381974ea33aa5",
+      "path": "doc/src/error_handling.rst",
+      "git_blob_sha1": "ef2df4617b0c7b8fd584ed17ea869385875beb67",
+      "license": "SHL-0.51",
+      "sha256": "075fb4313839f72c4efd700470da566f03cb4880f656b17c76ae6fe11d50f97c"
+    },
+    {
+      "id": "idma_frontend",
+      "title": "iDMA frontend contract",
+      "layer": "module",
+      "module": "idma_frontend",
+      "features": [
+        "dma",
+        "software_protocol"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/iDMA",
+      "ref": "ff5d56fffb3767814db88d6bf8f381974ea33aa5",
+      "path": "doc/src/frontend.rst",
+      "git_blob_sha1": "91f10b1cd01d4a6ce07eb60ff69c49ab94d84f54",
+      "license": "SHL-0.51",
+      "sha256": "a52fd90057b3bca33420118bbda6e452882c637716c9d93ba980b06f5f41af26"
+    },
+    {
+      "id": "idma_register_frontend",
+      "title": "iDMA register frontend",
+      "layer": "module",
+      "module": "idma_reg_frontend",
+      "features": [
+        "dma",
+        "registers",
+        "software_protocol"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/iDMA",
+      "ref": "ff5d56fffb3767814db88d6bf8f381974ea33aa5",
+      "path": "doc/src/frontends/register_fe.rst",
+      "git_blob_sha1": "2d9a2d2723719a663b5a4ed82624bde2f318f680",
+      "license": "SHL-0.51",
+      "sha256": "fd92ca98a615d07640702dcec16b3df53e21db4f5767e0cef91af6d1f2a0c0d4"
+    },
+    {
+      "id": "idma_integration",
+      "title": "iDMA integration examples for other systems (context only)",
+      "layer": "architecture",
+      "module": "idma",
+      "features": [
+        "dma",
+        "integration",
+        "reset"
+      ],
+      "role": "reference",
+      "repository": "pulp-platform/iDMA",
+      "ref": "ff5d56fffb3767814db88d6bf8f381974ea33aa5",
+      "path": "doc/src/system_integration.rst",
+      "git_blob_sha1": "c31833eb353f4c88ef204e91cbda095f08d5b691",
+      "license": "SHL-0.51",
+      "sha256": "c15825fdf9ffc4e3177878172c99cd0adf2bea51672dbbec42d35d66e1028406"
+    },
+    {
+      "id": "cva6_requirements",
+      "title": "Pinned CVA6 core requirement specification and configuration context",
+      "layer": "architecture",
+      "module": "cva6",
+      "features": [
+        "cpu",
+        "configuration",
+        "cache",
+        "debug",
+        "interrupt",
+        "axi"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/cva6",
+      "ref": "4c02b24fe7c04690f626776a92274da24f80d1da",
+      "path": "docs/02_cva6_requirements/cva6_requirements_specification.rst",
+      "git_blob_sha1": "da5605efbb0494532039b245d835ae85ba3a5745",
+      "license": "Apache-2.0 WITH SHL-2.1",
+      "sha256": "4ebc0b482accc95c8564d42174ad5dd98aa8205b3246aa8e3c992bc0b71db4e6"
+    },
+    {
+      "id": "cva6_mmu",
+      "title": "CVA6 MMU implementation design",
+      "layer": "microarchitecture",
+      "module": "cva6_mmu",
+      "features": [
+        "mmu",
+        "tlb",
+        "page_table_walk",
+        "pmp",
+        "exceptions"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/cva6",
+      "ref": "4c02b24fe7c04690f626776a92274da24f80d1da",
+      "path": "docs/03_cva6_design/MMU.rst",
+      "git_blob_sha1": "7e67fea64c312b7457021bb9fa2a423642d57b58",
+      "license": "SHL-0.51",
+      "sha256": "04b4c99712412d9a41fa6edb4b97e55a80e220aa89c5153356e10e08dd0ee688"
+    },
+    {
+      "id": "cva6_execute",
+      "title": "CVA6 Execution and load-store microarchitecture",
+      "layer": "microarchitecture",
+      "module": "cva6",
+      "features": [
+        "pipeline",
+        "load_store",
+        "fence",
+        "exceptions"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/cva6",
+      "ref": "4c02b24fe7c04690f626776a92274da24f80d1da",
+      "path": "docs/03_cva6_design/ex_stage.md",
+      "git_blob_sha1": "c3a083eb58724b1054273371e8086319d99ed500",
+      "license": "SHL-0.51",
+      "sha256": "67b057f4fdaa2d1a33cbbe97939fe767960e12f73ff6b7d3db0414a1fd66b5c9"
+    },
+    {
+      "id": "cva6_decode",
+      "title": "CVA6 Instruction decode microarchitecture",
+      "layer": "microarchitecture",
+      "module": "cva6",
+      "features": [
+        "pipeline",
+        "decode",
+        "exceptions"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/cva6",
+      "ref": "4c02b24fe7c04690f626776a92274da24f80d1da",
+      "path": "docs/03_cva6_design/id_stage.md",
+      "git_blob_sha1": "81ef701e9006821f9cd8a9253b17e7356b118806",
+      "license": "SHL-0.51",
+      "sha256": "9fc79a3312335bf61897324d17d92bcf79f4b07c72bfbde360a7157f5a2c7da8"
+    },
+    {
+      "id": "cva6_fetch",
+      "title": "CVA6 Instruction fetch microarchitecture",
+      "layer": "microarchitecture",
+      "module": "cva6",
+      "features": [
+        "pipeline",
+        "instruction_cache",
+        "flush"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/cva6",
+      "ref": "4c02b24fe7c04690f626776a92274da24f80d1da",
+      "path": "docs/03_cva6_design/if_stage.md",
+      "git_blob_sha1": "aade216d72e7eeaa36076988dd630d8127f10c93",
+      "license": "SHL-0.51",
+      "sha256": "5e469b010f0f3c14a845a2ba07e33add4924170d556aa60098911d183dbf0b5a"
+    },
+    {
+      "id": "cva6_issue",
+      "title": "CVA6 Issue and scoreboard microarchitecture",
+      "layer": "microarchitecture",
+      "module": "cva6",
+      "features": [
+        "pipeline",
+        "scoreboard",
+        "hazards"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/cva6",
+      "ref": "4c02b24fe7c04690f626776a92274da24f80d1da",
+      "path": "docs/03_cva6_design/issue_stage.md",
+      "git_blob_sha1": "e3f1ada1f3b57da9a349e16613f5b092e6e390b2",
+      "license": "SHL-0.51",
+      "sha256": "2f1674321759f962705f5c377ab509dc35b14cce13ffda35f871e5ce7983fa5e"
+    },
+    {
+      "id": "cva6_pcgen",
+      "title": "CVA6 Program-counter and branch microarchitecture",
+      "layer": "microarchitecture",
+      "module": "cva6",
+      "features": [
+        "pipeline",
+        "branch",
+        "flush"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/cva6",
+      "ref": "4c02b24fe7c04690f626776a92274da24f80d1da",
+      "path": "docs/03_cva6_design/pcgen_stage.md",
+      "git_blob_sha1": "39760a58715a3ccb195a9fc893ecfba751febff3",
+      "license": "SHL-0.51",
+      "sha256": "922be4608563d561591d365b5d79220e2f3a5bd60042c05e11de73c4ee925b34"
+    },
+    {
+      "id": "cva6_commit",
+      "title": "CVA6 In-order commit and exception microarchitecture",
+      "layer": "microarchitecture",
+      "module": "cva6",
+      "features": [
+        "pipeline",
+        "commit",
+        "exceptions"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/cva6",
+      "ref": "4c02b24fe7c04690f626776a92274da24f80d1da",
+      "path": "docs/03_cva6_design/commit_stage.rst",
+      "git_blob_sha1": "878d7e43cfe46b47863e40ae88aeb1f04fddf1fa",
+      "license": "SHL-0.51",
+      "sha256": "43499b98fdfea7f293c278971a047218705c0e299e2b060cb7e62b2c77dea621"
+    },
+    {
+      "id": "cva6_axi",
+      "title": "CVA6 AXI interface restrictions (published CV32 configuration context)",
+      "layer": "module",
+      "module": "cva6",
+      "features": [
+        "axi",
+        "ordering",
+        "outstanding",
+        "atomics"
+      ],
+      "role": "reference",
+      "repository": "pulp-platform/cva6",
+      "ref": "4c02b24fe7c04690f626776a92274da24f80d1da",
+      "path": "docs/01_cva6_user/AXI_Interface.rst",
+      "git_blob_sha1": "09c8f51a30fff1933c005778a184ab544a9b19bd",
+      "license": "Apache-2.0 WITH SHL-2.1",
+      "sha256": "3857f86fde6274e99225d4e8f83d0d4e85c3f268fc65801f2c58f747b42c89bc"
+    },
+    {
+      "id": "cva6_pma",
+      "title": "CVA6 Physical memory attributes (published CV32 configuration context)",
+      "layer": "module",
+      "module": "cva6",
+      "features": [
+        "memory_attributes",
+        "cache",
+        "ordering"
+      ],
+      "role": "reference",
+      "repository": "pulp-platform/cva6",
+      "ref": "4c02b24fe7c04690f626776a92274da24f80d1da",
+      "path": "docs/01_cva6_user/PMA.rst",
+      "git_blob_sha1": "a8a97d4e150d194088e298c00894662df086e607",
+      "license": "Apache-2.0 WITH SHL-2.1",
+      "sha256": "15d5d8ad76671817d9ce8997e8f7f3af6c9ac74b3c885ba0a3f0a68e2b40f1d3"
+    },
+    {
+      "id": "cva6_pmp",
+      "title": "CVA6 Physical memory protection (published CV32 configuration context)",
+      "layer": "module",
+      "module": "cva6",
+      "features": [
+        "memory_protection",
+        "privilege",
+        "exceptions"
+      ],
+      "role": "reference",
+      "repository": "pulp-platform/cva6",
+      "ref": "4c02b24fe7c04690f626776a92274da24f80d1da",
+      "path": "docs/01_cva6_user/PMP.rst",
+      "git_blob_sha1": "814451037db49d6df5b2dd62b1cbb8653c577b61",
+      "license": "Apache-2.0 WITH SHL-2.1",
+      "sha256": "8c19f601444c3042df02098a595bc9f71d538c46cb1f89f2ae7985ecd4d83ffb"
+    },
+    {
+      "id": "cva6_traps",
+      "title": "CVA6 Traps interrupts and exceptions (published CV32 configuration context)",
+      "layer": "module",
+      "module": "cva6",
+      "features": [
+        "interrupt",
+        "exceptions",
+        "debug"
+      ],
+      "role": "reference",
+      "repository": "pulp-platform/cva6",
+      "ref": "4c02b24fe7c04690f626776a92274da24f80d1da",
+      "path": "docs/01_cva6_user/Traps_Interrupts_Exceptions.rst",
+      "git_blob_sha1": "bb0c8f266c9376970d5deaabc40c741993fd839b",
+      "license": "Apache-2.0 WITH SHL-2.1",
+      "sha256": "dbddac13177fdc017496980837f29bb105201439783b7f715c3598067f0726cf"
+    },
+    {
+      "id": "cva6_configuration",
+      "title": "CVA6 Core parameter and configuration contract (published CV32 configuration context)",
+      "layer": "module",
+      "module": "cva6",
+      "features": [
+        "configuration",
+        "cpu",
+        "cache"
+      ],
+      "role": "reference",
+      "repository": "pulp-platform/cva6",
+      "ref": "4c02b24fe7c04690f626776a92274da24f80d1da",
+      "path": "docs/01_cva6_user/Parameters_Configuration.rst",
+      "git_blob_sha1": "b3117a6b8a9877be26b6a84bba6f256fca55b42b",
+      "license": "Apache-2.0 WITH SHL-2.1",
+      "sha256": "cb8a72d2cc71c1168b4a78f140898b795e61653fb04aae940cc59e9f69ae2140"
+    },
+    {
+      "id": "axi_xbar",
+      "title": "AXI crossbar ordering and interconnect contract",
+      "layer": "module",
+      "module": "axi_xbar",
+      "features": [
+        "axi",
+        "interconnect",
+        "ordering",
+        "address_decode"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/axi",
+      "ref": "78831b6feba265d5ee2683bbf42b4150f8a35c43",
+      "path": "doc/axi_xbar.md",
+      "git_blob_sha1": "ca0c12108333c9a495af3813f6ca42eb552bfb04",
+      "license": "SHL-0.51",
+      "sha256": "ece7ec0f5bd980c855e19391b5529a79ba9c87766c835d981c925c52dbb08c50"
+    },
+    {
+      "id": "axi_demux",
+      "title": "AXI demultiplexer contract",
+      "layer": "module",
+      "module": "axi_demux",
+      "features": [
+        "axi",
+        "ordering",
+        "id_tracking"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/axi",
+      "ref": "78831b6feba265d5ee2683bbf42b4150f8a35c43",
+      "path": "doc/axi_demux.md",
+      "git_blob_sha1": "4b8b964ed323391ef78e9836f80936a5763631b7",
+      "license": "SHL-0.51",
+      "sha256": "ddd9d950564a209f3bd7760937c9574185b4685199ab834f2a37799161113cac"
+    },
+    {
+      "id": "axi_mux",
+      "title": "AXI multiplexer contract",
+      "layer": "module",
+      "module": "axi_mux",
+      "features": [
+        "axi",
+        "arbitration",
+        "id_tracking"
+      ],
+      "role": "specification",
+      "repository": "pulp-platform/axi",
+      "ref": "78831b6feba265d5ee2683bbf42b4150f8a35c43",
+      "path": "doc/axi_mux.md",
+      "git_blob_sha1": "fc257feb0422f31e351e37348f66b759fc3c7ac7",
+      "license": "SHL-0.51",
+      "sha256": "7c0259fa91329dc00ac5d2c55ea79fd5548f6bc843af3e56c1c4c69b6865d381"
+    },
+    {
+      "id": "cheshire_dependency_lock",
+      "title": "Cheshire exact dependency lock",
+      "layer": "architecture",
+      "module": "cheshire_soc",
+      "features": [
+        "dependency_versions",
+        "configuration"
+      ],
+      "role": "reference",
+      "repository": "pulp-platform/cheshire",
+      "ref": "6c6dd5e834347f72c7be31cd6c41021ec293c5b9",
+      "path": "Bender.lock",
+      "git_blob_sha1": "be49eecfd67dd4c5f970c0ccf5cf68a047fe5207",
+      "license": "SHL-0.51",
+      "sha256": "92ba9d766dd3a35522070874f06cfb9d4c89dd3607a1a4d04f59da492092fa7e"
+    },
+    {
+      "id": "cheshire_simulation",
+      "title": "Cheshire upstream simulation environment guide",
+      "layer": "verification",
+      "module": "cheshire_soc",
+      "features": [
+        "simulation",
+        "system_verification"
+      ],
+      "role": "reference",
+      "repository": "pulp-platform/cheshire",
+      "ref": "6c6dd5e834347f72c7be31cd6c41021ec293c5b9",
+      "path": "docs/tg/sim.md",
+      "git_blob_sha1": "f9154606a1c9deb4fb82b54d297b0007a9e91f43",
+      "license": "SHL-0.51",
+      "sha256": "825652305c29a8db9aa53e0568f31202cea85b629a167b5fd8e6d537363d50ce"
+    },
+    {
+      "id": "cheshire_bootrom",
+      "title": "Boot ROM LLC BIST and scratchpad initialization",
+      "layer": "software",
+      "module": "cheshire_bootrom",
+      "features": [
+        "boot",
+        "llc",
+        "scratchpad",
+        "bist",
+        "multicore"
+      ],
+      "role": "reference",
+      "repository": "pulp-platform/cheshire",
+      "ref": "6c6dd5e834347f72c7be31cd6c41021ec293c5b9",
+      "path": "hw/bootrom/cheshire_bootrom.S",
+      "git_blob_sha1": "676041d6b9baa53720351453014181e6627087ad",
+      "license": "Apache-2.0",
+      "sha256": "497b1b514c58b69373ae61f306d8073d7811f5d210fe9b92abdae04e9fa2ad5f"
+    },
+    {
+      "id": "cheshire_dma_test",
+      "title": "Cheshire two-dimensional DMA firmware test",
+      "layer": "verification",
+      "module": "cheshire_idma_wrap",
+      "features": [
+        "dma",
+        "scratchpad",
+        "hw_sw"
+      ],
+      "role": "reference",
+      "repository": "pulp-platform/cheshire",
+      "ref": "6c6dd5e834347f72c7be31cd6c41021ec293c5b9",
+      "path": "sw/tests/dma_2d.spm.c",
+      "git_blob_sha1": "48c393f801a98967b018ccc214fcff027c5a1b4c",
+      "license": "Apache-2.0",
+      "sha256": "ae2cabdd9f6554504d11422b53d02bb8dd9107ff2272bec0bbf08edad89c2c88"
+    },
+    {
+      "id": "cheshire_testbench",
+      "title": "Cheshire native SystemVerilog SoC testbench",
+      "layer": "verification",
+      "module": "cheshire_soc",
+      "features": [
+        "simulation",
+        "system_verification"
+      ],
+      "role": "reference",
+      "repository": "pulp-platform/cheshire",
+      "ref": "6c6dd5e834347f72c7be31cd6c41021ec293c5b9",
+      "path": "target/sim/src/tb_cheshire_soc.sv",
+      "git_blob_sha1": "041e99a1cd5ec9f51995ee6afba317489f9532dc",
+      "license": "SHL-0.51",
+      "sha256": "41def1a9b9d152146be7ca2dcffde9438abfe9977973115bb8f56ae8106bce84"
+    },
+    {
+      "id": "cheshire_idma_rtl",
+      "title": "Cheshire iDMA integration wrapper RTL",
+      "layer": "module",
+      "module": "cheshire_idma_wrap",
+      "features": [
+        "dma",
+        "axi",
+        "scratchpad",
+        "rtl"
+      ],
+      "role": "reference",
+      "repository": "pulp-platform/cheshire",
+      "ref": "6c6dd5e834347f72c7be31cd6c41021ec293c5b9",
+      "path": "hw/cheshire_idma_wrap.sv",
+      "git_blob_sha1": "6e403693848bef532d1434acea7052aa4795feda",
+      "license": "SHL-0.51",
+      "sha256": "469bf3fd89b02734ae73f6a32efdbf029c5a133df350abec8835c7d6e29af75b"
+    },
+    {
+      "id": "llc_config_rtl",
+      "title": "AXI LLC configuration and BIST control RTL",
+      "layer": "module",
+      "module": "axi_llc_config",
+      "features": [
+        "llc",
+        "bist",
+        "scratchpad",
+        "flush",
+        "rtl"
+      ],
+      "role": "reference",
+      "repository": "pulp-platform/axi_llc",
+      "ref": "cb9a8a14a68ec89e17ef59ae30de2044a743f665",
+      "path": "src/axi_llc_config.sv",
+      "git_blob_sha1": "b9d9349e86734bf62bec3a47d2643fc61b6011da",
+      "license": "SHL-0.51",
+      "sha256": "252032fd3484be7a175c88cea3878b469cb97a73e7d7c15e6dcee2cd04140782"
+    }
+  ],
+  "licenses": [
+    {
+      "repository": "pulp-platform/cheshire",
+      "ref": "6c6dd5e834347f72c7be31cd6c41021ec293c5b9",
+      "path": "LICENSE",
+      "git_blob_sha1": "18e4f67692a9203423564bcd81b8c6c85140e747",
+      "license": "SHL-0.51",
+      "sha256": "6527a46225891b976fa94f634f6ee0cd22e1c7129d6f11c5c98c997627625fc7"
+    },
+    {
+      "repository": "pulp-platform/axi_llc",
+      "ref": "cb9a8a14a68ec89e17ef59ae30de2044a743f665",
+      "path": "LICENSE",
+      "git_blob_sha1": "18e4f67692a9203423564bcd81b8c6c85140e747",
+      "license": "SHL-0.51",
+      "sha256": "6527a46225891b976fa94f634f6ee0cd22e1c7129d6f11c5c98c997627625fc7"
+    },
+    {
+      "repository": "pulp-platform/iDMA",
+      "ref": "ff5d56fffb3767814db88d6bf8f381974ea33aa5",
+      "path": "LICENSE",
+      "git_blob_sha1": "18e4f67692a9203423564bcd81b8c6c85140e747",
+      "license": "SHL-0.51",
+      "sha256": "6527a46225891b976fa94f634f6ee0cd22e1c7129d6f11c5c98c997627625fc7"
+    },
+    {
+      "repository": "pulp-platform/cva6",
+      "ref": "4c02b24fe7c04690f626776a92274da24f80d1da",
+      "path": "LICENSE",
+      "git_blob_sha1": "3a2b87e2d69e600999f1f648f751ea185e3ee06a",
+      "license": "SHL-0.51",
+      "sha256": "b41106a9d0de1cf6ab4ea56bedf677503085c0570248f37fe2cdf657a5e72601"
+    },
+    {
+      "repository": "pulp-platform/axi",
+      "ref": "78831b6feba265d5ee2683bbf42b4150f8a35c43",
+      "path": "LICENSE",
+      "git_blob_sha1": "18e4f67692a9203423564bcd81b8c6c85140e747",
+      "license": "SHL-0.51",
+      "sha256": "6527a46225891b976fa94f634f6ee0cd22e1c7129d6f11c5c98c997627625fc7"
+    }
+  ],
+  "relations": [
+    {
+      "id": "ch-001",
+      "source": "cheshire_sw",
+      "target": "cheshire_system",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. Software Stack Boot Flow / Boot ROM details system Architecture Boot ROM / Last Level Cache. Software sequencing refines the boot contract but needs configuration-specific checking."
+    },
+    {
+      "id": "ch-002",
+      "source": "cheshire_integration",
+      "target": "cheshire_system",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. SoC Integration Instantiating Cheshire / Platform ROM details system Architecture Components and Parameters / Boot ROM. Clock/reset, testbench and platform handoff contracts must be checked together."
+    },
+    {
+      "id": "ch-003",
+      "source": "llc_microarch",
+      "target": "cheshire_system",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. LLC Transaction Split and SPM / Configuration and Flush details system Last Level Cache. Address decode, mode switch and cache-way ownership must agree across the system and IP."
+    },
+    {
+      "id": "ch-004",
+      "source": "idma_backend",
+      "target": "cheshire_system",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. iDMA Interface / Legalizer / Transport Layer details system DMA Engine. Backend 1D request semantics must be reconciled with the system two-dimensional frontend configuration."
+    },
+    {
+      "id": "ch-005",
+      "source": "axi_xbar",
+      "target": "cheshire_system",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. AXI4+ATOP Fully-Connected Crossbar Address Map / Ordering and Stalls details system Interconnect. Outstanding IDs, address decoding and ordering require scenario-level validation."
+    },
+    {
+      "id": "ch-006",
+      "source": "axi_demux",
+      "target": "axi_xbar",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. Demultiplexer Ordering and Stalls / Atomic Transactions detail crossbar Design Overview / Ordering and Stalls. ID tracking and routing form a shared protocol contract."
+    },
+    {
+      "id": "ch-007",
+      "source": "axi_mux",
+      "target": "axi_xbar",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. AXI Multiplexer arbitration and ID expansion detail the crossbar Design Overview. Port index and response routing need implementation consistency checks."
+    },
+    {
+      "id": "ch-008",
+      "source": "cva6_requirements",
+      "target": "cheshire_system",
+      "kind": "related",
+      "rationale": "Candidate; unproven. Core requirements Scope of the IP / Cache requirements / Interface requirements relate to system CVA6 Cores. Generic CVA6 requirements include multiple configurations, while Initial Release names CV32 variants; applicability must be selected explicitly for Cheshire CV64."
+    },
+    {
+      "id": "ch-009",
+      "source": "cva6_mmu",
+      "target": "cva6_requirements",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. Memory Management Unit / Page Table Walker details core Privileges and virtual memory. Sv32, Sv39 and optional virtualization configuration differences must remain explicit."
+    },
+    {
+      "id": "ch-010",
+      "source": "cva6_execute",
+      "target": "cva6_requirements",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. Execute Stage Load Store Unit (LSU) / Store Buffer / PMA/PMP Checks details core memory and cache requirements. Memory visibility and exceptions need configuration-specific checks."
+    },
+    {
+      "id": "ch-011",
+      "source": "cva6_mmu",
+      "target": "cva6_execute",
+      "kind": "related",
+      "rationale": "Candidate; unproven. MMU Page Table Walker / Translation Lookaside Buffer relates to Execute Stage Memory Management Unit (MMU) / PMA/PMP Checks. Translation faults, retries and load/store completion must agree."
+    },
+    {
+      "id": "ch-012",
+      "source": "cva6_fetch",
+      "target": "cva6_pcgen",
+      "kind": "related",
+      "rationale": "Candidate; unproven. Instruction Fetch Stage Fetch FIFO and PC Generation Branch Prediction define adjacent pipeline boundaries. Redirects and outstanding fetch responses require flush-aware checking."
+    },
+    {
+      "id": "ch-013",
+      "source": "cva6_decode",
+      "target": "cva6_issue",
+      "kind": "related",
+      "rationale": "Candidate; unproven. Instruction Decode Instruction Re-aligner / Compressed Decoder relates to Issue Stage Issue / Scoreboard. Instruction boundaries, exceptions and scoreboard entries require correspondence."
+    },
+    {
+      "id": "ch-014",
+      "source": "cva6_issue",
+      "target": "cva6_execute",
+      "kind": "related",
+      "rationale": "Candidate; unproven. Issue Stage Scoreboard / Read Operands feeds execution units described by Execute Stage. Dependency hazards, result writeback and exception propagation are candidate checks."
+    },
+    {
+      "id": "ch-015",
+      "source": "cva6_commit",
+      "target": "cva6_execute",
+      "kind": "related",
+      "rationale": "Candidate; unproven. Commit Stage defines retirement sequencing around Execute Stage Store Buffer / CSR Buffer. Stores and exceptions must obey architectural commit ordering."
+    },
+    {
+      "id": "ch-016",
+      "source": "idma_register_frontend",
+      "target": "idma_frontend",
+      "kind": "refines",
+      "rationale": "Candidate; unproven. Register Frontends details the iDMA Frontend register-based request source. The short upstream document does not by itself prove the complete Cheshire frontend contract."
+    },
+    {
+      "id": "ch-017",
+      "source": "idma_frontend",
+      "target": "idma_backend",
+      "kind": "related",
+      "rationale": "Candidate; unproven. iDMA Frontend describes request generation, while backend 1D request / DMA response describes request and completion boundaries. Frontend/backend protocol correspondence must be checked."
+    },
+    {
+      "id": "ch-018",
+      "source": "cheshire_bootrom",
+      "target": "llc_microarch",
+      "kind": "related",
+      "rationale": "Candidate; unproven. Boot ROM _start polls BIST_STATUS_DONE before writing CFG_SPM_LOW/HIGH and CFG_COMMIT. This is a candidate implementation of LLC BIST Initialization Sequence / Configuration and Flush: BIST initializes ways as cache, then software changes them to SPM."
+    },
+    {
+      "id": "ch-019",
+      "source": "cheshire_bootrom",
+      "target": "cheshire_sw",
+      "kind": "related",
+      "rationale": "Candidate; unproven. Boot ROM _start implements parts of Software Stack Boot ROM and platform handoff. Secondary-hart parking, stack placement, SPM initialization and instruction fencing require executable validation."
+    },
+    {
+      "id": "ch-020",
+      "source": "cheshire_dma_test",
+      "target": "cheshire_system",
+      "kind": "verifies",
+      "rationale": "Candidate; unproven. dma_2d.spm.c exercises the system DMA Engine and Last Level Cache scratchpad path using an uncached alias and data comparison. This is a narrow existing software test, not evidence of cache coherence or measured system coverage."
+    },
+    {
+      "id": "ch-021",
+      "source": "cheshire_idma_rtl",
+      "target": "idma_backend",
+      "kind": "related",
+      "rationale": "Candidate; unproven. The cheshire_idma_wrap module instantiates iDMA frontend, multidimensional expansion and AXI backend logic. Backend Interface / DMA response contracts must match the wrapper parameterization."
+    },
+    {
+      "id": "ch-022",
+      "source": "llc_config_rtl",
+      "target": "llc_microarch",
+      "kind": "related",
+      "rationale": "Candidate; unproven. axi_llc_config implements configuration/BIST/flush control relevant to BIST Initialization Sequence / Configuration and Flush. The reference RTL is not itself a proof of the documentation contract."
+    },
+    {
+      "id": "ch-023",
+      "source": "cheshire_testbench",
+      "target": "cheshire_simulation",
+      "kind": "related",
+      "rationale": "Candidate; unproven. tb_cheshire_soc is the native SystemVerilog harness described by Simulation Testbench. Its included tasks and software test completion checks are not a chip-level UVM environment."
+    },
+    {
+      "id": "ch-024",
+      "source": "cheshire_dependency_lock",
+      "target": "cheshire_system",
+      "kind": "related",
+      "rationale": "Candidate; unproven. The Bender.lock packages entries fix the CVA6, axi_llc, iDMA and axi revisions used for this corpus. Version consistency is provenance, not behavioral refinement."
+    },
+    {
+      "id": "ch-025",
+      "source": "cva6_axi",
+      "target": "cheshire_system",
+      "kind": "related",
+      "rationale": "Candidate; unproven. CVA6 AXI Introduction applicability lists CV32A60AX/CV32A60X, whereas system CVA6 Cores integrates CV64 cores. This is reference context requiring an applicability decision, not an automatically valid Cheshire contract."
+    },
+    {
+      "id": "ch-026",
+      "source": "cva6_pma",
+      "target": "cva6_execute",
+      "kind": "related",
+      "rationale": "Candidate; unproven. User PMA and execution PMA/PMP Checks discuss memory attributes. The user guide configuration scope must be reconciled before extracting applicable CV64 requirements."
+    },
+    {
+      "id": "ch-027",
+      "source": "cva6_pmp",
+      "target": "cva6_mmu",
+      "kind": "related",
+      "rationale": "Candidate; unproven. User PMP and MMU permission handling relate, but user guide applicability and the chosen core PMP configuration require explicit validation."
+    },
+    {
+      "id": "ch-028",
+      "source": "cva6_traps",
+      "target": "cheshire_system",
+      "kind": "related",
+      "rationale": "Candidate; unproven. User Interrupts / Wait for Interrupt relates to system Interrupts and debug interaction. The CV32-oriented user guide is reference context, not a proven CV64 interrupt contract."
+    },
+    {
+      "id": "ch-029",
+      "source": "cva6_configuration",
+      "target": "cva6_requirements",
+      "kind": "related",
+      "rationale": "Candidate; unproven. User Configurations relates to requirements Initial Release / Scope of the IP. The documented variants must not be mistaken for the actual Cheshire configuration."
+    },
+    {
+      "id": "ch-030",
+      "source": "idma_errors",
+      "target": "idma_backend",
+      "kind": "related",
+      "rationale": "Candidate; unproven. The error-handling note explicitly lists options to be implemented, while backend Error Handler describes its interface. Proposed abort/continue/replay behavior must not be assumed implemented without checking."
+    },
+    {
+      "id": "ch-031",
+      "source": "idma_integration",
+      "target": "cheshire_idma_rtl",
+      "kind": "related",
+      "rationale": "Candidate; unproven. System Integration PULP Open / CVA6 Register are examples for other platforms. They inform review of cheshire_idma_wrap but do not establish its integration contract."
+    }
+  ],
+  "execution": {
+    "classification": "reading_corpus_not_runnable_soc",
+    "toolchain_family": "cadence",
+    "simulation": "xcelium",
+    "coverage": "imc",
+    "upstream_native_build_required": false,
+    "requires_authored_scope_before_implementation": true
+  }
+}

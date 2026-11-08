@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "case_id": "coralnpu-vector-zero-retirement",
+  "execution_top": "coral_vector_retirement_subsystem",
+  "oracle": "Authored cadence_contract.md plus scoped immutable ISA clauses; upstream patch is historical lineage, never executable golden for this new subsystem.",
+  "criteria": [
+    {
+      "id": "V01",
+      "source_document_id": "case-cadence-contract",
+      "source_heading": "V01.",
+      "acceptance": "Satisfy every mandatory behavior and assumption in this contract section, independently checked against command/memory/retirement observations.",
+      "required_evidence": [
+        "source clause and TP ID",
+        "independent SV oracle/SVA implementation",
+        "actual Xcelium run and seed",
+        "observed architectural effects and failures",
+        "input/constraint/coverage-model hashes"
+      ]
+    },
+    {
+      "id": "V02",
+      "source_document_id": "case-cadence-contract",
+      "source_heading": "V02.",
+      "acceptance": "Satisfy every mandatory behavior and assumption in this contract section, independently checked against command/memory/retirement observations.",
+      "required_evidence": [
+        "source clause and TP ID",
+        "independent SV oracle/SVA implementation",
+        "actual Xcelium run and seed",
+        "observed architectural effects and failures",
+        "input/constraint/coverage-model hashes"
+      ]
+    },
+    {
+      "id": "V03",
+      "source_document_id": "case-cadence-contract",
+      "source_heading": "V03.",
+      "acceptance": "Satisfy every mandatory behavior and assumption in this contract section, independently checked against command/memory/retirement observations.",
+      "required_evidence": [
+        "source clause and TP ID",
+        "independent SV oracle/SVA implementation",
+        "actual Xcelium run and seed",
+        "observed architectural effects and failures",
+        "input/constraint/coverage-model hashes"
+      ]
+    },
+    {
+      "id": "V04",
+      "source_document_id": "case-cadence-contract",
+      "source_heading": "V04.",
+      "acceptance": "Satisfy every mandatory behavior and assumption in this contract section, independently checked against command/memory/retirement observations.",
+      "required_evidence": [
+        "source clause and TP ID",
+        "independent SV oracle/SVA implementation",
+        "actual Xcelium run and seed",
+        "observed architectural effects and failures",
+        "input/constraint/coverage-model hashes"
+      ]
+    },
+    {
+      "id": "V05",
+      "source_document_id": "case-cadence-contract",
+      "source_heading": "V05.",
+      "acceptance": "Satisfy every mandatory behavior and assumption in this contract section, independently checked against command/memory/retirement observations.",
+      "required_evidence": [
+        "source clause and TP ID",
+        "independent SV oracle/SVA implementation",
+        "actual Xcelium run and seed",
+        "observed architectural effects and failures",
+        "input/constraint/coverage-model hashes"
+      ]
+    },
+    {
+      "id": "V06",
+      "source_document_id": "case-cadence-contract",
+      "source_heading": "V06.",
+      "acceptance": "Satisfy every mandatory behavior and assumption in this contract section, independently checked against command/memory/retirement observations.",
+      "required_evidence": [
+        "source clause and TP ID",
+        "independent SV oracle/SVA implementation",
+        "actual Xcelium run and seed",
+        "observed architectural effects and failures",
+        "input/constraint/coverage-model hashes"
+      ]
+    }
+  ],
+  "scope_policy": "case-scope-policy",
+  "coverage_percent": null,
+  "cadence_contract_sha256": "8c41b3f311f1b2a706a31215317cf8d258cedf84064fec88cc262ed599d5e546",
+  "required_functional_coverage_relation": ">90%",
+  "required_mutation_checks": [
+    "missing zero-element completion",
+    "disabled legality check",
+    "dropped masked condition",
+    "wrong fault prefix",
+    "duplicate retirement",
+    "misassociated response ID",
+    "dropped flush cancellation"
+  ],
+  "mutation_scope": "Observable contract violations only; equivalent/redundant edits are inapplicable negative controls; stronger legal TSO ordering must pass.",
+  "behavior_oracle": {
+    "path": "behavior_oracle.md",
+    "sha256": "ed89879361af2a3459971c3aa6b0a653f926c39dcfe498ee3ea90d8a61b9849a",
+    "kind": "authored_behavioral_oracle",
+    "source_contract_sha256": "8c41b3f311f1b2a706a31215317cf8d258cedf84064fec88cc262ed599d5e546",
+    "source_document_ids": [
+      "case-cadence-contract",
+      "case-scope-policy",
+      "riscv-riscv-isa-manual--src--v-st-ext-adoc"
+    ]
+  },
+  "uvm_components": [
+    "Command agent and virtual sequences",
+    "Memory responder and passive protocol monitors",
+    "Independent architectural and order scoreboard",
+    "SVA and requirement-linked covergroups"
+  ],
+  "native_upstream_regression_required": false,
+  "simulation_executed": false
+}

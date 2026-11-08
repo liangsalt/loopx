@@ -1,0 +1,2351 @@
+import cocotb
+from cocotb.triggers import RisingEdge
+import itertools
+import numpy as np
+import tqdm
+from coralnpu_test_utils.core_mini_axi_interface import CoreMiniAxiInterface
+from coralnpu_test_utils.rvv_type_util import construct_vtype, DTYPE_TO_SEW, SEWS, SEW_TO_LMULS_AND_VLMAXS, LMUL_TO_EMUL
+from coralnpu_test_utils.sim_test_fixture import Fixture
+from bazel_tools.tools.python.runfiles import runfiles
+from cocotb.triggers import RisingEdge
+
+SEWS = [
+    0b000,  # SEW8
+    0b001,  # SEW16
+    0b010,  # SEW32
+]
+
+# See 3.4.2. Vector Register Grouping of RVV Spec
+LMULS = [
+    0b100,  # Reserved
+    0b101,  # LMUL1/8
+    0b110,  # LMUL1/4
+    0b111,  # LMUL1/2
+    0b000,  # LMUL1
+    0b001,  # LMUL2
+    0b010,  # LMUL4
+    0b011,  # LMUL8
+]
+
+
+def _illegal_vtype(sew, lmul):
+    # SEW must be SEW8,16,32. Others are illegal
+    if not ((sew == 0b000) or (sew == 0b001) or (sew == 0b010)):
+        return True
+
+    # Reserved or LMUL=1/8 always illegal
+    if (lmul == 0b100) or (lmul == 0b101):
+        return True
+
+    # LMUL=1/4 is illegal for SEW16 and SEW32
+    if (sew != 0b000) and (lmul == 0b110):
+        return True
+
+    # LMUL=1/2 is illegal for SEW32
+    if (sew == 0b010) and (lmul == 0b111):
+        return True
+
+    return False
+
+
+@cocotb.test()
+async def core_mini_rvv_load(dut):
+    """Testbench to test RVV load intrinsics.
+
+    This test loads 16 bytes of data and read back from the input address.
+    Todo: update the test with store unit.
+    """
+    # Test bench setup
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation("coralnpu_hw/tests/cocotb/rvv/rvv_load.elf")
+    num_test_bytes = 16
+    intial_pass = True
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+
+    #Write your program inputs
+    with open(elf_path, "rb") as f:
+        input_1_addr = core_mini_axi.lookup_symbol(f, "input_1")
+        output_1_addr = core_mini_axi.lookup_symbol(f, "output_1")
+
+    for data_type in [np.int8, np.int16, np.int32]:
+
+        num_bytes = np.dtype(data_type).itemsize
+        min_value = np.iinfo(data_type).min
+        max_value = np.iinfo(data_type).max
+        num_values = int(num_test_bytes / num_bytes)
+        input_1_data = np.random.randint(
+            min_value, max_value, num_values, dtype=data_type
+        )
+        await core_mini_axi.write(input_1_addr, input_1_data)
+        if intial_pass:
+            intial_pass = False
+            await core_mini_axi.execute_from(entry_point)
+
+        await core_mini_axi.wait_for_wfi()
+        routputs = (await core_mini_axi.read(input_1_addr,
+                                             num_test_bytes)).view(data_type)
+        print(f"loaded inputs are {routputs}", flush=True)
+        print(
+            f" number of values supposed to be printed {num_values}",
+            flush=True
+        )
+        await core_mini_axi.raise_irq()
+    await core_mini_axi.wait_for_halted()
+
+
+@cocotb.test()
+async def core_mini_rvv_add(dut):
+    """Testbench to test RVV add intrinsics.
+
+    This test loads 16 bytes of data from each input buffer and saved result into a register.
+
+    Todo: update the test with store unit.
+    """
+    # Test bench setup
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation("coralnpu_hw/tests/cocotb/rvv/rvv_add.elf")
+    num_test_bytes = 16
+    intial_pass = True
+
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path ")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+
+    #Write your program inputs
+    with open(elf_path, "rb") as f:
+        input_1_addr = core_mini_axi.lookup_symbol(f, "input_1")
+        input_2_addr = core_mini_axi.lookup_symbol(f, "input_2")
+        output_1_addr = core_mini_axi.lookup_symbol(f, "output_1")
+
+    # todo ,np.uint8, np.uint16, np.uint32
+    for data_type in [np.int8, np.int16, np.int32]:
+
+        num_bytes = np.dtype(data_type).itemsize
+        min_value = np.iinfo(data_type).min
+        max_value = np.iinfo(data_type).max
+        num_values = int(num_test_bytes / num_bytes)
+        input_1_data = np.random.randint(
+            min_value, max_value, num_values, dtype=data_type
+        )
+        input_2_data = np.random.randint(
+            min_value, max_value, num_values, dtype=data_type
+        )
+
+        await core_mini_axi.write(input_1_addr, input_1_data)
+        if intial_pass:
+            intial_pass = False
+            await core_mini_axi.execute_from(entry_point)
+        await core_mini_axi.wait_for_wfi()
+        routputs = (await core_mini_axi.read(input_1_addr,
+                                             num_test_bytes)).view(data_type)
+        print(f"loaded inputs are {routputs}", flush=True)
+        routputs2 = (await core_mini_axi.read(input_1_addr,
+                                              num_test_bytes)).view(data_type)
+        print(f"loaded inputs are {routputs2}", flush=True)
+        print(
+            f" number of values supposed to be printed {num_values}",
+            flush=True
+        )
+        await core_mini_axi.raise_irq()
+    await core_mini_axi.wait_for_halted()
+
+
+@cocotb.test()
+async def core_mini_vstart_store(dut):
+    """Testbench to test vstart store.
+    """
+    # Test bench setup
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation("coralnpu_hw/tests/cocotb/rvv/vstart_store.elf")
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+
+    #Write your program inputs
+    with open(elf_path, "rb") as f:
+        input_addr = core_mini_axi.lookup_symbol(f, "input_data")
+        output_addr = core_mini_axi.lookup_symbol(f, "output_data")
+
+    input_data = np.random.randint(
+        np.iinfo(np.uint8).min, np.iinfo(np.uint8).max, 16, dtype=np.uint8
+    )
+    await core_mini_axi.write(input_addr, input_data)
+    await core_mini_axi.write(output_addr, np.zeros(16, dtype=np.uint8))
+
+    await core_mini_axi.execute_from(entry_point)
+    await core_mini_axi.wait_for_wfi()
+
+    output_data = (await core_mini_axi.read(output_addr, 16)).view(np.uint8)
+
+    # vstart is 4, so first 4 elements are skipped.
+    # 12 elements are stored.
+    assert np.array_equal(output_data[0:4], np.zeros(4, dtype=np.uint8))
+    assert np.array_equal(output_data[4:], input_data[4:])
+
+    await core_mini_axi.raise_irq()
+    await core_mini_axi.wait_for_halted()
+
+
+@cocotb.test()
+async def core_mini_vcsr_test(dut):
+    """Testbench to test vcsr is set correctly."""
+    # Test bench setup
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation("coralnpu_hw/tests/cocotb/rvv/vcsr_test.elf")
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+        vma_addr = core_mini_axi.lookup_symbol(f, "vma")
+        vta_addr = core_mini_axi.lookup_symbol(f, "vta")
+        sew_addr = core_mini_axi.lookup_symbol(f, "sew")
+        lmul_addr = core_mini_axi.lookup_symbol(f, "lmul")
+        vl_addr = core_mini_axi.lookup_symbol(f, "vl")
+        vtype_addr = core_mini_axi.lookup_symbol(f, "vtype")
+
+    combined_loops = itertools.product(range(2), range(2), SEWS, LMULS)
+    total_loops = 2 * 2 * len(SEWS) * len(LMULS)
+    with tqdm.tqdm(combined_loops, total=total_loops) as t:
+        for ma, ta, sew, lmul in t:
+            t.set_postfix({
+                'ma': ma,
+                'ta': ta,
+                'sew': bin(sew),
+                'lmul': bin(lmul)
+            })
+            await core_mini_axi.write_word(vma_addr, ma)
+            await core_mini_axi.write_word(vta_addr, ta)
+            await core_mini_axi.write_word(sew_addr, sew)
+            await core_mini_axi.write_word(lmul_addr, lmul)
+            # TODO(derekjchow): Pick random VL
+            await core_mini_axi.write_word(vl_addr, 1)
+
+            await core_mini_axi.execute_from(entry_point)
+            await core_mini_axi.wait_for_halted()
+
+            vtype_result = (await core_mini_axi.read_word(vtype_addr)).view(
+                np.uint32
+            )[0]
+
+            # Check if vtype is legal
+            expected_illegal = _illegal_vtype(sew, lmul)
+            result_illegal = (vtype_result & (1 << 31)) >> 31
+            assert (expected_illegal == result_illegal)
+
+            ma_result = (vtype_result & (1 << 7)) >> 7
+            ta_result = (vtype_result & (1 << 6)) >> 6
+            sew_result = (vtype_result & (0b111 << 3)) >> 3
+            lmul_result = (vtype_result & 0b111)
+
+            if expected_illegal:
+                assert (ma_result == 0)
+                assert (ta_result == 0)
+                assert (sew_result == 0)
+                assert (lmul_result == 0)
+            else:
+                assert (ma == ma_result)
+                assert (ta == ta_result)
+                assert (sew == sew_result)
+                assert (lmul == lmul_result)
+
+
+async def test_vstart_not_zero_failure(dut, binary):
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation(binary)
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+        vma_addr = core_mini_axi.lookup_symbol(f, "vma")
+        vta_addr = core_mini_axi.lookup_symbol(f, "vta")
+        sew_addr = core_mini_axi.lookup_symbol(f, "sew")
+        lmul_addr = core_mini_axi.lookup_symbol(f, "lmul")
+        vl_addr = core_mini_axi.lookup_symbol(f, "vl")
+        vstart_addr = core_mini_axi.lookup_symbol(f, "vstart")
+        faulted_addr = core_mini_axi.lookup_symbol(f, "faulted")
+        mcause_addr = core_mini_axi.lookup_symbol(f, "mcause")
+
+    for ma in range(2):
+        for ta in range(2):
+            for sew in SEWS:
+                for lmul in LMULS:
+                    vl = 4  # TODO(derekjchow): Pick random VL
+                    vstart = 1  # Non-zero to trigger failure
+
+                    await core_mini_axi.write_word(vma_addr, ma)
+                    await core_mini_axi.write_word(vta_addr, ta)
+                    await core_mini_axi.write_word(sew_addr, sew)
+                    await core_mini_axi.write_word(lmul_addr, lmul)
+                    await core_mini_axi.write_word(vl_addr, vl)
+                    await core_mini_axi.write_word(vstart_addr, vstart)
+
+                    await core_mini_axi.execute_from(entry_point)
+                    await core_mini_axi.wait_for_halted()
+
+                    faulted_result = (
+                        await core_mini_axi.read_word(faulted_addr)
+                    ).view(np.uint32)[0]
+                    assert (faulted_result == 1)
+                    mcause_result = (
+                        await core_mini_axi.read_word(mcause_addr)
+                    ).view(np.uint32)[0]
+                    assert (mcause_result == 0x2)
+
+
+@cocotb.test()
+async def core_mini_viota_test(dut):
+    """Testbench to test vstart!=0 viota."""
+    await test_vstart_not_zero_failure(
+        dut, "coralnpu_hw/tests/cocotb/rvv/viota_test.elf"
+    )
+
+
+@cocotb.test()
+async def core_mini_vfirst_test(dut):
+    """Testbench to test vstart!=0 vfirst."""
+    await test_vstart_not_zero_failure(
+        dut, "coralnpu_hw/tests/cocotb/rvv/vfirst_test.elf"
+    )
+
+
+@cocotb.test()
+async def core_mini_vcpop_exception_test(dut):
+    """Testbench to test vstart!=0 vcpop."""
+    await test_vstart_not_zero_failure(
+        dut, "coralnpu_hw/tests/cocotb/rvv/vcpop_exception_test.elf"
+    )
+
+
+@cocotb.test()
+async def core_mini_vcpop_test(dut):
+    """Test vcpop usage accessible from intrinsics."""
+    # mask is not accessible from here.
+    fixture = await Fixture.Create(dut)
+    r = runfiles.Create()
+    cases = [
+        {
+            'impl': 'vcpop_m_b1',
+            'vl': 128
+        },
+        {
+            'impl': 'vcpop_m_b1',
+            'vl': 121
+        },
+        {
+            'impl': 'vcpop_m_b1',
+            'vl': 120
+        },
+        {
+            'impl': 'vcpop_m_b2',
+            'vl': 64
+        },
+        {
+            'impl': 'vcpop_m_b2',
+            'vl': 57
+        },
+        {
+            'impl': 'vcpop_m_b2',
+            'vl': 56
+        },
+        {
+            'impl': 'vcpop_m_b4',
+            'vl': 32
+        },
+        {
+            'impl': 'vcpop_m_b4',
+            'vl': 25
+        },
+        {
+            'impl': 'vcpop_m_b4',
+            'vl': 24
+        },
+        {
+            'impl': 'vcpop_m_b8',
+            'vl': 16
+        },
+        {
+            'impl': 'vcpop_m_b8',
+            'vl': 9
+        },
+        {
+            'impl': 'vcpop_m_b8',
+            'vl': 8
+        },
+        {
+            'impl': 'vcpop_m_b16',
+            'vl': 8
+        },
+        {
+            'impl': 'vcpop_m_b16',
+            'vl': 1
+        },
+        {
+            'impl': 'vcpop_m_b32',
+            'vl': 4
+        },
+        {
+            'impl': 'vcpop_m_b32',
+            'vl': 1
+        },
+    ]
+    await fixture.load_elf_and_lookup_symbols(
+        r.Rlocation('coralnpu_hw/tests/cocotb/rvv/vcpop_test.elf'),
+        ['vl', 'in_buf', 'result', 'impl'] + [c['impl'] for c in cases],
+    )
+    rng = np.random.default_rng()
+    for c in cases:
+        impl = c['impl']
+        vl = c['vl']
+        in_bytes = (vl + 7) // 8
+        last_byte_mask = (1 << (vl % 8) - 1) if vl % 8 else 0xFF
+
+        input_data = rng.integers(
+            low=0, high=256, size=in_bytes, dtype=np.uint8
+        )
+        input_data_trimmed = input_data
+        input_data_trimmed[-1] = input_data_trimmed[-1] & last_byte_mask
+        expected_output = np.sum(np.bitwise_count(input_data), dtype=np.uint32)
+
+        await fixture.write_ptr('impl', impl)
+        await fixture.write_word('vl', vl)
+        await fixture.write('in_buf', input_data)
+        await fixture.write_word('result', 0)
+
+        await fixture.run_to_halt()
+
+        actual_output = (await fixture.read_word('result')).view(np.uint32)
+
+        debug_msg = str({
+            'impl': impl,
+            'input': input_data,
+            'expected': expected_output,
+            'actual': actual_output,
+        })
+        assert (actual_output == expected_output), debug_msg
+
+
+@cocotb.test()
+async def core_mini_vcompress_test(dut):
+    """Testbench to test vstart!=0 vcompress."""
+    await test_vstart_not_zero_failure(
+        dut, "coralnpu_hw/tests/cocotb/rvv/vcompress_test.elf"
+    )
+
+
+@cocotb.test()
+async def core_mini_vmsbf_test(dut):
+    """Testbench to test vstart!=0 vmsbf."""
+    await test_vstart_not_zero_failure(
+        dut, "coralnpu_hw/tests/cocotb/rvv/vmsbf_test.elf"
+    )
+
+
+@cocotb.test()
+async def core_mini_vmsof_test(dut):
+    """Testbench to test vstart!=0 vmsof."""
+    await test_vstart_not_zero_failure(
+        dut, "coralnpu_hw/tests/cocotb/rvv/vmsof_test.elf"
+    )
+
+
+@cocotb.test()
+async def core_mini_vmsif_test(dut):
+    """Testbench to test vstart!=0 vmsbf."""
+    await test_vstart_not_zero_failure(
+        dut, "coralnpu_hw/tests/cocotb/rvv/vmsif_test.elf"
+    )
+
+
+@cocotb.test()
+async def core_mini_vill_test(dut):
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation("coralnpu_hw/tests/cocotb/rvv/vill_test.elf")
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+        faulted_addr = core_mini_axi.lookup_symbol(f, "faulted")
+        mcause_addr = core_mini_axi.lookup_symbol(f, "mcause")
+
+    await core_mini_axi.execute_from(entry_point)
+    await core_mini_axi.wait_for_halted()
+
+    faulted_result = (await
+                      core_mini_axi.read_word(faulted_addr)).view(np.uint32)[0]
+    assert (faulted_result == 1)
+    mcause_result = (await
+                     core_mini_axi.read_word(mcause_addr)).view(np.uint32)[0]
+    assert (mcause_result == 0x2)
+
+
+@cocotb.test()
+async def core_mini_vill_whole_reg_test(dut):
+    fixture = await Fixture.Create(dut)
+    r = runfiles.Create()
+    await fixture.load_elf_and_lookup_symbols(
+        r.Rlocation("coralnpu_hw/tests/cocotb/rvv/vill_whole_reg_test.elf"),
+        ["src_data", "faulted", "test_passed"],
+    )
+
+    src_data = np.arange(1, 129, dtype=np.uint8)
+    await fixture.write("src_data", src_data)
+
+    await fixture.run_to_halt()
+
+    faulted = (await fixture.read_word("faulted")).view(np.uint32)[0]
+    assert faulted == 0, f"Unexpected fault occurred (faulted={faulted})"
+    test_passed = (await fixture.read_word("test_passed")).view(np.uint32)[0]
+    assert test_passed == 1, f"Test did not pass (test_passed={test_passed})"
+
+
+@cocotb.test()
+async def core_mini_vl_test(dut):
+    """Testbench to test vsetvl instruciton saturate vl correctly."""
+    # Test bench setup
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation("coralnpu_hw/tests/cocotb/rvv/vcsr_test.elf")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+        sew_addr = core_mini_axi.lookup_symbol(f, "sew")
+        lmul_addr = core_mini_axi.lookup_symbol(f, "lmul")
+        vl_addr = core_mini_axi.lookup_symbol(f, "vl")
+        vtype_addr = core_mini_axi.lookup_symbol(f, "vtype")
+        result_vl_addr = core_mini_axi.lookup_symbol(f, "result_vl")
+
+    cases = [
+        (0b000, 0b110, 4),  # SEW8, mf4, vlmax=4
+        (0b000, 0b111, 8),  # SEW8, mf2, vlmax=8
+        (0b000, 0b000, 16),  # SEW8, m1, vlmax=16
+        (0b000, 0b001, 32),  # SEW8, m2, vlmax=32
+        (0b000, 0b010, 64),  # SEW8, m4, vlmax=64
+        (0b000, 0b011, 128),  # SEW8, m8, vlmax=128
+        (0b001, 0b111, 4),  # SEW16, mf2, vlmax=4
+        (0b001, 0b000, 8),  # SEW16, m1, vlmax=8
+        (0b001, 0b001, 16),  # SEW16, m2, vlmax=16
+        (0b001, 0b010, 32),  # SEW16, m4, vlmax=32
+        (0b001, 0b011, 64),  # SEW16, m8, vlmax=64
+        (0b010, 0b000, 4),  # SEW32, m1, vlmax=4
+        (0b010, 0b001, 8),  # SEW32, m2, vlmax=8
+        (0b010, 0b010, 16),  # SEW32, m4, vlmax=16
+        (0b010, 0b011, 32),  # SEW32, m8, vlmax=32
+    ]
+    for sew, lmul, vlmax in tqdm.tqdm(cases):
+        await core_mini_axi.write_word(sew_addr, sew)
+        await core_mini_axi.write_word(lmul_addr, lmul)
+
+        # Test saturation above vlmax
+        vl_to_set = vlmax + 1
+        await core_mini_axi.write_word(vl_addr, vl_to_set)
+        await core_mini_axi.execute_from(entry_point)
+        await core_mini_axi.wait_for_halted()
+        vl_result = (await
+                     core_mini_axi.read_word(result_vl_addr)).view(np.uint32
+                                                                   )[0]
+        assert (vl_result == vlmax)
+
+        # Test vlmax
+        await core_mini_axi.write_word(vl_addr, vlmax)
+        await core_mini_axi.execute_from(entry_point)
+        await core_mini_axi.wait_for_halted()
+        vl_result = (await
+                     core_mini_axi.read_word(result_vl_addr)).view(np.uint32
+                                                                   )[0]
+        assert (vl_result == vlmax)
+
+        # Test below vlmax
+        await core_mini_axi.write_word(vl_addr, vlmax - 1)
+        await core_mini_axi.execute_from(entry_point)
+        await core_mini_axi.wait_for_halted()
+        vl_result = (await
+                     core_mini_axi.read_word(result_vl_addr)).view(np.uint32
+                                                                   )[0]
+        assert (vl_result == (vlmax - 1))
+
+
+@cocotb.test()
+async def vsetvl_test(dut):
+    cases = [{
+        'impl': 'vsetvl_max',
+        'vtype': construct_vtype(1, 1, sew, lmul),
+        'vlmax': vlmax,
+    } for sew, t in SEW_TO_LMULS_AND_VLMAXS.items() for lmul, vlmax in t] + [
+        {
+            'impl': 'vsetvl_keep',
+            'vtype': construct_vtype(1, 1, sew, lmul),
+            'avl': vlmax - 1,
+            'vlmax': vlmax,
+        } for sew, t in SEW_TO_LMULS_AND_VLMAXS.items() for lmul, vlmax in t
+    ] + [
+        # TODO(davidgao): lookup vlmax and generate impl names
+        {
+            'impl': 'vsetvli_max_e8mf4',
+            'vtype': construct_vtype(1, 1, sew=0b000, lmul=0b110),
+            'vlmax': 4,
+        },
+        {
+            'impl': 'vsetvli_max_e8mf2',
+            'vtype': construct_vtype(1, 1, sew=0b000, lmul=0b111),
+            'vlmax': 8,
+        },
+        {
+            'impl': 'vsetvli_max_e8m1',
+            'vtype': construct_vtype(1, 1, sew=0b000, lmul=0b000),
+            'vlmax': 16,
+        },
+        {
+            'impl': 'vsetvli_max_e8m2',
+            'vtype': construct_vtype(1, 1, sew=0b000, lmul=0b001),
+            'vlmax': 32,
+        },
+        {
+            'impl': 'vsetvli_max_e8m4',
+            'vtype': construct_vtype(1, 1, sew=0b000, lmul=0b010),
+            'vlmax': 64,
+        },
+        {
+            'impl': 'vsetvli_max_e8m8',
+            'vtype': construct_vtype(1, 1, sew=0b000, lmul=0b011),
+            'vlmax': 128,
+        },
+        {
+            'impl': 'vsetvli_max_e16mf2',
+            'vtype': construct_vtype(1, 1, sew=0b001, lmul=0b111),
+            'vlmax': 4,
+        },
+        {
+            'impl': 'vsetvli_max_e16m1',
+            'vtype': construct_vtype(1, 1, sew=0b001, lmul=0b000),
+            'vlmax': 8,
+        },
+        {
+            'impl': 'vsetvli_max_e16m2',
+            'vtype': construct_vtype(1, 1, sew=0b001, lmul=0b001),
+            'vlmax': 16,
+        },
+        {
+            'impl': 'vsetvli_max_e16m4',
+            'vtype': construct_vtype(1, 1, sew=0b001, lmul=0b010),
+            'vlmax': 32,
+        },
+        {
+            'impl': 'vsetvli_max_e16m8',
+            'vtype': construct_vtype(1, 1, sew=0b001, lmul=0b011),
+            'vlmax': 64,
+        },
+        {
+            'impl': 'vsetvli_max_e32m1',
+            'vtype': construct_vtype(1, 1, sew=0b010, lmul=0b000),
+            'vlmax': 4,
+        },
+        {
+            'impl': 'vsetvli_max_e32m2',
+            'vtype': construct_vtype(1, 1, sew=0b010, lmul=0b001),
+            'vlmax': 8,
+        },
+        {
+            'impl': 'vsetvli_max_e32m4',
+            'vtype': construct_vtype(1, 1, sew=0b010, lmul=0b010),
+            'vlmax': 16,
+        },
+        {
+            'impl': 'vsetvli_max_e32m8',
+            'vtype': construct_vtype(1, 1, sew=0b010, lmul=0b011),
+            'vlmax': 32,
+        },
+        # TODO(davidgao): do we wan to test all vtype pairs for this one?
+        {
+            'impl': 'vsetvli_keep',
+            'vtype': construct_vtype(1, 1, sew=0b000, lmul=0b000),
+            'avl': 15,
+            'vlmax': 16,
+        },
+    ]
+
+    fixture = await Fixture.Create(dut)
+    r = runfiles.Create()
+    await fixture.load_elf_and_lookup_symbols(
+        r.Rlocation('coralnpu_hw/tests/cocotb/rvv/vsetvl_test.elf'),
+        ['impl', 'vtype', 'avl', 'vl_out1', 'vl_out2', 'vtype_out'] +
+        list({c['impl']
+              for c in cases}),
+    )
+
+    with tqdm.tqdm(cases) as t:
+        for c in t:
+            impl = c['impl']
+            vtype = c['vtype']
+            vlmax = c['vlmax']
+
+            t.set_postfix({
+                'impl': impl,
+                'vtype': vtype,
+            })
+
+            await fixture.write_ptr('impl', impl)
+            await fixture.write_word('vtype', vtype)
+            if 'avl' in c:
+                avl = c['avl']
+                expected_vl = min(avl, vlmax)
+                await fixture.write_word('avl', avl)
+            else:
+                expected_vl = vlmax
+
+            await fixture.run_to_halt()
+
+            actual_vl1 = (await fixture.read_word('vl_out1')).view(np.uint32)
+            actual_vl2 = (await fixture.read_word('vl_out1')).view(np.uint32)
+            actual_vtype = (await
+                            fixture.read_word('vtype_out')).view(np.uint32)
+
+            assert (actual_vl1 == expected_vl)
+            assert (actual_vl2 == expected_vl)
+            assert (actual_vtype == vtype)
+
+
+async def vslide_test(dut, cases, expfunc):
+    """Test slide[1]{up,down} usage accessible from intrinsics."""
+    # mask is not accessible from here.
+    fixture = await Fixture.Create(dut)
+    r = runfiles.Create()
+    await fixture.load_elf_and_lookup_symbols(
+        r.Rlocation('coralnpu_hw/tests/cocotb/rvv/vslide.elf'),
+        [
+            'impl',
+            'vl',
+            'offset',
+            'buf_dest8',
+            'buf_dest16',
+            'buf_dest32',
+            'buf_src8',
+            'buf_src16',
+            'buf_src32',
+            'scalar8',
+            'scalar16',
+            'scalar32',
+        ] + [c['impl'] for c in cases],
+    )
+    rng = np.random.default_rng()
+    for c in tqdm.tqdm(cases):
+        impl = c['impl']
+        vl = c['vl']
+        offset = c['offset']
+        dtype = c['dtype']
+        vlmax = c.get('vlmax', vl)
+
+        src_data = rng.integers(
+            low=np.iinfo(dtype).min,
+            high=np.iinfo(dtype).max + 1,
+            size=vlmax,
+            dtype=dtype
+        )
+        dest_data = rng.integers(
+            low=np.iinfo(dtype).min,
+            high=np.iinfo(dtype).max + 1,
+            size=vlmax,
+            dtype=dtype
+        )
+        scalar = rng.integers(
+            low=np.iinfo(dtype).min,
+            high=np.iinfo(dtype).max + 1,
+            size=1,
+            dtype=dtype
+        )
+        expected_output = expfunc(
+            dest_data, src_data, scalar, vl, offset, vlmax
+        )
+
+        if dtype == np.int8:
+            dest_buf = 'buf_dest8'
+            src_buf = 'buf_src8'
+            scalar_sym = 'scalar8'
+        elif dtype == np.int16:
+            dest_buf = 'buf_dest16'
+            src_buf = 'buf_src16'
+            scalar_sym = 'scalar16'
+        elif dtype == np.int32:
+            dest_buf = 'buf_dest32'
+            src_buf = 'buf_src32'
+            scalar_sym = 'scalar32'
+
+        await fixture.write_ptr('impl', impl)
+        await fixture.write_word('vl', vl)
+        await fixture.write_word('offset', offset)
+        await fixture.write(dest_buf, dest_data)
+        await fixture.write(src_buf, src_data)
+        await fixture.write(scalar_sym, scalar)
+
+        await fixture.run_to_halt()
+
+        actual_output = (
+            await fixture.read(dest_buf,
+                               vl * np.dtype(dtype).itemsize)
+        ).view(dtype)
+
+        debug_msg = str({
+            'impl': impl,
+            'vl': vl,
+            'vlmax': vlmax,
+            'offset': offset,
+            'src': src_data,
+            'dest': dest_data,
+            'expected': expected_output,
+            'actual': actual_output,
+        })
+        assert (actual_output == expected_output).all(), debug_msg
+
+
+@cocotb.test()
+async def vslideup_test(dut):
+    """Test slideup usage accessible from intrinsics."""
+
+    def expfunc(dest, src, scalar, vl, offset, vlmax):
+        return np.concat((dest[0:min(vl, offset)], src[0:max(vl - offset, 0)]))
+
+    cases = [{
+        'impl': 'vslideup_i8mf4',
+        'dtype': np.int8,
+        'vlmax': 4,
+        'vl': vl,
+        'offset': offset
+    } for vl in [4, 3, 2, 1] for offset in [0, 1, 2, 4]] + [{
+        'impl': 'vslideup_i8mf2',
+        'dtype': np.int8,
+        'vlmax': 8,
+        'vl': vl,
+        'offset': offset
+    } for vl in [8, 7, 4, 2, 1] for offset in [0, 2, 6, 8]] + [{
+        'impl': 'vslideup_i8m1',
+        'dtype': np.int8,
+        'vlmax': 16,
+        'vl': vl,
+        'offset': offset
+    } for vl in [16, 15, 8, 4, 2, 1] for offset in [0, 3, 8, 14, 16]] + [
+        {
+            'impl': 'vslideup_i8m2',
+            'dtype': np.int8,
+            'vlmax': 32,
+            'vl': vl,
+            'offset': offset
+        } for vl in [32, 31, 16, 8, 4] for offset in [0, 4, 16, 30, 32]
+    ] + [{
+        'impl': 'vslideup_i8m4',
+        'dtype': np.int8,
+        'vlmax': 64,
+        'vl': vl,
+        'offset': offset
+    } for vl in [64, 63, 32, 16, 4] for offset in [0, 5, 32, 62, 64]] + [
+        {
+            'impl': 'vslideup_i8m8',
+            'dtype': np.int8,
+            'vlmax': 128,
+            'vl': vl,
+            'offset': offset
+        } for vl in [128, 127, 64, 32, 8] for offset in [0, 6, 64, 126, 128]
+    ] + [{
+        'impl': 'vslideup_i16mf2',
+        'dtype': np.int16,
+        'vlmax': 4,
+        'vl': vl,
+        'offset': offset
+    } for vl in [4, 3, 2, 1] for offset in [0, 1, 2, 4]] + [{
+        'impl': 'vslideup_i16m1',
+        'dtype': np.int16,
+        'vlmax': 8,
+        'vl': vl,
+        'offset': offset
+    } for vl in [8, 7, 4, 2, 1] for offset in [0, 2, 4, 6, 8]] + [
+        {
+            'impl': 'vslideup_i16m2',
+            'dtype': np.int16,
+            'vlmax': 16,
+            'vl': vl,
+            'offset': offset
+        } for vl in [16, 15, 8, 4, 2] for offset in [0, 3, 8, 14, 16]
+    ] + [{
+        'impl': 'vslideup_i16m4',
+        'dtype': np.int16,
+        'vlmax': 32,
+        'vl': vl,
+        'offset': offset
+    } for vl in [32, 31, 16, 8, 4] for offset in [0, 4, 16, 30, 32]] + [
+        {
+            'impl': 'vslideup_i16m8',
+            'dtype': np.int16,
+            'vlmax': 64,
+            'vl': vl,
+            'offset': offset
+        } for vl in [64, 63, 32, 16, 8] for offset in [0, 5, 32, 62, 64]
+    ] + [{
+        'impl': 'vslideup_i32m1',
+        'dtype': np.int32,
+        'vlmax': 4,
+        'vl': vl,
+        'offset': offset
+    } for vl in [4, 3, 2, 1] for offset in [0, 1, 2, 4]] + [{
+        'impl': 'vslideup_i32m2',
+        'dtype': np.int32,
+        'vlmax': 8,
+        'vl': vl,
+        'offset': offset
+    } for vl in [8, 7, 4, 2, 1] for offset in [0, 2, 4, 6, 8]] + [
+        {
+            'impl': 'vslideup_i32m4',
+            'dtype': np.int32,
+            'vlmax': 16,
+            'vl': vl,
+            'offset': offset
+        } for vl in [16, 15, 8, 4, 2] for offset in [0, 3, 8, 14, 16]
+    ] + [{
+        'impl': 'vslideup_i32m8',
+        'dtype': np.int32,
+        'vlmax': 32,
+        'vl': vl,
+        'offset': offset
+    } for vl in [32, 31, 16, 8, 4] for offset in [0, 4, 16, 30, 32]]
+    await vslide_test(dut, cases, expfunc)
+
+
+@cocotb.test()
+async def vslidedown_test(dut):
+    """Test slidedown usage accessible from intrinsics."""
+
+    def expfunc(dest, src, scalar, vl, offset, vlmax):
+        res = np.zeros(vl, dtype=src.dtype)
+        for i in range(vl):
+            if i + offset < vlmax:
+                res[i] = src[i + offset]
+            else:
+                res[i] = 0
+        return res
+
+    cases = [{
+        'impl': 'vslidedown_i8mf4',
+        'dtype': np.int8,
+        'vlmax': 4,
+        'vl': vl,
+        'offset': offset
+    } for vl in [4, 3, 2, 1] for offset in [0, 1, 2, 4, 5]] + [{
+        'impl': 'vslidedown_i8mf2',
+        'dtype': np.int8,
+        'vlmax': 8,
+        'vl': vl,
+        'offset': offset
+    } for vl in [8, 7, 4, 2, 1] for offset in [0, 2, 6, 8, 9]] + [
+        {
+            'impl': 'vslidedown_i8m1',
+            'dtype': np.int8,
+            'vlmax': 16,
+            'vl': vl,
+            'offset': offset
+        } for vl in [16, 15, 8, 4, 2, 1] for offset in [0, 2, 7, 14, 16, 17]
+    ] + [{
+        'impl': 'vslidedown_i8m2',
+        'dtype': np.int8,
+        'vlmax': 32,
+        'vl': vl,
+        'offset': offset
+    } for vl in [32, 31, 16, 8, 4] for offset in [0, 4, 16, 30, 32, 33]] + [
+        {
+            'impl': 'vslidedown_i8m4',
+            'dtype': np.int8,
+            'vlmax': 64,
+            'vl': vl,
+            'offset': offset
+        } for vl in [64, 63, 32, 16, 4] for offset in [0, 5, 32, 62, 64, 65]
+    ] + [{
+        'impl': 'vslidedown_i8m8',
+        'dtype': np.int8,
+        'vlmax': 128,
+        'vl': vl,
+        'offset': offset
+    }
+         for vl in [128, 127, 64, 32, 8]
+         for offset in [0, 6, 64, 126, 128, 129]] + [{
+             'impl': 'vslidedown_i16mf2',
+             'dtype': np.int16,
+             'vlmax': 4,
+             'vl': vl,
+             'offset': offset
+         } for vl in [4, 3, 2, 1] for offset in [0, 1, 2, 4, 5]] + [
+             {
+                 'impl': 'vslidedown_i16m1',
+                 'dtype': np.int16,
+                 'vlmax': 8,
+                 'vl': vl,
+                 'offset': offset
+             } for vl in [8, 7, 4, 3, 2, 1] for offset in [0, 2, 4, 6, 8, 9]
+         ] + [{
+             'impl': 'vslidedown_i16m2',
+             'dtype': np.int16,
+             'vlmax': 16,
+             'vl': vl,
+             'offset': offset
+         } for vl in [16, 15, 8, 4, 2] for offset in [0, 3, 8, 14, 16, 17]] + [
+             {
+                 'impl': 'vslidedown_i16m4',
+                 'dtype': np.int16,
+                 'vlmax': 32,
+                 'vl': vl,
+                 'offset': offset
+             }
+             for vl in [32, 31, 16, 8, 4]
+             for offset in [0, 4, 16, 30, 32, 33]
+         ] + [{
+             'impl': 'vslidedown_i16m8',
+             'dtype': np.int16,
+             'vlmax': 64,
+             'vl': vl,
+             'offset': offset
+         }
+              for vl in [64, 63, 32, 16, 8]
+              for offset in [0, 5, 32, 62, 64, 65]] + [{
+                  'impl': 'vslidedown_i32m1',
+                  'dtype': np.int32,
+                  'vlmax': 4,
+                  'vl': vl,
+                  'offset': offset
+              } for vl in [4, 3, 2, 1] for offset in [0, 1, 2, 4, 5]] + [
+                  {
+                      'impl': 'vslidedown_i32m2',
+                      'dtype': np.int32,
+                      'vlmax': 8,
+                      'vl': vl,
+                      'offset': offset
+                  } for vl in [8, 7, 4, 2, 1] for offset in [0, 2, 4, 6, 8, 9]
+              ] + [{
+                  'impl': 'vslidedown_i32m4',
+                  'dtype': np.int32,
+                  'vlmax': 16,
+                  'vl': vl,
+                  'offset': offset
+              }
+                   for vl in [16, 15, 8, 4, 2]
+                   for offset in [0, 3, 8, 14, 16, 17]] + [
+                       {
+                           'impl': 'vslidedown_i32m8',
+                           'dtype': np.int32,
+                           'vlmax': 32,
+                           'vl': vl,
+                           'offset': offset
+                       }
+                       for vl in [32, 31, 16, 8, 4]
+                       for offset in [0, 4, 16, 30, 32, 33]
+                   ]
+    await vslide_test(dut, cases, expfunc)
+
+
+@cocotb.test()
+async def vslide1up_test(dut):
+    """Test slide1up usage accessible from intrinsics."""
+
+    def expfunc(dest, src, scalar, vl, offset, vlmax):
+        if vl == 0:
+            return np.array([], dtype=src.dtype)
+        return np.concat((scalar, src[0:max(vl - 1, 0)]))
+
+    cases = [{
+        'impl': 'vslide1up_i8mf4',
+        'dtype': np.int8,
+        'vlmax': 4,
+        'vl': vl,
+        'offset': 0
+    } for vl in [4, 3, 2, 1]] + [{
+        'impl': 'vslide1up_i8mf2',
+        'dtype': np.int8,
+        'vlmax': 8,
+        'vl': vl,
+        'offset': 0
+    } for vl in [8, 7, 4, 2, 1]] + [{
+        'impl': 'vslide1up_i8m1',
+        'dtype': np.int8,
+        'vlmax': 16,
+        'vl': vl,
+        'offset': 0
+    } for vl in [16, 15, 8, 4, 2, 1]] + [{
+        'impl': 'vslide1up_i8m2',
+        'dtype': np.int8,
+        'vlmax': 32,
+        'vl': vl,
+        'offset': 0
+    } for vl in [32, 31, 16, 8, 4]] + [{
+        'impl': 'vslide1up_i8m4',
+        'dtype': np.int8,
+        'vlmax': 64,
+        'vl': vl,
+        'offset': 0
+    } for vl in [64, 63, 32, 16, 4]] + [{
+        'impl': 'vslide1up_i8m8',
+        'dtype': np.int8,
+        'vlmax': 128,
+        'vl': vl,
+        'offset': 0
+    } for vl in [128, 127, 64, 32, 8]] + [{
+        'impl': 'vslide1up_i16mf2',
+        'dtype': np.int16,
+        'vlmax': 4,
+        'vl': vl,
+        'offset': 0
+    } for vl in [4, 3, 2, 1]] + [{
+        'impl': 'vslide1up_i16m1',
+        'dtype': np.int16,
+        'vlmax': 8,
+        'vl': vl,
+        'offset': 0
+    } for vl in [8, 7, 4, 2, 1]] + [{
+        'impl': 'vslide1up_i16m2',
+        'dtype': np.int16,
+        'vlmax': 16,
+        'vl': vl,
+        'offset': 0
+    } for vl in [16, 15, 8, 4, 2]] + [{
+        'impl': 'vslide1up_i16m4',
+        'dtype': np.int16,
+        'vlmax': 32,
+        'vl': vl,
+        'offset': 0
+    } for vl in [32, 31, 16, 8, 4]] + [{
+        'impl': 'vslide1up_i16m8',
+        'dtype': np.int16,
+        'vlmax': 64,
+        'vl': vl,
+        'offset': 0
+    } for vl in [64, 63, 32, 16, 8]] + [{
+        'impl': 'vslide1up_i32m1',
+        'dtype': np.int32,
+        'vlmax': 4,
+        'vl': vl,
+        'offset': 0
+    } for vl in [4, 3, 2, 1]] + [{
+        'impl': 'vslide1up_i32m2',
+        'dtype': np.int32,
+        'vlmax': 8,
+        'vl': vl,
+        'offset': 0
+    } for vl in [8, 7, 4, 2, 1]] + [{
+        'impl': 'vslide1up_i32m4',
+        'dtype': np.int32,
+        'vlmax': 16,
+        'vl': vl,
+        'offset': 0
+    } for vl in [16, 15, 8, 4, 2]] + [{
+        'impl': 'vslide1up_i32m8',
+        'dtype': np.int32,
+        'vlmax': 32,
+        'vl': vl,
+        'offset': 0
+    } for vl in [32, 31, 16, 8, 4]]
+    await vslide_test(dut, cases, expfunc)
+
+
+@cocotb.test()
+async def vslide1down_test(dut):
+    """Test slide1down usage accessible from intrinsics."""
+
+    def expfunc(dest, src, scalar, vl, offset, vlmax):
+        res = np.zeros(vl, dtype=src.dtype)
+        for i in range(vl):
+            if i == vl - 1:
+                res[i] = scalar[0]
+            elif i + 1 < vlmax:
+                res[i] = src[i + 1]
+            else:
+                res[i] = 0
+        return res
+
+    cases = [{
+        'impl': 'vslide1down_i8mf4',
+        'dtype': np.int8,
+        'vlmax': 4,
+        'vl': vl,
+        'offset': 0
+    } for vl in [4, 3, 2, 1]] + [{
+        'impl': 'vslide1down_i8mf2',
+        'dtype': np.int8,
+        'vlmax': 8,
+        'vl': vl,
+        'offset': 0
+    } for vl in [8, 7, 4, 2, 1]] + [{
+        'impl': 'vslide1down_i8m1',
+        'dtype': np.int8,
+        'vlmax': 16,
+        'vl': vl,
+        'offset': 0
+    } for vl in [16, 15, 8, 4, 2, 1]] + [{
+        'impl': 'vslide1down_i8m2',
+        'dtype': np.int8,
+        'vlmax': 32,
+        'vl': vl,
+        'offset': 0
+    } for vl in [32, 31, 16, 8, 4]] + [{
+        'impl': 'vslide1down_i8m4',
+        'dtype': np.int8,
+        'vlmax': 64,
+        'vl': vl,
+        'offset': 0
+    } for vl in [64, 63, 32, 16, 4]] + [{
+        'impl': 'vslide1down_i8m8',
+        'dtype': np.int8,
+        'vlmax': 128,
+        'vl': vl,
+        'offset': 0
+    } for vl in [128, 127, 64, 32, 8]] + [{
+        'impl': 'vslide1down_i16mf2',
+        'dtype': np.int16,
+        'vlmax': 4,
+        'vl': vl,
+        'offset': 0
+    } for vl in [4, 3, 2, 1]] + [{
+        'impl': 'vslide1down_i16m1',
+        'dtype': np.int16,
+        'vlmax': 8,
+        'vl': vl,
+        'offset': 0
+    } for vl in [8, 7, 4, 2, 1]] + [{
+        'impl': 'vslide1down_i16m2',
+        'dtype': np.int16,
+        'vlmax': 16,
+        'vl': vl,
+        'offset': 0
+    } for vl in [16, 15, 8, 4, 2]] + [{
+        'impl': 'vslide1down_i16m4',
+        'dtype': np.int16,
+        'vlmax': 32,
+        'vl': vl,
+        'offset': 0
+    } for vl in [32, 31, 16, 8, 4]] + [{
+        'impl': 'vslide1down_i16m8',
+        'dtype': np.int16,
+        'vlmax': 64,
+        'vl': vl,
+        'offset': 0
+    } for vl in [64, 63, 32, 16, 8]] + [{
+        'impl': 'vslide1down_i32m1',
+        'dtype': np.int32,
+        'vlmax': 4,
+        'vl': vl,
+        'offset': 0
+    } for vl in [4, 3, 2, 1]] + [{
+        'impl': 'vslide1down_i32m2',
+        'dtype': np.int32,
+        'vlmax': 8,
+        'vl': vl,
+        'offset': 0
+    } for vl in [8, 7, 4, 2, 1]] + [{
+        'impl': 'vslide1down_i32m4',
+        'dtype': np.int32,
+        'vlmax': 16,
+        'vl': vl,
+        'offset': 0
+    } for vl in [16, 15, 8, 4, 2]] + [{
+        'impl': 'vslide1down_i32m8',
+        'dtype': np.int32,
+        'vlmax': 32,
+        'vl': vl,
+        'offset': 0
+    } for vl in [32, 31, 16, 8, 4]]
+    await vslide_test(dut, cases, expfunc)
+
+
+@cocotb.test()
+async def vslide_boundary_test(dut):
+    """Test vslide boundary, dynamic LMUL reduction, and masked operations."""
+    fixture = await Fixture.Create(dut)
+    r = runfiles.Create()
+    await fixture.load_elf_and_lookup_symbols(
+        r.Rlocation('coralnpu_hw/tests/cocotb/rvv/vslide_boundary_test.elf'),
+        [
+            'op_type',
+            'use_mask',
+            'vma',
+            'vta',
+            'sew',
+            'lmul',
+            'vl',
+            'offset',
+            'scalar',
+            'mask_data',
+            'vs2_data',
+            'vd_orig_data',
+            'result_data',
+        ],
+    )
+    rng = np.random.default_rng(42)
+
+    # --------------------------------------------------------------------------
+    # Explicit Reproduction Case for Bug (e16, m1, avl=4, offset=2, mask=4'b0101)
+    # --------------------------------------------------------------------------
+    repro_sew = 1  # e16
+    repro_lmul = 0  # m1
+    repro_vl = 4  # AVL=4, VLMAX=8
+    repro_offset = 2
+    repro_vma = 0  # mu (mask undisturbed)
+    repro_vta = 1  # ta
+    repro_use_mask = 1
+    repro_mask = np.zeros(16, dtype=np.uint8)
+    repro_mask[
+        0] = 0x05  # 4'b0101 -> elements 0 and 2 enabled, 1 and 3 masked out
+
+    repro_vs2 = np.zeros(64, dtype=np.int16)
+    repro_vd_orig = np.zeros(64, dtype=np.int16)
+    for k in range(64):
+        repro_vs2[k] = np.int16((0x1000 + k) & 0xFFFF)
+        repro_vd_orig[k] = np.int16((0x2000 + k) & 0xFFFF)
+    repro_vs2[2] = np.int16(-2)  # 0xFFFE
+    repro_vs2[4] = np.int16(0x4BC1)  # 0x4BC1
+
+    await fixture.write_word('op_type', 1)  # vslidedown.vi 2
+    await fixture.write_word('use_mask', repro_use_mask)
+    await fixture.write_word('vma', repro_vma)
+    await fixture.write_word('vta', repro_vta)
+    await fixture.write_word('sew', repro_sew)
+    await fixture.write_word('lmul', repro_lmul)
+    await fixture.write_word('vl', repro_vl)
+    await fixture.write_word('offset', repro_offset)
+    await fixture.write_word('scalar', 0)
+    await fixture.write('mask_data', repro_mask)
+    await fixture.write('vs2_data', repro_vs2)
+    await fixture.write('vd_orig_data', repro_vd_orig)
+
+    await fixture.run_to_halt()
+
+    repro_actual = (await fixture.read('result_data',
+                                       128)).view(np.int16)[:repro_vl]
+    assert repro_actual[0] == np.int16(
+        -2
+    ), f"Repro failed at vd[0]: {hex(int(repro_actual[0]))}"
+    assert repro_actual[1] == np.int16(
+        0x2001
+    ), f"Repro failed at vd[1]: {hex(int(repro_actual[1]))}"
+    assert repro_actual[2] == np.int16(
+        0x4BC1
+    ), f"Repro failed at vd[2]: {hex(int(repro_actual[2]))}"
+    assert repro_actual[3] == np.int16(
+        0x2003
+    ), f"Repro failed at vd[3]: {hex(int(repro_actual[3]))}"
+
+    # --------------------------------------------------------------------------
+    # Parameterized Sweep over SEW, LMUL, VL, Offset, and Masking Policies
+    # --------------------------------------------------------------------------
+    configs = [
+        # (sew_val, lmul_val, lmul_factor, dtype)
+        (0, 7, 0.5, np.int8),  # e8, mf2 -> VLMAX = 8
+        (0, 0, 1.0, np.int8),  # e8, m1  -> VLMAX = 16
+        (0, 2, 4.0, np.int8),  # e8, m4  -> VLMAX = 64
+        (1, 7, 0.5, np.int16),  # e16, mf2 -> VLMAX = 4
+        (1, 0, 1.0,
+         np.int16),  # e16, m1  -> VLMAX = 8 (Exact bug configuration)
+        (1, 1, 2.0, np.int16),  # e16, m2  -> VLMAX = 16
+        (1, 3, 8.0, np.int16),  # e16, m8  -> VLMAX = 64
+        (2, 0, 1.0, np.int32),  # e32, m1  -> VLMAX = 4
+        (2, 2, 4.0, np.int32),  # e32, m4  -> VLMAX = 16
+    ]
+
+    mask_modes = [
+        (0, 0),  # unmasked
+        (1, 0),  # masked (mu - undisturbed)
+        (1, 1),  # masked (ma - agnostic)
+    ]
+
+    for sew_val, lmul_val, lmul_factor, dtype in tqdm.tqdm(configs):
+        itemsize = np.dtype(dtype).itemsize
+        vlmax = int(lmul_factor * 128 / (itemsize * 8))
+
+        vl_list = sorted(list(set([1, max(1, vlmax // 2), vlmax])))
+        offset_list = sorted(
+            list(set([0, 2, max(1, vlmax // 2), vlmax, vlmax + 1]))
+        )
+
+        for vl in vl_list:
+            for offset in offset_list:
+                for use_mask, vma in mask_modes:
+                    num_elements = 128 // itemsize
+                    vs2_data = rng.integers(
+                        low=np.iinfo(dtype).min,
+                        high=np.iinfo(dtype).max + 1,
+                        size=num_elements,
+                        dtype=dtype
+                    )
+                    vd_orig_data = rng.integers(
+                        low=np.iinfo(dtype).min,
+                        high=np.iinfo(dtype).max + 1,
+                        size=num_elements,
+                        dtype=dtype
+                    )
+                    scalar_val = int(
+                        rng.integers(
+                            low=np.iinfo(dtype).min,
+                            high=np.iinfo(dtype).max + 1,
+                            size=1,
+                            dtype=dtype
+                        )[0]
+                    )
+
+                    mask_bytes = np.array(
+                        [0x55] * 16, dtype=np.uint8
+                    ) if use_mask else np.array([0xFF] * 16, dtype=np.uint8)
+
+                    ops_to_test = [0]
+                    if offset == 2:
+                        ops_to_test.append(1)
+                    if offset <= vl:
+                        ops_to_test.append(2)
+                    if offset == 0:
+                        ops_to_test.append(3)
+                        ops_to_test.append(4)
+
+                    for op in ops_to_test:
+                        expected_vl = np.zeros(vl, dtype=dtype)
+                        for i in range(vl):
+                            mask_bit = 1 if not use_mask else (
+                                (mask_bytes[i // 8] >> (i % 8)) & 1
+                            )
+                            if mask_bit == 0 and vma == 0:  # mu
+                                expected_vl[i] = vd_orig_data[i]
+                            elif mask_bit == 0 and vma == 1:  # ma
+                                expected_vl[i] = vd_orig_data[i]
+                            else:
+                                if op in (0, 1):  # vslidedown
+                                    eff_offset = 2 if op == 1 else offset
+                                    if i + eff_offset < vlmax:
+                                        expected_vl[i] = vs2_data[i +
+                                                                  eff_offset]
+                                    else:
+                                        expected_vl[i] = 0
+                                elif op == 2:  # vslideup
+                                    if i < offset:
+                                        expected_vl[i] = vd_orig_data[i]
+                                    else:
+                                        expected_vl[i] = vs2_data[i - offset]
+                                elif op == 3:  # vslide1down
+                                    if i == vl - 1:
+                                        expected_vl[i] = scalar_val
+                                    elif i + 1 < vlmax:
+                                        expected_vl[i] = vs2_data[i + 1]
+                                    else:
+                                        expected_vl[i] = 0
+                                elif op == 4:  # vslide1up
+                                    if i == 0:
+                                        expected_vl[i] = scalar_val
+                                    else:
+                                        expected_vl[i] = vs2_data[i - 1]
+
+                        await fixture.write_word('op_type', op)
+                        await fixture.write_word('use_mask', use_mask)
+                        await fixture.write_word('vma', vma)
+                        await fixture.write_word('vta', 1)
+                        await fixture.write_word('sew', sew_val)
+                        await fixture.write_word('lmul', lmul_val)
+                        await fixture.write_word('vl', vl)
+                        await fixture.write_word('offset', offset)
+                        await fixture.write_word(
+                            'scalar', scalar_val & 0xFFFFFFFF
+                        )
+                        await fixture.write('mask_data', mask_bytes)
+                        await fixture.write('vs2_data', vs2_data)
+                        await fixture.write('vd_orig_data', vd_orig_data)
+
+                        await fixture.run_to_halt()
+
+                        actual_data = (await
+                                       fixture.read('result_data',
+                                                    128)).view(dtype)[:vl]
+
+                        for i in range(vl):
+                            mask_bit = 1 if not use_mask else (
+                                (mask_bytes[i // 8] >> (i % 8)) & 1
+                            )
+                            if mask_bit == 1 or vma == 0:
+                                assert actual_data[i] == expected_vl[i], (
+                                    f"Mismatch at element {i}: actual={hex(int(actual_data[i]))}, "
+                                    f"expected={hex(int(expected_vl[i]))}, op={op}, use_mask={use_mask}, "
+                                    f"sew={sew_val}, lmul={lmul_val}, vl={vl}, offset={offset}, vlmax={vlmax}"
+                                )
+
+
+async def vgather1_test(dut, cases):
+    """Test gather usage accessible from intrinsics."""
+    fixture = await Fixture.Create(dut)
+    r = runfiles.Create()
+    await fixture.load_elf_and_lookup_symbols(
+        r.Rlocation('coralnpu_hw/tests/cocotb/rvv/vgather.elf'),
+        [
+            'rvv_shuffle',
+            'input_value8',
+            'input_index8',
+            'output_value8',
+            'input_value16',
+            'input_index16',
+            'output_value16',
+            'n',
+        ] + [c['rvv_shuffle'] for c in cases],
+    )
+    rng = np.random.default_rng()
+    for c in tqdm.tqdm(cases):
+        rvv_shuffle = c['rvv_shuffle']
+        n = c['n']
+        dtype = c['dtype']
+        values = np.array(rng.choice(np.arange(0, 255), size=n), dtype=dtype)
+        index = np.array(
+            rng.choice(np.arange(0, n), size=n, replace=False), dtype=dtype
+        )
+        expected_output = np.take_along_axis(values, index)
+        if dtype == np.uint8:
+            input_value_buf = 'input_value8'
+            input_index_buf = 'input_index8'
+            output_value_buf = 'output_value8'
+        elif dtype == np.uint16:
+            input_value_buf = 'input_value16'
+            input_index_buf = 'input_index16'
+            output_value_buf = 'output_value16'
+        await fixture.write_ptr('rvv_shuffle', rvv_shuffle)
+        await fixture.write_word('n', n)
+        await fixture.write(input_value_buf, values)
+        await fixture.write(input_index_buf, index)
+        await fixture.run_to_halt()
+        actual_output = (
+            await fixture.read(output_value_buf,
+                               n * np.dtype(dtype).itemsize)
+        ).view(dtype)
+        debug_msg = str({
+            'rvv_shuffle': rvv_shuffle,
+            'n': n,
+            'input_value': values,
+            'input_index': index,
+            'output_value': output_value_buf,
+            'expected': expected_output,
+            'actual': actual_output,
+        })
+        assert (actual_output == expected_output).all(), debug_msg
+
+
+@cocotb.test()
+async def vgather_test(dut):
+    """Test gather usage accessible from intrinsics."""
+    cases = [{
+        'rvv_shuffle': 'vgather_d8mf2_i8mf2',
+        'n': n,
+        'dtype': np.uint8,
+    } for n in [2, 4, 8]] + [{
+        'rvv_shuffle': 'vgather_d8m1_i8m1',
+        'n': n,
+        'dtype': np.uint8,
+    } for n in [2, 4, 8]] + [{
+        'rvv_shuffle': 'vgather_d8m2_i8m2',
+        'n': n,
+        'dtype': np.uint8,
+    } for n in [2, 4, 8]] + [{
+        'rvv_shuffle': 'vgather_d8m4_i8m4',
+        'n': n,
+        'dtype': np.uint8,
+    } for n in [2, 4, 8]] + [{
+        'rvv_shuffle': 'vgather_d8m8_i8m8',
+        'n': n,
+        'dtype': np.uint8,
+    } for n in [2, 4, 8]] + [{
+        'rvv_shuffle': 'vgather_d16mf2_i16mf2',
+        'n': n,
+        'dtype': np.uint16,
+    } for n in [2, 4]] + [{
+        'rvv_shuffle': 'vgather_d16m1_i16m1',
+        'n': n,
+        'dtype': np.uint16,
+    } for n in [2, 4, 8]] + [{
+        'rvv_shuffle': 'vgather_d16m2_i16m2',
+        'n': n,
+        'dtype': np.uint16,
+    } for n in [2, 4, 8, 16]] + [{
+        'rvv_shuffle': 'vgather_d16m4_i16m4',
+        'n': n,
+        'dtype': np.uint16,
+    } for n in [2, 4, 8, 16]] + [{
+        'rvv_shuffle': 'vgather_d16m8_i16m8',
+        'n': n,
+        'dtype': np.uint16,
+    } for n in [2, 4, 8, 16]]
+    await vgather1_test(dut, cases)
+
+
+@cocotb.test()
+async def vstart_test(dut):
+    """Test vstart usage."""
+    fixture = await Fixture.Create(dut)
+    r = runfiles.Create()
+    await fixture.load_elf_and_lookup_symbols(
+        r.Rlocation('coralnpu_hw/tests/cocotb/rvv/vstart_test.elf'), [
+            'vstart',
+            'vstart_after_op1',
+            'vstart_after_op2',
+            'data_input',
+            'reg',
+            'n',
+        ]
+    )
+    for test_vstart_val in range(1, 8, 1):
+        n = 'n'
+        test_vstart_val = test_vstart_val
+        data_array = np.zeros(128, dtype=np.uint16)
+        data_array[8:16] = np.arange(80, 72, -1)
+        data_array[16:24] = np.arange(70, 62, -1)
+        expected_output = np.zeros(128, dtype=np.uint16)
+        expected_output[0:8] = data_array[8:16]
+        expected_output[18:26] = data_array[16:24]
+        expected_output[36 + test_vstart_val:44] = data_array[
+            8 + test_vstart_val:16] + data_array[16 + test_vstart_val:24]
+        expected_output[54:62] = data_array[8:16] + data_array[16:24]
+
+        data_input_buf = 'data_input'
+        reg_buf = 'reg'
+        vstart_buf = 'vstart'
+
+        await fixture.write(data_input_buf, data_array)
+        await fixture.write(
+            vstart_buf, np.array([test_vstart_val], dtype=np.uint32)
+        )
+        await fixture.run_to_halt()
+        actual_output = (
+            await fixture.read(reg_buf, 128 * np.dtype(np.uint16).itemsize)
+        ).view(np.uint16)
+        vstart_after_op1_val = (
+            await
+            fixture.read('vstart_after_op1',
+                         np.dtype(np.uint32).itemsize)
+        ).view(np.uint32)[0]
+        vstart_after_op2_val = (
+            await
+            fixture.read('vstart_after_op2',
+                         np.dtype(np.uint32).itemsize)
+        ).view(np.uint32)[0]
+
+        dut._log.info(
+            f"vstart={test_vstart_val}: vstart_after_op1={vstart_after_op1_val}, "
+            f"vstart_after_op2={vstart_after_op2_val}"
+        )
+        assert vstart_after_op1_val == 0, (
+            f"Expected vstart to reset to 0 after op_1, got {vstart_after_op1_val}"
+        )
+        assert vstart_after_op2_val == 0, (
+            f"Expected vstart to be 0 after op_2, got {vstart_after_op2_val}"
+        )
+        assert (actual_output == expected_output).all(), (
+            f"Output mismatch!\n"
+            f"Actual (indices 0-127):\n{actual_output[0:127]}\n"
+            f"Expected (indices 0-127):\n{expected_output[0:127]}"
+        )
+
+
+@cocotb.test()
+async def core_mini_rvv_small_loop_test(dut):
+    """Testbench to test RVV retirement in small loops."""
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation(
+        "coralnpu_hw/tests/cocotb/rvv/rvv_small_loop_test.elf"
+    )
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+
+    with open(elf_path, "rb") as f:
+        input_addr = core_mini_axi.lookup_symbol(f, "input_data")
+        output_addr = core_mini_axi.lookup_symbol(f, "output_data")
+
+    # input: [1, 2, 3, 4]
+    input_data = np.array([1, 2, 3, 4], dtype=np.uint32)
+    await core_mini_axi.write(input_addr, input_data)
+    await core_mini_axi.write(output_addr, np.zeros(4, dtype=np.uint32))
+
+    # Find vadd.vv address
+    retired_vadds = []
+
+    async def monitor():
+        while True:
+            await RisingEdge(dut.io_aclk)
+            for lane in range(8):
+                v_sig = getattr(dut, f"io_debug_rb_inst_{lane}_valid", None)
+                if v_sig is not None and int(v_sig.value) == 1:
+                    pc = int(
+                        getattr(dut, f"io_debug_rb_inst_{lane}_bits_pc").value
+                    )
+                    inst = int(
+                        getattr(dut,
+                                f"io_debug_rb_inst_{lane}_bits_inst").value
+                    )
+                    vec_valid = int(
+                        getattr(
+                            dut,
+                            f"io_debug_rb_inst_{lane}_bits_vecWrites_0_valid"
+                        ).value
+                    )
+                    vec_data = int(
+                        getattr(
+                            dut,
+                            f"io_debug_rb_inst_{lane}_bits_vecWrites_0_bits_data"
+                        ).value
+                    )
+                    # vadd.vv opcode is 0x57 (vector arith) with funct6 = 0 (vadd.vv: 000000 1 01001 01000 000 01000 1010111 -> 0x02940457)
+                    if (inst & 0xFC00707F) == 0x00000057:  # vadd.vv
+                        retired_vadds.append((
+                            cocotb.utils.get_sim_time('ns'), pc, hex(inst),
+                            hex(vec_data), vec_valid
+                        ))
+                        print(
+                            f"RETIRE: vadd.vv at PC={hex(pc)}, time={cocotb.utils.get_sim_time('ns')}ns, vec_valid={vec_valid}, vec_data={hex(vec_data)}",
+                            flush=True
+                        )
+
+    cocotb.start_soon(monitor())
+    await core_mini_axi.execute_from(entry_point)
+    await core_mini_axi.wait_for_wfi()
+
+    has_debug_ports = getattr(
+        dut, "io_debug_rb_inst_0_valid", None
+    ) is not None
+    if has_debug_ports:
+        # Check that each of the 32 iterations retired with the correct calculated vector data
+        assert len(
+            retired_vadds
+        ) == 32, f"Expected 32 vadd.vv retirements, got {len(retired_vadds)}"
+        for k, (t, pc, inst_hex, data_hex, vld) in enumerate(retired_vadds):
+            # Element 0 is (k + 2) * 1, Element 1 is (k + 2) * 2, Element 2 is (k + 2) * 3, Element 3 is (k + 2) * 4
+            # Since v8 starts at [1,2,3,4] and v9 is [1,2,3,4]:
+            # iter 0 (1st add): [2, 4, 6, 8] -> packed 128-bit: (8<<96) | (6<<64) | (4<<32) | 2
+            # iter k (k+1 th add): ((k+2)*4 << 96) | ((k+2)*3 << 64) | ((k+2)*2 << 32) | (k+2)*1
+            mult = k + 2
+            expected_data = (mult * 4 << 96) | (mult * 3 <<
+                                                64) | (mult * 2 << 32) | (
+                                                    mult * 1
+                                                )
+            actual_data = int(data_hex, 16)
+            assert actual_data == expected_data, (
+                f"Retirement buffer bug detected at iteration {k+1}! "
+                f"Retired with data {hex(actual_data)} ({data_hex}), expected {hex(expected_data)}. "
+                f"(Premature retirement / PC aliasing in RetirementBuffer)"
+            )
+
+        print(f"Total vadd.vv retired: {len(retired_vadds)}", flush=True)
+
+    output_data = (await core_mini_axi.read(output_addr, 16)).view(np.uint32)
+    expected = np.array([33, 66, 99, 132], dtype=np.uint32)
+    assert np.array_equal(
+        output_data, expected
+    ), f"Output mismatch: got {output_data}, expected {expected}"
+
+
+@cocotb.test()
+async def core_mini_rvv_flush_race_test(dut):
+    """Testbench to test flush race condition between in-flight vector operations and post-trap dispatch."""
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation(
+        "coralnpu_hw/tests/cocotb/rvv/rvv_flush_race_test.elf"
+    )
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+
+    with open(elf_path, "rb") as f:
+        output_addr = core_mini_axi.lookup_symbol(f, "output_data")
+
+    await core_mini_axi.write(output_addr, np.zeros(4, dtype=np.uint32))
+
+    await core_mini_axi.execute_from(entry_point)
+    await core_mini_axi.wait_for_wfi()
+
+    output_data = (await core_mini_axi.read(output_addr, 16)).view(np.uint32)
+    # Expected: input_add_a + input_add_b = [10+1, 20+2, 30+3, 40+4] = [11, 22, 33, 44]
+    # If the flush race occurs, the divider's writeback [500, 1000, 1500, 2000] will prematurely retire or corrupt the adder
+    expected = np.array([11, 22, 33, 44], dtype=np.uint32)
+    assert np.array_equal(
+        output_data, expected
+    ), f"Output mismatch (Flush race detected!): got {output_data}, expected {expected}"
+
+
+@cocotb.test()
+async def core_mini_rvv_vill_loop_trap_test(dut):
+    """Testbench to test vector-originated trap (vill) tag matching in loops."""
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation(
+        "coralnpu_hw/tests/cocotb/rvv/rvv_vill_loop_trap_test.elf"
+    )
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+
+    with open(elf_path, "rb") as f:
+        output_addr = core_mini_axi.lookup_symbol(f, "output_data")
+        trap_info_addr = core_mini_axi.lookup_symbol(f, "trap_info")
+        loop_vdiv_addr = core_mini_axi.lookup_symbol(f, "loop_vdiv")
+
+    await core_mini_axi.write(output_addr, np.zeros(4, dtype=np.uint32))
+    await core_mini_axi.write(trap_info_addr, np.zeros(4, dtype=np.uint32))
+
+    await core_mini_axi.execute_from(entry_point)
+    await core_mini_axi.wait_for_wfi()
+
+    trap_info = (await core_mini_axi.read(trap_info_addr, 16)).view(np.uint32)
+    mcause, mepc, mtval, trap_count = trap_info
+
+    dut._log.info(
+        f"TRAP INFO: mcause={mcause}, mepc={hex(mepc)}, mtval={hex(mtval)}, trap_count={trap_count}"
+    )
+
+    assert trap_count == 1, f"Expected 1 trap, got {trap_count}"
+    assert mcause == 2, f"Expected mcause=2 (Illegal instruction), got {mcause}"
+    assert mepc == loop_vdiv_addr, f"Expected mepc={hex(loop_vdiv_addr)} (loop_vdiv), got {hex(mepc)}"
+
+    output_data = (await core_mini_axi.read(output_addr, 16)).view(np.uint32)
+    expected = np.array([1, 1, 1, 1], dtype=np.uint32)
+    assert np.array_equal(
+        output_data, expected
+    ), f"Output mismatch (Premature trap cancellation on earlier iteration!): got {output_data}, expected {expected}"
+
+
+@cocotb.test()
+async def core_mini_rvv_vstart_rob_test(dut):
+    """Testbench to test vstart architectural reset upon retirement and preservation across flushes."""
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation(
+        "coralnpu_hw/tests/cocotb/rvv/rvv_vstart_rob_test.elf"
+    )
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+
+    with open(elf_path, "rb") as f:
+        input_a_addr = core_mini_axi.lookup_symbol(f, "input_a")
+        input_b_addr = core_mini_axi.lookup_symbol(f, "input_b")
+        output_normal_addr = core_mini_axi.lookup_symbol(f, "output_normal")
+        test_results_normal_addr = core_mini_axi.lookup_symbol(
+            f, "test_results_normal"
+        )
+
+    await core_mini_axi.write(
+        input_a_addr, np.array([10, 20, 30, 40], dtype=np.uint32)
+    )
+    await core_mini_axi.write(
+        input_b_addr, np.array([1, 2, 3, 4], dtype=np.uint32)
+    )
+    await core_mini_axi.write(output_normal_addr, np.zeros(4, dtype=np.uint32))
+    await core_mini_axi.write(
+        test_results_normal_addr,
+        np.array([0xDEAD, 0xDEAD, 0xDEAD, 0], dtype=np.uint32)
+    )
+
+    await core_mini_axi.execute_from(entry_point)
+    await core_mini_axi.wait_for_wfi()
+
+    output_normal = (await core_mini_axi.read(output_normal_addr,
+                                              16)).view(np.uint32)
+    expected_normal = np.array([0, 0, 33, 44], dtype=np.uint32)
+    assert np.array_equal(
+        output_normal, expected_normal
+    ), f"Normal vector execution mismatch: got {output_normal}, expected {expected_normal}"
+
+    test_results_normal = (
+        await core_mini_axi.read(test_results_normal_addr, 16)
+    ).view(np.uint32)
+    dut._log.info(f"test_results: vstart_normal={test_results_normal[0]}")
+
+    assert test_results_normal[
+        0
+    ] == 0, f"Expected vstart to reset to 0 upon retirement, got {test_results_normal[0]}"
+
+
+@cocotb.test()
+async def core_mini_rvv_vstart_vset_test(dut):
+    """Testbench to test vstart reset for vector config instructions (vset*)."""
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation(
+        "coralnpu_hw/tests/cocotb/rvv/rvv_vstart_vset_test.elf"
+    )
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+
+    with open(elf_path, "rb") as f:
+        input_a_addr = core_mini_axi.lookup_symbol(f, "input_a")
+        input_b_addr = core_mini_axi.lookup_symbol(f, "input_b")
+        output_dual_dispatch_addr = core_mini_axi.lookup_symbol(
+            f, "output_dual_dispatch"
+        )
+        test_results_vset_addr = core_mini_axi.lookup_symbol(
+            f, "test_results_vset"
+        )
+        test_results_dual_dispatch_addr = core_mini_axi.lookup_symbol(
+            f, "test_results_dual_dispatch"
+        )
+
+    await core_mini_axi.write(
+        input_a_addr, np.array([10, 20, 30, 40], dtype=np.uint32)
+    )
+    await core_mini_axi.write(
+        input_b_addr, np.array([1, 2, 3, 4], dtype=np.uint32)
+    )
+    await core_mini_axi.write(
+        output_dual_dispatch_addr, np.zeros(4, dtype=np.uint32)
+    )
+    await core_mini_axi.write(
+        test_results_vset_addr,
+        np.array([0xDEAD, 0xDEAD, 0xDEAD, 0], dtype=np.uint32)
+    )
+    await core_mini_axi.write(
+        test_results_dual_dispatch_addr,
+        np.array([0xDEAD, 0xDEAD, 0xDEAD, 0], dtype=np.uint32)
+    )
+
+    await core_mini_axi.execute_from(entry_point)
+    await core_mini_axi.wait_for_wfi()
+
+    output_dual_dispatch = (
+        await core_mini_axi.read(output_dual_dispatch_addr, 16)
+    ).view(np.uint32)
+    expected_dual_dispatch = np.array([11, 22, 33, 44], dtype=np.uint32)
+    assert np.array_equal(
+        output_dual_dispatch, expected_dual_dispatch
+    ), f"Dual dispatch vector execution mismatch: got {output_dual_dispatch}, expected {expected_dual_dispatch}"
+
+    test_results_vset = (await core_mini_axi.read(test_results_vset_addr,
+                                                  16)).view(np.uint32)
+    test_results_dual_dispatch = (
+        await core_mini_axi.read(test_results_dual_dispatch_addr, 16)
+    ).view(np.uint32)
+    dut._log.info(
+        f"test_results: vstart_vset={test_results_vset[0]}, vstart_dual_dispatch={test_results_dual_dispatch[0]}"
+    )
+
+    assert test_results_vset[
+        0
+    ] == 0, f"Expected vstart to reset to 0 upon vsetivli retirement, got {test_results_vset[0]}"
+    assert test_results_dual_dispatch[
+        0
+    ] == 0, f"Expected vstart to reset to 0 upon dual dispatch retirement, got {test_results_dual_dispatch[0]}"
+
+
+@cocotb.test()
+async def core_mini_rvv_vstart_vmv_scalar_test(dut):
+    """Testbench to test vstart reset for vector instruction writing scalar reg."""
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation(
+        "coralnpu_hw/tests/cocotb/rvv/rvv_vstart_vmv_scalar_test.elf"
+    )
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+
+    with open(elf_path, "rb") as f:
+        input_a_addr = core_mini_axi.lookup_symbol(f, "input_a")
+        test_results_vmv_scalar_addr = core_mini_axi.lookup_symbol(
+            f, "test_results_vmv_scalar"
+        )
+
+    await core_mini_axi.write(
+        input_a_addr, np.array([10, 20, 30, 40], dtype=np.uint32)
+    )
+    await core_mini_axi.write(
+        test_results_vmv_scalar_addr,
+        np.array([0xDEAD, 0xDEAD, 0xDEAD, 0], dtype=np.uint32)
+    )
+
+    await core_mini_axi.execute_from(entry_point)
+    await core_mini_axi.wait_for_wfi()
+
+    test_results_vmv_scalar = (
+        await core_mini_axi.read(test_results_vmv_scalar_addr, 16)
+    ).view(np.uint32)
+    dut._log.info(
+        f"test_results_vmv_scalar: vstart={test_results_vmv_scalar[0]}"
+    )
+
+    assert test_results_vmv_scalar[
+        0
+    ] == 0, f"Expected vstart to reset to 0 upon vmv.x.s retirement, got {test_results_vmv_scalar[0]}"
+
+
+@cocotb.test()
+async def core_mini_rvv_vstart_trap_flush_test(dut):
+    """Testbench to test vstart architectural preservation across flushes."""
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation(
+        "coralnpu_hw/tests/cocotb/rvv/rvv_vstart_trap_flush_test.elf"
+    )
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+
+    with open(elf_path, "rb") as f:
+        input_a_addr = core_mini_axi.lookup_symbol(f, "input_a")
+        input_b_addr = core_mini_axi.lookup_symbol(f, "input_b")
+        test_results_trap_addr = core_mini_axi.lookup_symbol(
+            f, "test_results_trap"
+        )
+
+    await core_mini_axi.write(
+        input_a_addr, np.array([10, 20, 30, 40], dtype=np.uint32)
+    )
+    await core_mini_axi.write(
+        input_b_addr, np.array([1, 2, 3, 4], dtype=np.uint32)
+    )
+    await core_mini_axi.write(
+        test_results_trap_addr,
+        np.array([0xDEAD, 0xDEAD, 0xDEAD, 0], dtype=np.uint32)
+    )
+
+    await core_mini_axi.execute_from(entry_point)
+    await core_mini_axi.wait_for_wfi()
+
+    test_results_trap = (await core_mini_axi.read(test_results_trap_addr,
+                                                  16)).view(np.uint32)
+    dut._log.info(f"test_results_trap: vstart={test_results_trap[0]}")
+
+    assert test_results_trap[
+        0
+    ] == 5, f"Expected vstart=5 to be preserved after trap flush, got {test_results_trap[0]}"
+
+
+@cocotb.test()
+async def core_mini_rvv_vfrdiv_test(dut):
+    """Testbench to test OPFVF instruction with scalar float register."""
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation("coralnpu_hw/tests/cocotb/rvv/rvv_vfrdiv_test.elf")
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+
+    with open(elf_path, "rb") as f:
+        v18_result_addr = core_mini_axi.lookup_symbol(f, "v18_result")
+
+    await core_mini_axi.execute_from(entry_point)
+    await core_mini_axi.wait_for_wfi()
+
+    v18_result = (await core_mini_axi.read(v18_result_addr,
+                                           16)).view(np.uint32)
+    dut._log.info(f"v18_result: {[hex(x) for x in v18_result]}")
+
+    # Expected: 0x8000000080000000dd6762d400000000 -> words in LE order:
+    # word 0: 0x00000000, word 1: 0xdd6762d4, word 2: 0x80000000, word 3: 0x80000000
+    expected_v18 = np.array([0x00000000, 0xdd6762d4, 0x80000000, 0x80000000],
+                            dtype=np.uint32)
+    assert np.array_equal(
+        v18_result, expected_v18
+    ), f"v18 mismatch: got {[hex(x) for x in v18_result]}, expected {[hex(x) for x in expected_v18]}"
+
+
+@cocotb.test()
+async def core_mini_rvv_vleff_test(dut):
+    """Testbench to test fault-only-first loads vle16ff.v, vle8ff.v, vle32ff.v across varied configurations."""
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation("coralnpu_hw/tests/cocotb/rvv/rvv_vleff_test.elf")
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+
+    with open(elf_path, "rb") as f:
+        v12_result_addr = core_mini_axi.lookup_symbol(f, "v12_result")
+        v8_result_addr = core_mini_axi.lookup_symbol(f, "v8_result")
+        v4_result_addr = core_mini_axi.lookup_symbol(f, "v4_result")
+        v14_result_addr = core_mini_axi.lookup_symbol(f, "v14_result")
+        v16_result_addr = core_mini_axi.lookup_symbol(f, "v16_result")
+        v20_result_addr = core_mini_axi.lookup_symbol(f, "v20_result")
+        v24_result_addr = core_mini_axi.lookup_symbol(f, "v24_result")
+        v25_result_addr = core_mini_axi.lookup_symbol(f, "v25_result")
+        v26_result_addr = core_mini_axi.lookup_symbol(f, "v26_result")
+        vstart_result_addr = core_mini_axi.lookup_symbol(f, "vstart_result")
+        v30_result_addr = core_mini_axi.lookup_symbol(f, "v30_result")
+        v1_result_addr = core_mini_axi.lookup_symbol(f, "v1_result")
+        v2_result_addr = core_mini_axi.lookup_symbol(f, "v2_result")
+        v3_result_addr = core_mini_axi.lookup_symbol(f, "v3_result")
+
+    await core_mini_axi.execute_from(entry_point)
+    await core_mini_axi.wait_for_wfi()
+
+    # 1. Baseline vle16ff.v (e16, m1, vl=8)
+    v12_result = (await core_mini_axi.read(v12_result_addr,
+                                           16)).view(np.uint32)
+    expected_v12 = np.array([0x11112222, 0x33334444, 0x55556666, 0x77778888],
+                            dtype=np.uint32)
+    assert np.array_equal(
+        v12_result, expected_v12
+    ), f"v12 mismatch (vle16ff): got {[hex(x) for x in v12_result]}, expected {[hex(x) for x in expected_v12]}"
+
+    # 2. Baseline vle8ff.v (e8, m1, vl=16)
+    v8_result = (await core_mini_axi.read(v8_result_addr, 16)).view(np.uint32)
+    expected_v8 = np.array([0x01020304, 0x05060708, 0x090a0b0c, 0x0d0e0f10],
+                           dtype=np.uint32)
+    assert np.array_equal(
+        v8_result, expected_v8
+    ), f"v8 mismatch (vle8ff): got {[hex(x) for x in v8_result]}, expected {[hex(x) for x in expected_v8]}"
+
+    # 3. Baseline vle32ff.v (e32, m1, vl=4)
+    v4_result = (await core_mini_axi.read(v4_result_addr, 16)).view(np.uint32)
+    expected_v4 = np.array([0xdeadbeef, 0xcafebabe, 0x01234567, 0x89abcdef],
+                           dtype=np.uint32)
+    assert np.array_equal(
+        v4_result, expected_v4
+    ), f"v4 mismatch (vle32ff): got {[hex(x) for x in v4_result]}, expected {[hex(x) for x in expected_v4]}"
+
+    # 4. Masked vle16ff.v with tu, mu, vl = 5 (active elems: 0,2,4; inactive: 1,3; tail: 5..7)
+    v14_result = (await core_mini_axi.read(v14_result_addr,
+                                           16)).view(np.uint32)
+    expected_v14 = np.array([0xbbbb0101, 0xdddd0303, 0xffff0505, 0x56781234],
+                            dtype=np.uint32)
+    assert np.array_equal(
+        v14_result, expected_v14
+    ), f"v14 mismatch (masked tu/mu): got {[hex(x) for x in v14_result]}, expected {[hex(x) for x in expected_v14]}"
+
+    # 5. Multi-register m2 vle16ff.v (vl = 16, 32 bytes)
+    v16_result = (await core_mini_axi.read(v16_result_addr,
+                                           32)).view(np.uint32)
+    expected_v16 = np.array(
+        [
+            0x00020001,
+            0x00040003,
+            0x00060005,
+            0x00080007,
+            0x000a0009,
+            0x000c000b,
+            0x000e000d,
+            0x0010000f,
+        ],
+        dtype=np.uint32,
+    )
+    assert np.array_equal(
+        v16_result, expected_v16
+    ), f"v16 mismatch (m2): got {[hex(x) for x in v16_result]}, expected {[hex(x) for x in expected_v16]}"
+
+    # 6. Multi-register m4 vle32ff.v (vl = 16, 64 bytes)
+    v20_result = (await core_mini_axi.read(v20_result_addr,
+                                           64)).view(np.uint32)
+    expected_v20 = np.array(
+        [
+            0x10000001,
+            0x10000002,
+            0x10000003,
+            0x10000004,
+            0x10000005,
+            0x10000006,
+            0x10000007,
+            0x10000008,
+            0x10000009,
+            0x1000000a,
+            0x1000000b,
+            0x1000000c,
+            0x1000000d,
+            0x1000000e,
+            0x1000000f,
+            0x10000010,
+        ],
+        dtype=np.uint32,
+    )
+    assert np.array_equal(
+        v20_result, expected_v20
+    ), f"v20 mismatch (m4): got {[hex(x) for x in v20_result]}, expected {[hex(x) for x in expected_v20]}"
+
+    # 7. Fractional LMUL mf4 vle8ff.v (vl = 4, 4 bytes)
+    v24_result = (await core_mini_axi.read(v24_result_addr, 4)).view(np.uint32)
+    expected_v24 = np.array([0x44332211], dtype=np.uint32)
+    assert np.array_equal(
+        v24_result, expected_v24
+    ), f"v24 mismatch (mf4): got {[hex(x) for x in v24_result]}, expected {[hex(x) for x in expected_v24]}"
+
+    # 8. Fractional LMUL mf2 vle16ff.v (vl = 4, 8 bytes)
+    v25_result = (await core_mini_axi.read(v25_result_addr, 8)).view(np.uint32)
+    expected_v25 = np.array([0x22221111, 0x44443333], dtype=np.uint32)
+    assert np.array_equal(
+        v25_result, expected_v25
+    ), f"v25 mismatch (mf2): got {[hex(x) for x in v25_result]}, expected {[hex(x) for x in expected_v25]}"
+
+    # 9. Non-zero vstart = 2 (elems 0,1 untouched; elems 2..7 loaded; vstart cleared)
+    v26_result = (await core_mini_axi.read(v26_result_addr,
+                                           16)).view(np.uint32)
+    expected_v26 = np.array([0x00020001, 0x00400030, 0x00600050, 0x00800070],
+                            dtype=np.uint32)
+    assert np.array_equal(
+        v26_result, expected_v26
+    ), f"v26 mismatch (vstart=2): got {[hex(x) for x in v26_result]}, expected {[hex(x) for x in expected_v26]}"
+
+    vstart_result = (await core_mini_axi.read(vstart_result_addr,
+                                              4)).view(np.uint32)[0]
+    assert (
+        vstart_result == 0
+    ), f"vstart not reset: expected 0, got {vstart_result}"
+
+    # 10. RAW Hazard: vle16ff.v immediately consumed by vadd.vv
+    v30_result = (await core_mini_axi.read(v30_result_addr,
+                                           16)).view(np.uint32)
+    expected_v30 = np.array([0x00660065, 0x00680067, 0x006a0069, 0x006c006b],
+                            dtype=np.uint32)
+    assert np.array_equal(
+        v30_result, expected_v30
+    ), f"v30 mismatch (RAW hazard): got {[hex(x) for x in v30_result]}, expected {[hex(x) for x in expected_v30]}"
+
+    # 11. Unaligned vle16ff.v: base + 2, vl = 5, tu (ff_tail_index = 10)
+    v1_result = (await core_mini_axi.read(v1_result_addr, 16)).view(np.uint32)
+    expected_v1 = np.array([0x02020101, 0x04040303, 0xeeee0505, 0xeeeeeeee],
+                           dtype=np.uint32)
+    assert np.array_equal(
+        v1_result, expected_v1
+    ), f"v1 mismatch (unaligned vle16ff): got {[hex(x) for x in v1_result]}, expected {[hex(x) for x in expected_v1]}"
+
+    # 12. Unaligned vle8ff.v: base + 3, vl = 7, tu (ff_tail_index = 7)
+    v2_result = (await core_mini_axi.read(v2_result_addr, 16)).view(np.uint32)
+    expected_v2 = np.array([0x44332211, 0xaa776655, 0xaaaaaaaa, 0xaaaaaaaa],
+                           dtype=np.uint32)
+    assert np.array_equal(
+        v2_result, expected_v2
+    ), f"v2 mismatch (unaligned vle8ff): got {[hex(x) for x in v2_result]}, expected {[hex(x) for x in expected_v2]}"
+
+    # 13. Unaligned vle32ff.v: base + 4, vl = 3, tu (ff_tail_index = 12)
+    v3_result = (await core_mini_axi.read(v3_result_addr, 16)).view(np.uint32)
+    expected_v3 = np.array([0x11111111, 0x22222222, 0x33333333, 0xcccccccc],
+                           dtype=np.uint32)
+    assert np.array_equal(
+        v3_result, expected_v3
+    ), f"v3 mismatch (unaligned vle32ff): got {[hex(x) for x in v3_result]}, expected {[hex(x) for x in expected_v3]}"
+
+
+@cocotb.test()
+async def core_mini_rvv_vl0_v0_corruption_test(dut):
+    """Directed test to check vector mask register v0 preservation when vl=0."""
+    core_mini_axi = CoreMiniAxiInterface(dut)
+    await core_mini_axi.init()
+    await core_mini_axi.reset()
+    cocotb.start_soon(core_mini_axi.clock.start())
+    r = runfiles.Create()
+
+    elf_path = r.Rlocation(
+        "coralnpu_hw/tests/cocotb/rvv/rvv_vl0_v0_corruption_test.elf"
+    )
+    if not elf_path:
+        raise ValueError("elf_path must consist a valid path")
+    with open(elf_path, "rb") as f:
+        entry_point = await core_mini_axi.load_elf(f)
+
+    with open(elf_path, "rb") as f:
+        output_v0_after_vmsbc_addr = core_mini_axi.lookup_symbol(
+            f, "output_v0_after_vmsbc"
+        )
+        output_v29_after_vmsbc_addr = core_mini_axi.lookup_symbol(
+            f, "output_v29_after_vmsbc"
+        )
+
+    # Initial expected v0: 0xf0b0e6759579717a4fc03532a0a512b6
+    expected_v0 = np.array([0xA0A512B6, 0x4FC03532, 0x9579717A, 0xF0B0E675],
+                           dtype=np.uint32)
+
+    await core_mini_axi.execute_from(entry_point)
+    await core_mini_axi.wait_for_wfi()
+
+    v0_after_vmsbc = (
+        await core_mini_axi.read(output_v0_after_vmsbc_addr, 16)
+    ).view(np.uint32)
+    v29_after_vmsbc = (
+        await core_mini_axi.read(output_v29_after_vmsbc_addr, 16)
+    ).view(np.uint32)
+
+    dut._log.info(
+        f"v0_after_vmsbc:  0x{v0_after_vmsbc[3]:08x}_{v0_after_vmsbc[2]:08x}_{v0_after_vmsbc[1]:08x}_{v0_after_vmsbc[0]:08x}"
+    )
+    dut._log.info(
+        f"v29_after_vmsbc: 0x{v29_after_vmsbc[3]:08x}_{v29_after_vmsbc[2]:08x}_{v29_after_vmsbc[1]:08x}_{v29_after_vmsbc[0]:08x}"
+    )
+    dut._log.info(
+        f"expected_v0:     0x{expected_v0[3]:08x}_{expected_v0[2]:08x}_{expected_v0[1]:08x}_{expected_v0[0]:08x}"
+    )
+
+    np.testing.assert_array_equal(
+        v0_after_vmsbc,
+        expected_v0,
+        err_msg="Vector mask v0 corrupted after vmsbc.vvm under vl=0",
+    )

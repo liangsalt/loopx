@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "case_id": "opentitan-serial-io",
+  "root_module": "serial_io_subsystem",
+  "graph_role": "shared_input_contract_for_spec2rtl_and_spec2dv",
+  "nodes": [
+    {
+      "id": "serial_io_subsystem",
+      "kind": "authored_subsystem_root"
+    },
+    {
+      "id": "spi_device",
+      "module_type": "spi_device",
+      "kind": "design_module"
+    },
+    {
+      "id": "spi_host0",
+      "module_type": "spi_host",
+      "kind": "design_module"
+    },
+    {
+      "id": "usbdev",
+      "module_type": "usbdev",
+      "kind": "design_module"
+    },
+    {
+      "id": "tlul_boundary",
+      "kind": "environment_boundary",
+      "description": "TL-UL host/interconnect model"
+    },
+    {
+      "id": "clock_reset_alert_boundary",
+      "kind": "environment_boundary",
+      "description": "clock/reset/alert infrastructure"
+    },
+    {
+      "id": "external_spi_host",
+      "kind": "environment_boundary",
+      "description": "external SPI host"
+    },
+    {
+      "id": "external_spi_flash",
+      "kind": "environment_boundary",
+      "description": "external SPI flash"
+    },
+    {
+      "id": "usb_host_phy",
+      "kind": "environment_boundary",
+      "description": "USB host/PHY digital model"
+    },
+    {
+      "id": "pinmux_aon_boundary",
+      "kind": "environment_boundary",
+      "description": "pinmux/AON wake monitor"
+    },
+    {
+      "id": "memory_cfg_boundary",
+      "kind": "environment_boundary",
+      "description": "memory configuration boundary"
+    },
+    {
+      "id": "comportable",
+      "kind": "shared_contract"
+    }
+  ],
+  "edges": [
+    {
+      "from": "spi_device",
+      "to": "spi_host0",
+      "relationship": "passthrough",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 1054,
+        "line_end": 1055,
+        "excerpt": "      // spi passthrough connection\n      'spi_device.passthrough'     : ['spi_host0.passthrough'],",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "usbdev",
+      "to": "pinmux_aon_boundary",
+      "relationship": "USB suspend/wake and pullup handoff",
+      "classification": "real_upstream_boundary",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 947,
+        "line_end": 955,
+        "excerpt": "      // usbdev connection to pinmux\n      'usbdev.usb_dp_pullup'        : ['pinmux_aon.usbdev_dppullup_en'],\n      'usbdev.usb_dn_pullup'        : ['pinmux_aon.usbdev_dnpullup_en'],\n      'usbdev.usb_aon_suspend_req'  : ['pinmux_aon.usbdev_suspend_req'],\n      'usbdev.usb_aon_wake_ack'     : ['pinmux_aon.usbdev_wake_ack'],\n      'usbdev.usb_aon_bus_not_idle' : ['pinmux_aon.usbdev_bus_not_idle'],\n      'usbdev.usb_aon_bus_reset'    : ['pinmux_aon.usbdev_bus_reset'],\n      'usbdev.usb_aon_sense_lost'   : ['pinmux_aon.usbdev_sense_lost'],\n      'pinmux_aon.usbdev_wake_detect_active' : ['usbdev.usb_aon_wake_detect_active'],",
+        "count_toward_specification_body_bytes": false
+      }
+    }
+  ],
+  "containment": [
+    {
+      "parent": "serial_io_subsystem",
+      "child": "spi_device"
+    },
+    {
+      "parent": "serial_io_subsystem",
+      "child": "spi_host0"
+    },
+    {
+      "parent": "serial_io_subsystem",
+      "child": "usbdev"
+    }
+  ],
+  "common_relationships": [
+    {
+      "relationship": "TL-UL software access",
+      "members": [
+        "spi_device",
+        "spi_host0",
+        "usbdev"
+      ],
+      "boundary": "tlul_boundary",
+      "classification": "upstream interface obligation; reduced interconnect is authored"
+    },
+    {
+      "relationship": "clock/reset/alert connectivity",
+      "members": [
+        "spi_device",
+        "spi_host0",
+        "usbdev"
+      ],
+      "classification": "bind to selected top configuration and module interfaces"
+    }
+  ],
+  "non_edges": [
+    "USBDEV and SPI engines have no direct data-path connection; they share software access and clock/reset/alert infrastructure."
+  ],
+  "source_body_bytes_credit": 0
+}

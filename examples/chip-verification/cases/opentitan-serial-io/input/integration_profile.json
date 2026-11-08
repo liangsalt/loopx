@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "case_id": "opentitan-serial-io",
+  "root_module": "serial_io_subsystem",
+  "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+  "classification": "author_defined_reduced_integration_profile",
+  "scope": "Selected EarlGrey subsystem; the reduced wrapper is a benchmark design choice, not an upstream native top-level. External boundaries do not become DUT RTL targets.",
+  "modules": [
+    {
+      "instance": "spi_device",
+      "type": "spi_device"
+    },
+    {
+      "instance": "spi_host0",
+      "type": "spi_host"
+    },
+    {
+      "instance": "usbdev",
+      "type": "usbdev"
+    }
+  ],
+  "external_boundaries": [
+    {
+      "id": "tlul_boundary",
+      "description": "TL-UL host/interconnect model"
+    },
+    {
+      "id": "clock_reset_alert_boundary",
+      "description": "clock/reset/alert infrastructure"
+    },
+    {
+      "id": "external_spi_host",
+      "description": "external SPI host"
+    },
+    {
+      "id": "external_spi_flash",
+      "description": "external SPI flash"
+    },
+    {
+      "id": "usb_host_phy",
+      "description": "USB host/PHY digital model"
+    },
+    {
+      "id": "pinmux_aon_boundary",
+      "description": "pinmux/AON wake monitor"
+    },
+    {
+      "id": "memory_cfg_boundary",
+      "description": "memory configuration boundary"
+    }
+  ],
+  "design_choices": [
+    "Implement one SPI_DEVICE, SPI_HOST0 and USBDEV subsystem. SPI_HOST1 is outside the case.",
+    "Preserve source-defined CSR fields and configured geometry; use the authored digital clock/reset/ABI convention in cadence_contract.md. Reduced counts/widths form a distinct profile and cannot inherit full-profile coverage.",
+    "Boundary models expose controllable latency, withheld acknowledgement, errors and stopped clocks. Permanently-ready tieoffs cannot substantiate startup/low-power scenarios.",
+    "Use one shared interface/module graph for RTL and DV planning; runtime sessions receive relevant source shards and durable state handles.",
+    "RTL microarchitecture choices may vary; observable specified behavior and declared integration relationships form the acceptance contract."
+  ],
+  "top_configuration_evidence": [
+    {
+      "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+      "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+      "line_start": 327,
+      "line_end": 349,
+      "excerpt": "    { name: \"spi_host0\",\n      type: \"spi_host\",\n      clock_srcs: {clk_i: \"io\"},\n      clock_group: \"peri\",\n      reset_connections: {rst_ni: \"spi_host0\"},\n      base_addr: \"0x40300000\",\n    },\n    { name: \"spi_host1\",\n      type: \"spi_host\",\n      clock_srcs: {clk_i: \"io_div2\"},\n      clock_group: \"peri\",\n      reset_connections: {rst_ni: \"spi_host1\"},\n      base_addr: \"0x40310000\",\n    },\n    { name: \"usbdev\",\n      type: \"usbdev\",\n      clock_srcs: {clk_i: \"usb\", clk_aon_i: \"aon\"},\n      clock_group: \"peri\",\n      reset_connections: {rst_ni: \"usb\", rst_aon_ni: \"usb_aon\"},\n      base_addr: \"0x40320000\",\n      param_decl: {\n        RcvrWakeTimeUs: \"100\"\n      },",
+      "count_toward_specification_body_bytes": false
+    }
+  ],
+  "relationship_evidence": [
+    {
+      "from": "spi_device",
+      "to": "spi_host0",
+      "relationship": "passthrough",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 1054,
+        "line_end": 1055,
+        "excerpt": "      // spi passthrough connection\n      'spi_device.passthrough'     : ['spi_host0.passthrough'],",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "usbdev",
+      "to": "pinmux_aon_boundary",
+      "relationship": "USB suspend/wake and pullup handoff",
+      "classification": "real_upstream_boundary",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 947,
+        "line_end": 955,
+        "excerpt": "      // usbdev connection to pinmux\n      'usbdev.usb_dp_pullup'        : ['pinmux_aon.usbdev_dppullup_en'],\n      'usbdev.usb_dn_pullup'        : ['pinmux_aon.usbdev_dnpullup_en'],\n      'usbdev.usb_aon_suspend_req'  : ['pinmux_aon.usbdev_suspend_req'],\n      'usbdev.usb_aon_wake_ack'     : ['pinmux_aon.usbdev_wake_ack'],\n      'usbdev.usb_aon_bus_not_idle' : ['pinmux_aon.usbdev_bus_not_idle'],\n      'usbdev.usb_aon_bus_reset'    : ['pinmux_aon.usbdev_bus_reset'],\n      'usbdev.usb_aon_sense_lost'   : ['pinmux_aon.usbdev_sense_lost'],\n      'pinmux_aon.usbdev_wake_detect_active' : ['usbdev.usb_aon_wake_detect_active'],",
+        "count_toward_specification_body_bytes": false
+      }
+    }
+  ],
+  "context_size_credit": 0,
+  "source_precedence": "Benchmark-author policy: explicit declared field names, bit ranges, access types and selected integration configuration govern over obsolete narrative references. This is an authored exercise policy, not an attributed user instruction or a universal upstream priority rule. Conflicts inside HJSON and behavioral ambiguities use the individually named adjudications; no blanket HJSON-wins rule resolves them. Authored decisions supersede only their stated scope. Preserve original source bytes and provenance. Local open obligations gate only affected acceptance claims. Candidate/golden RTL and UVM are not specification authority. No correction is simulation or coverage evidence.",
+  "source_adjudications": {
+    "revision": "opentitan-adjudications-cadence-v2",
+    "authority": "benchmark_author",
+    "issue_ids": [
+      "SH-01",
+      "SH-02",
+      "SH-03",
+      "SH-04",
+      "SH-05",
+      "SH-06",
+      "SH-07",
+      "SH-08",
+      "SD-01",
+      "SD-02",
+      "SD-03",
+      "SD-04",
+      "SD-05",
+      "CT-01",
+      "CT-02",
+      "CT-03",
+      "CT-04",
+      "CT-05",
+      "Q-01",
+      "Q-02",
+      "Q-03",
+      "Q-04",
+      "Q-05",
+      "Q-06",
+      "D-02",
+      "N-02",
+      "N-03"
+    ],
+    "scope_policy": "adjudications/SCOPE.md",
+    "execution_policy": "cadence_contract.md",
+    "open_local_obligations": [],
+    "no_simulation_claim": true
+  },
+  "toolchain": {
+    "family": "cadence",
+    "simulation": "xcelium",
+    "coverage": "imc",
+    "lint": "jasper_superlint",
+    "cdc": "jasper_cdc",
+    "formal": "jasper_fpv",
+    "synthesis": "genus",
+    "execution": "external",
+    "native_build_required": false
+  },
+  "forbidden_execution_roots": [
+    "sources"
+  ],
+  "execution_contract": {
+    "path": "cadence_contract.md",
+    "document_id": "adjudication-CADENCE",
+    "authority": "benchmark_author",
+    "interface_revision": "bench_tl_v1",
+    "upstream_native_build_required": false,
+    "reference_role": "historical_semantic_comparison"
+  }
+}

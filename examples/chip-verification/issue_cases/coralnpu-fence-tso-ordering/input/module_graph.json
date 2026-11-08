@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "case_id": "coralnpu-fence-tso-ordering",
+  "root_module": "coral_memory_order_subsystem",
+  "nodes": [
+    {
+      "id": "coral_memory_order_subsystem",
+      "kind": "authored_subsystem"
+    },
+    {
+      "id": "command_snapshot",
+      "kind": "functional_module"
+    },
+    {
+      "id": "legal_decode",
+      "kind": "functional_module"
+    },
+    {
+      "id": "address_alignment",
+      "kind": "functional_module"
+    },
+    {
+      "id": "memory_order_tracker",
+      "kind": "functional_module"
+    },
+    {
+      "id": "memory_tracker",
+      "kind": "functional_module"
+    },
+    {
+      "id": "completion_buffer",
+      "kind": "functional_module"
+    },
+    {
+      "id": "ordered_retirement",
+      "kind": "functional_module"
+    },
+    {
+      "id": "memory_environment",
+      "kind": "external_boundary"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-0",
+      "from": "coral_memory_order_subsystem",
+      "to": "command_snapshot",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
+    },
+    {
+      "id": "edge-1",
+      "from": "command_snapshot",
+      "to": "legal_decode",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
+    },
+    {
+      "id": "edge-2",
+      "from": "legal_decode",
+      "to": "address_alignment",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
+    },
+    {
+      "id": "edge-3",
+      "from": "address_alignment",
+      "to": "memory_order_tracker",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
+    },
+    {
+      "id": "edge-4",
+      "from": "memory_order_tracker",
+      "to": "memory_tracker",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
+    },
+    {
+      "id": "edge-5",
+      "from": "memory_tracker",
+      "to": "completion_buffer",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
+    },
+    {
+      "id": "edge-6",
+      "from": "completion_buffer",
+      "to": "ordered_retirement",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
+    },
+    {
+      "id": "edge-7",
+      "from": "memory_tracker",
+      "to": "memory_environment",
+      "source_id": "case-cadence-contract",
+      "anchor_exact": "module_graph.json",
+      "interpretation": "Both RTL and TP/UVM refine the same authored functional relationship and interface contract."
+    }
+  ],
+  "classification": "Authored standalone SV functional decomposition, shared by design and DV; not an upstream netlist."
+}

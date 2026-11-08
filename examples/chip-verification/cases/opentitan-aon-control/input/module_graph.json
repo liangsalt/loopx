@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "case_id": "opentitan-aon-control",
+  "root_module": "aon_control_subsystem",
+  "graph_role": "shared_input_contract_for_spec2rtl_and_spec2dv",
+  "nodes": [
+    {
+      "id": "aon_control_subsystem",
+      "kind": "authored_subsystem_root"
+    },
+    {
+      "id": "pwrmgr_aon",
+      "module_type": "pwrmgr",
+      "kind": "design_module"
+    },
+    {
+      "id": "rstmgr_aon",
+      "module_type": "rstmgr",
+      "kind": "design_module"
+    },
+    {
+      "id": "clkmgr_aon",
+      "module_type": "clkmgr",
+      "kind": "design_module"
+    },
+    {
+      "id": "sysrst_ctrl_aon",
+      "module_type": "sysrst_ctrl",
+      "kind": "design_module"
+    },
+    {
+      "id": "pinmux_aon",
+      "module_type": "pinmux",
+      "kind": "design_module"
+    },
+    {
+      "id": "alert_handler",
+      "module_type": "alert_handler",
+      "kind": "design_module"
+    },
+    {
+      "id": "tlul_boundary",
+      "kind": "environment_boundary",
+      "description": "TL-UL host/interconnect model"
+    },
+    {
+      "id": "ast_boundary",
+      "kind": "environment_boundary",
+      "description": "AST power-good and root clock controls"
+    },
+    {
+      "id": "cpu_boundary",
+      "kind": "environment_boundary",
+      "description": "CPU sleep/debug/reset/crashdump boundary"
+    },
+    {
+      "id": "boot_boundary",
+      "kind": "environment_boundary",
+      "description": "OTP/lifecycle/flash/ROM startup acknowledgements"
+    },
+    {
+      "id": "usbdev_boundary",
+      "kind": "environment_boundary",
+      "description": "USBDEV wake interface"
+    },
+    {
+      "id": "edn_boundary",
+      "kind": "environment_boundary",
+      "description": "EDN entropy response"
+    },
+    {
+      "id": "pads_and_other_wakes",
+      "kind": "environment_boundary",
+      "description": "external pads and unselected wake/reset sources"
+    },
+    {
+      "id": "comportable",
+      "kind": "shared_contract"
+    }
+  ],
+  "edges": [
+    {
+      "from": "pwrmgr_aon",
+      "to": "rstmgr_aon",
+      "relationship": "power/reset request-response",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 927,
+        "line_end": 931,
+        "excerpt": "      'pwrmgr_aon.pwr_flash'    : ['flash_ctrl.pwrmgr'],\n      'pwrmgr_aon.pwr_rst'      : ['rstmgr_aon.pwr'],\n      'pwrmgr_aon.pwr_clk'      : ['clkmgr_aon.pwr'],\n      'pwrmgr_aon.pwr_otp'      : ['otp_ctrl.pwr_otp'],\n      'pwrmgr_aon.pwr_lc'       : ['lc_ctrl.pwr_lc'],",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "pwrmgr_aon",
+      "to": "clkmgr_aon",
+      "relationship": "power/clock request-response",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 927,
+        "line_end": 931,
+        "excerpt": "      'pwrmgr_aon.pwr_flash'    : ['flash_ctrl.pwrmgr'],\n      'pwrmgr_aon.pwr_rst'      : ['rstmgr_aon.pwr'],\n      'pwrmgr_aon.pwr_clk'      : ['clkmgr_aon.pwr'],\n      'pwrmgr_aon.pwr_otp'      : ['otp_ctrl.pwr_otp'],\n      'pwrmgr_aon.pwr_lc'       : ['lc_ctrl.pwr_lc'],",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "pwrmgr_aon",
+      "to": "pinmux_aon",
+      "relationship": "strap sampling and sleep indication",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 932,
+        "line_end": 934,
+        "excerpt": "      'pwrmgr_aon.strap'        : ['pinmux_aon.strap_en'],\n      'pwrmgr_aon.low_power'    : ['pinmux_aon.sleep_en',\n                                   'aon_timer_aon.sleep_mode'],",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "alert_handler",
+      "to": "pwrmgr_aon",
+      "relationship": "escalation reset channel",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 909,
+        "line_end": 916,
+        "excerpt": "      'alert_handler.esc_rx'    : ['rv_core_ibex.esc_rx',\n                                   'lc_ctrl.esc_scrap_state0_rx',\n                                   'lc_ctrl.esc_scrap_state1_rx',\n                                   'pwrmgr_aon.esc_rst_rx'],\n      'alert_handler.esc_tx'    : ['rv_core_ibex.esc_tx',\n                                   'lc_ctrl.esc_scrap_state0_tx',\n                                   'lc_ctrl.esc_scrap_state1_tx',\n                                   'pwrmgr_aon.esc_rst_tx'],",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "alert_handler",
+      "to": "rstmgr_aon",
+      "relationship": "crashdump",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 908,
+        "line_end": 908,
+        "excerpt": "      'alert_handler.crashdump' : ['rstmgr_aon.alert_dump'],",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "rstmgr_aon",
+      "to": "pwrmgr_aon",
+      "relationship": "software reset request",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 1060,
+        "line_end": 1061,
+        "excerpt": "      // Reset manager software reset request to pwrmgr\n      'rstmgr_aon.sw_rst_req' : ['pwrmgr_aon.sw_rst_req'],",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "sysrst_ctrl_aon",
+      "to": "pwrmgr_aon",
+      "relationship": "wake and reset request vector membership",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/autogen/top_earlgrey.gen.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "611a13bcd616ff15fded70a64ca5e580bb9907320a7ed2baa9a78e65023c0348",
+        "line_start": 8662,
+        "line_end": 8675,
+        "excerpt": "      pwrmgr_aon.wakeups:\n      [\n        sysrst_ctrl_aon.wkup_req\n        adc_ctrl_aon.wkup_req\n        pinmux_aon.pin_wkup_req\n        pinmux_aon.usb_wkup_req\n        aon_timer_aon.wkup_req\n        sensor_ctrl_aon.wkup_req\n      ]\n      pwrmgr_aon.rstreqs:\n      [\n        sysrst_ctrl_aon.rst_req\n        aon_timer_aon.aon_timer_rst_req\n      ]",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "pinmux_aon",
+      "to": "pwrmgr_aon",
+      "relationship": "pin and USB wake vector membership",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/autogen/top_earlgrey.gen.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "611a13bcd616ff15fded70a64ca5e580bb9907320a7ed2baa9a78e65023c0348",
+        "line_start": 8662,
+        "line_end": 8675,
+        "excerpt": "      pwrmgr_aon.wakeups:\n      [\n        sysrst_ctrl_aon.wkup_req\n        adc_ctrl_aon.wkup_req\n        pinmux_aon.pin_wkup_req\n        pinmux_aon.usb_wkup_req\n        aon_timer_aon.wkup_req\n        sensor_ctrl_aon.wkup_req\n      ]\n      pwrmgr_aon.rstreqs:\n      [\n        sysrst_ctrl_aon.rst_req\n        aon_timer_aon.aon_timer_rst_req\n      ]",
+        "count_toward_specification_body_bytes": false
+      }
+    }
+  ],
+  "containment": [
+    {
+      "parent": "aon_control_subsystem",
+      "child": "pwrmgr_aon"
+    },
+    {
+      "parent": "aon_control_subsystem",
+      "child": "rstmgr_aon"
+    },
+    {
+      "parent": "aon_control_subsystem",
+      "child": "clkmgr_aon"
+    },
+    {
+      "parent": "aon_control_subsystem",
+      "child": "sysrst_ctrl_aon"
+    },
+    {
+      "parent": "aon_control_subsystem",
+      "child": "pinmux_aon"
+    },
+    {
+      "parent": "aon_control_subsystem",
+      "child": "alert_handler"
+    }
+  ],
+  "common_relationships": [
+    {
+      "relationship": "TL-UL software access",
+      "members": [
+        "pwrmgr_aon",
+        "rstmgr_aon",
+        "clkmgr_aon",
+        "sysrst_ctrl_aon",
+        "pinmux_aon",
+        "alert_handler"
+      ],
+      "boundary": "tlul_boundary",
+      "classification": "upstream interface obligation; reduced interconnect is authored"
+    },
+    {
+      "relationship": "clock/reset/alert connectivity",
+      "members": [
+        "pwrmgr_aon",
+        "rstmgr_aon",
+        "clkmgr_aon",
+        "sysrst_ctrl_aon",
+        "pinmux_aon",
+        "alert_handler"
+      ],
+      "classification": "bind to selected top configuration and module interfaces"
+    }
+  ],
+  "non_edges": [],
+  "source_body_bytes_credit": 0
+}

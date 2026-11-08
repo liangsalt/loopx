@@ -1,0 +1,1525 @@
+{
+  "schema_version": 1,
+  "case_id": "opentitan-aon-control",
+  "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+  "scope_note": "Authored evaluator rubric grounded in problem sources. Upstream testpoints are evaluator-side comparison references, not candidate input. Review obligations are not an exhaustive requirement set or coverage-bin denominator.",
+  "coverage_policy": {
+    "target_percent": 90,
+    "meaning": "Functional coverage of a reviewed, versioned applicable-bin inventory; code coverage reported separately.",
+    "denominator_rule": "Freeze applicable bins and reviewed exclusions before closure. File counts, rubric completion and Python behavioral tests do not establish SystemVerilog/UVM simulation coverage.",
+    "required_evidence": [
+      "tool/version",
+      "RTL/TB hashes",
+      "commands/seeds",
+      "compile/elaboration/run logs",
+      "assertion and scoreboard outcomes",
+      "native coverage database/report",
+      "covered/applicable bins",
+      "reviewed exclusions",
+      "negative/mutation controls"
+    ],
+    "current_status": "not_run"
+  },
+  "obligations": [
+    {
+      "id": "PWR-01",
+      "scope": "pwrmgr",
+      "requirement": "Check power/clock ready, OTP sensing, lifecycle initialization, reset release, straps and execution in the source-specified partial order.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--pwrmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/doc/theory_of_operation.md",
+          "section": "Overall Sequencing",
+          "anchor_exact": "## Overall Sequencing"
+        }
+      ],
+      "checks": [
+        "Check power/clock ready, OTP sensing, lifecycle initialization, reset release, straps and execution in the source-specified partial order."
+      ],
+      "negative_tests": [
+        "Delay/withhold each environment acknowledgement and forbid premature reset/fetch release."
+      ],
+      "coverage_dimensions": [
+        "startup_phase",
+        "delayed_boundary",
+        "reset_kind"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/data/pwrmgr_testplan.hjson",
+          "name": "smoke",
+          "anchor_exact": "name: smoke",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "PWR-02",
+      "scope": "pwrmgr",
+      "requirement": "Exercise all low-power hint and CPU sleep combinations; only qualified low-power requests may initiate entry.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--pwrmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/doc/theory_of_operation.md",
+          "section": "Fast Clock Domain FSM",
+          "anchor_exact": "## Fast Clock Domain FSM"
+        }
+      ],
+      "checks": [
+        "Exercise all low-power hint and CPU sleep combinations; only qualified low-power requests may initiate entry."
+      ],
+      "negative_tests": [
+        "WFI-only and hint-only cannot count as completed low-power entry."
+      ],
+      "coverage_dimensions": [
+        "hint",
+        "cpu_sleep",
+        "peripheral_activity"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/data/pwrmgr_testplan.hjson",
+          "name": "control_clks",
+          "anchor_exact": "name: control_clks",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "PWR-03",
+      "scope": "pwrmgr",
+      "requirement": "Withdraw entry conditions during the entry window and check documented return to active without false sleep completion.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--pwrmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/doc/theory_of_operation.md",
+          "section": "Fall Through Handling",
+          "anchor_exact": "### Fall Through Handling"
+        }
+      ],
+      "checks": [
+        "Withdraw entry conditions during the entry window and check documented return to active without false sleep completion."
+      ],
+      "negative_tests": [
+        "Race CPU wake/interrupt with entry request."
+      ],
+      "coverage_dimensions": [
+        "entry_phase",
+        "condition_removal"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/data/pwrmgr_testplan.hjson",
+          "name": "aborted_low_power",
+          "anchor_exact": "name: aborted_low_power",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "PWR-04",
+      "scope": "pwrmgr",
+      "requirement": "Independently hold OTP/lifecycle/flash busy and check low-power abort and restored active operation.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--pwrmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/doc/theory_of_operation.md",
+          "section": "Abort Handling",
+          "anchor_exact": "### Abort Handling"
+        }
+      ],
+      "checks": [
+        "Independently hold OTP/lifecycle/flash busy and check low-power abort and restored active operation."
+      ],
+      "negative_tests": [
+        "Busy appears at the sampled boundary; temporal assumptions must be explicit."
+      ],
+      "coverage_dimensions": [
+        "busy_source",
+        "entry_phase"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/data/pwrmgr_testplan.hjson",
+          "name": "aborted_low_power",
+          "anchor_exact": "name: aborted_low_power",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "PWR-05",
+      "scope": "pwrmgr",
+      "requirement": "Compare peripheral/software/debug/internal reset sequences, causes and debug preservation in active and low-power states.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--pwrmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/doc/theory_of_operation.md",
+          "section": "Reset Request Handling",
+          "anchor_exact": "## Reset Request Handling"
+        }
+      ],
+      "checks": [
+        "Compare peripheral/software/debug/internal reset sequences, causes and debug preservation in active and low-power states."
+      ],
+      "negative_tests": [
+        "Concurrent wake/reset and requests during transition states."
+      ],
+      "coverage_dimensions": [
+        "request_source",
+        "FSM_phase",
+        "concurrent_wake"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/data/pwrmgr_testplan.hjson",
+          "name": "reset_wakeup_race",
+          "anchor_exact": "name: reset_wakeup_race",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "PWR-06",
+      "scope": "pwrmgr",
+      "requirement": "Exercise every selected wake-vector bit and configured masking/recording/clearing behavior independently.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--pwrmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/doc/theory_of_operation.md",
+          "section": "Wakeup Recording",
+          "anchor_exact": "## Wakeup Recording"
+        }
+      ],
+      "checks": [
+        "Exercise every selected wake-vector bit and configured masking/recording/clearing behavior independently."
+      ],
+      "negative_tests": [
+        "Multiple wakeups around clear/record-disable and sleep entry."
+      ],
+      "coverage_dimensions": [
+        "source",
+        "enable",
+        "recording_state"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/data/pwrmgr_testplan.hjson",
+          "name": "wakeup",
+          "anchor_exact": "name: wakeup",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "PWR-07",
+      "scope": "pwrmgr",
+      "requirement": "Check good/done ROM results against test/non-test lifecycle classes before execution authorization.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--pwrmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/doc/theory_of_operation.md",
+          "section": "ROM Integrity Checks",
+          "anchor_exact": "### ROM Integrity Checks"
+        }
+      ],
+      "checks": [
+        "Check good/done ROM results against test/non-test lifecycle classes before execution authorization."
+      ],
+      "negative_tests": [
+        "Bad ROM in a non-test state must prevent execution."
+      ],
+      "coverage_dimensions": [
+        "lifecycle_class",
+        "rom_done",
+        "rom_good"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/data/pwrmgr_testplan.hjson",
+          "name": "disable_rom_integrity_check",
+          "anchor_exact": "name: disable_rom_integrity_check",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "PWR-08",
+      "scope": "pwrmgr",
+      "requirement": "Assert escalation during different phases and check documented reset or terminal containment behavior.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--pwrmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/doc/theory_of_operation.md",
+          "section": "Escalation Reset Request",
+          "anchor_exact": "#### Escalation Reset Request"
+        }
+      ],
+      "checks": [
+        "Assert escalation during different phases and check documented reset or terminal containment behavior."
+      ],
+      "negative_tests": [
+        "Stop the escalation clock; use a declared fault model for sparse-state corruption."
+      ],
+      "coverage_dimensions": [
+        "escalation_phase",
+        "clock_present"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/data/pwrmgr_testplan.hjson",
+          "name": "escalation_timeout",
+          "anchor_exact": "name: escalation_timeout",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "RST-01",
+      "scope": "rstmgr",
+      "requirement": "Check POR/lifecycle/system reset scope, assertion and clocked release across named domains while unaffected domains retain state.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--rstmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/rstmgr/doc/theory_of_operation.md",
+          "section": "Reset Topology",
+          "anchor_exact": "## Reset Topology"
+        }
+      ],
+      "checks": [
+        "Check POR/lifecycle/system reset scope, assertion and clocked release across named domains while unaffected domains retain state."
+      ],
+      "negative_tests": [
+        "Stop/skew a destination clock during reset release."
+      ],
+      "coverage_dimensions": [
+        "reset_tree",
+        "destination_clock",
+        "power_domain"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/rstmgr/data/rstmgr_testplan.hjson",
+          "name": "reset_stretcher",
+          "anchor_exact": "name: reset_stretcher",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "RST-02",
+      "scope": "rstmgr",
+      "requirement": "Program selected leaf reset controls and locks; independently compare outputs and persistence.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--rstmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/rstmgr/doc/theory_of_operation.md",
+          "section": "Software Controlled Resets",
+          "anchor_exact": "## Software Controlled Resets"
+        }
+      ],
+      "checks": [
+        "Program selected leaf reset controls and locks; independently compare outputs and persistence."
+      ],
+      "negative_tests": [
+        "Global reset concurrent with software reset writes."
+      ],
+      "coverage_dimensions": [
+        "leaf",
+        "write_lock",
+        "global_reset"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/rstmgr/data/rstmgr_testplan.hjson",
+          "name": "sw_rst_reset_race",
+          "anchor_exact": "name: sw_rst_reset_race",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "RST-03",
+      "scope": "rstmgr",
+      "requirement": "Compare cause registers and software clears against an independent reset-event log.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--rstmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/rstmgr/doc/theory_of_operation.md",
+          "section": "Reset Information",
+          "anchor_exact": "## Reset Information"
+        }
+      ],
+      "checks": [
+        "Compare cause registers and software clears against an independent reset-event log."
+      ],
+      "negative_tests": [
+        "Back-to-back/concurrent causes must not lose or invent bits."
+      ],
+      "coverage_dimensions": [
+        "cause",
+        "clear",
+        "concurrency"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/rstmgr/data/rstmgr_testplan.hjson",
+          "name": "reset_info_capture",
+          "anchor_exact": "name: reset_info_capture",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "RST-04",
+      "scope": "rstmgr",
+      "requirement": "Supply unique alert/CPU dump patterns, capture and read all valid indexes; check overwrite/freeze controls.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--rstmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/rstmgr/doc/theory_of_operation.md",
+          "section": "Crash Dump Information",
+          "anchor_exact": "## Crash Dump Information"
+        }
+      ],
+      "checks": [
+        "Supply unique alert/CPU dump patterns, capture and read all valid indexes; check overwrite/freeze controls."
+      ],
+      "negative_tests": [
+        "Disabled capture, out-of-range indexes and capture/access races."
+      ],
+      "coverage_dimensions": [
+        "source",
+        "capture_enable",
+        "index"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/rstmgr/data/rstmgr_testplan.hjson",
+          "name": "alert_info_capture_cg",
+          "anchor_exact": "name: alert_info_capture_cg",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "CLK-01",
+      "scope": "clkmgr",
+      "requirement": "Observe clock edges and acknowledgement ordering during PWRMGR enable/disable handshake.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--clkmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/clkmgr/doc/theory_of_operation.md",
+          "section": "Root Clock Gating and Interface with Power Manager",
+          "anchor_exact": "### Root Clock Gating and Interface with Power Manager"
+        }
+      ],
+      "checks": [
+        "Observe clock edges and acknowledgement ordering during PWRMGR enable/disable handshake."
+      ],
+      "negative_tests": [
+        "Delay root-clock availability and change request near an edge."
+      ],
+      "coverage_dimensions": [
+        "root",
+        "request_transition",
+        "clock_present"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/clkmgr/data/clkmgr_testplan.hjson",
+          "name": "clk_status",
+          "anchor_exact": "name: clk_status",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "CLK-02",
+      "scope": "clkmgr",
+      "requirement": "Keep a block busy while disabling its hint; require continued clock until safe idle and correct observed status.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--clkmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/clkmgr/doc/theory_of_operation.md",
+          "section": "Transactional Clock Group",
+          "anchor_exact": "## Transactional Clock Group"
+        }
+      ],
+      "checks": [
+        "Keep a block busy while disabling its hint; require continued clock until safe idle and correct observed status."
+      ],
+      "negative_tests": [
+        "Idle/hint races and invalid multi-bit idle encodings."
+      ],
+      "coverage_dimensions": [
+        "hint",
+        "idle",
+        "transition"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/clkmgr/data/clkmgr_testplan.hjson",
+          "name": "trans_enables",
+          "anchor_exact": "name: trans_enables",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "CLK-03",
+      "scope": "clkmgr",
+      "requirement": "Independently count peripheral clock edges and status for enable patterns through low-power entry/exit.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--clkmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/clkmgr/doc/theory_of_operation.md",
+          "section": "Peripheral Clock Group",
+          "anchor_exact": "## Peripheral Clock Group"
+        }
+      ],
+      "checks": [
+        "Independently count peripheral clock edges and status for enable patterns through low-power entry/exit."
+      ],
+      "negative_tests": [
+        "Change enables during WFI transitions."
+      ],
+      "coverage_dimensions": [
+        "enable",
+        "power_state",
+        "clock_group"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/clkmgr/data/clkmgr_testplan.hjson",
+          "name": "peri_enables",
+          "anchor_exact": "name: peri_enables",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "CLK-04",
+      "scope": "clkmgr",
+      "requirement": "Check lifecycle/software requested external switching, division and acknowledgements with independently controlled clocks.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--clkmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/clkmgr/doc/theory_of_operation.md",
+          "section": "External Clock Switch Support",
+          "anchor_exact": "### External Clock Switch Support"
+        }
+      ],
+      "checks": [
+        "Check lifecycle/software requested external switching, division and acknowledgements with independently controlled clocks."
+      ],
+      "negative_tests": [
+        "Withhold source/ack; lock controls and require bounded test timeout rather than assumed liveness."
+      ],
+      "coverage_dimensions": [
+        "requester",
+        "switch_phase",
+        "source_present"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/clkmgr/data/clkmgr_testplan.hjson",
+          "name": "extclk",
+          "anchor_exact": "name: extclk",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "CLK-05",
+      "scope": "clkmgr",
+      "requirement": "Drive frequencies below/at/above thresholds and compare measurement counts, timeout/overflow errors and alerts.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--clkmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/clkmgr/doc/theory_of_operation.md",
+          "section": "Clock Frequency / Time-out Measurements",
+          "anchor_exact": "### Clock Frequency / Time-out Measurements"
+        }
+      ],
+      "checks": [
+        "Drive frequencies below/at/above thresholds and compare measurement counts, timeout/overflow errors and alerts."
+      ],
+      "negative_tests": [
+        "Missing clock, overflow and writes to locked measurement controls."
+      ],
+      "coverage_dimensions": [
+        "clock",
+        "frequency_bin",
+        "timeout",
+        "lock"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/clkmgr/data/clkmgr_testplan.hjson",
+          "name": "frequency_timeout",
+          "anchor_exact": "name: frequency_timeout",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "SYS-01",
+      "scope": "sysrst_ctrl",
+      "requirement": "Drive every selected debounced combo and precondition around threshold boundaries; compare only enabled actions.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--sysrst_ctrl--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/sysrst_ctrl/doc/theory_of_operation.md",
+          "section": "Combo detection",
+          "anchor_exact": "## Combo detection"
+        }
+      ],
+      "checks": [
+        "Drive every selected debounced combo and precondition around threshold boundaries; compare only enabled actions."
+      ],
+      "negative_tests": [
+        "Short glitches and broken preconditions must not produce valid action."
+      ],
+      "coverage_dimensions": [
+        "combo",
+        "precondition",
+        "threshold_side",
+        "action"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/sysrst_ctrl/data/sysrst_ctrl_testplan.hjson",
+          "name": "combo_detect_with_pre_cond",
+          "anchor_exact": "name: combo_detect_with_pre_cond",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "SYS-02",
+      "scope": "sysrst_ctrl",
+      "requirement": "Measure EC reset assertion/release durations and specified stretching behavior.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--sysrst_ctrl--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/sysrst_ctrl/doc/theory_of_operation.md",
+          "section": "Hardwired reset stretching functionality",
+          "anchor_exact": "### Hardwired reset stretching functionality"
+        }
+      ],
+      "checks": [
+        "Measure EC reset assertion/release durations and specified stretching behavior."
+      ],
+      "negative_tests": [
+        "Short pulses, repeated requests and clock/reset races."
+      ],
+      "coverage_dimensions": [
+        "pulse_width",
+        "repeat_spacing",
+        "reset_kind"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/sysrst_ctrl/data/sysrst_ctrl_testplan.hjson",
+          "name": "combo_detect_ec_rst",
+          "anchor_exact": "name: combo_detect_ec_rst",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "SYS-03",
+      "scope": "sysrst_ctrl",
+      "requirement": "Compare pin values/enables against independently modeled auto-block, inversion and override precedence.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--sysrst_ctrl--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/sysrst_ctrl/doc/theory_of_operation.md",
+          "section": "Auto-block key outputs",
+          "anchor_exact": "## Auto-block key outputs"
+        }
+      ],
+      "checks": [
+        "Compare pin values/enables against independently modeled auto-block, inversion and override precedence."
+      ],
+      "negative_tests": [
+        "Input/control changes coincide; attempt writes to locked override controls."
+      ],
+      "coverage_dimensions": [
+        "input",
+        "invert",
+        "autoblock",
+        "override"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/sysrst_ctrl/data/sysrst_ctrl_testplan.hjson",
+          "name": "auto_block_key_outputs",
+          "anchor_exact": "name: auto_block_key_outputs",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "SYS-04",
+      "scope": "sysrst_ctrl",
+      "requirement": "Detect qualified wake while main-domain clocks stop and verify wake/cause state after resume.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--sysrst_ctrl--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/sysrst_ctrl/doc/theory_of_operation.md",
+          "section": "Ultra-low-power Wakeup Feature",
+          "anchor_exact": "## Ultra-low-power Wakeup Feature"
+        }
+      ],
+      "checks": [
+        "Detect qualified wake while main-domain clocks stop and verify wake/cause state after resume."
+      ],
+      "negative_tests": [
+        "Disabled wake and subthreshold pulses must not create valid wake."
+      ],
+      "coverage_dimensions": [
+        "wake_input",
+        "debounce",
+        "enable",
+        "power_state"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/sysrst_ctrl/data/sysrst_ctrl_testplan.hjson",
+          "name": "ultra_low_power_test",
+          "anchor_exact": "name: ultra_low_power_test",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "PIN-01",
+      "scope": "pinmux",
+      "requirement": "Tag pads/peripherals independently and check selected MIO/DIO input, output and output-enable routing including constants.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--pinmux--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/pinmux/doc/theory_of_operation.md",
+          "section": "Muxing Matrix",
+          "anchor_exact": "## Muxing Matrix"
+        }
+      ],
+      "checks": [
+        "Tag pads/peripherals independently and check selected MIO/DIO input, output and output-enable routing including constants."
+      ],
+      "negative_tests": [
+        "Out-of-range and locked selectors follow specified behavior."
+      ],
+      "coverage_dimensions": [
+        "direction",
+        "selector_class",
+        "pad_group"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/pinmux/data/pinmux_fpv_testplan.hjson",
+          "name": "InSelN_A",
+          "anchor_exact": "name: InSelN_A",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "PIN-02",
+      "scope": "pinmux",
+      "requirement": "Compare sleep-mode data and output enables across entry, held sleep and exit.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--pinmux--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/pinmux/doc/theory_of_operation.md",
+          "section": "Retention Logic",
+          "anchor_exact": "## Retention Logic"
+        }
+      ],
+      "checks": [
+        "Compare sleep-mode data and output enables across entry, held sleep and exit."
+      ],
+      "negative_tests": [
+        "Change normal mux while sleeping; retained outputs must remain as specified."
+      ],
+      "coverage_dimensions": [
+        "pad_group",
+        "sleep_mode",
+        "data",
+        "output_enable"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/pinmux/data/pinmux_fpv_testplan.hjson",
+          "name": "MioSleepStable_A",
+          "anchor_exact": "name: MioSleepStable_A",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "PIN-03",
+      "scope": "pinmux",
+      "requirement": "Exercise supported edge/level/timed wake detection and independently predict causes.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--pinmux--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/pinmux/doc/theory_of_operation.md",
+          "section": "Wakeup Detectors",
+          "anchor_exact": "## Wakeup Detectors"
+        }
+      ],
+      "checks": [
+        "Exercise supported edge/level/timed wake detection and independently predict causes."
+      ],
+      "negative_tests": [
+        "Subthreshold glitches and concurrent cause clear."
+      ],
+      "coverage_dimensions": [
+        "detector",
+        "mode",
+        "threshold_side",
+        "enable"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/pinmux/data/pinmux_fpv_testplan.hjson",
+          "name": "WkupPosedge_A",
+          "anchor_exact": "name: WkupPosedge_A",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "PIN-04",
+      "scope": "pinmux",
+      "requirement": "Check USB resume/reset/sense-loss monitoring through functional-clock shutdown using an explicit USBDEV boundary.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--pinmux--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/pinmux/doc/theory_of_operation.md",
+          "section": "USB Wakeup Detection Module",
+          "anchor_exact": "### USB Wakeup Detection Module"
+        }
+      ],
+      "checks": [
+        "Check USB resume/reset/sense-loss monitoring through functional-clock shutdown using an explicit USBDEV boundary."
+      ],
+      "negative_tests": [
+        "Events during monitor handoff cannot be lost."
+      ],
+      "coverage_dimensions": [
+        "event_kind",
+        "handoff_phase",
+        "USB_clock_state"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/pinmux/data/pinmux_fpv_testplan.hjson",
+          "name": "UsbSleepEnI_A",
+          "anchor_exact": "name: UsbSleepEnI_A",
+          "support": "partial_support_wiring_only",
+          "limitation": "This historical FPV testpoint checks sleep_en_i to low_power_alw_i wiring, not USB wake detection or handoff behavior. It does not define current profile ports or establish verification of this obligation."
+        }
+      ],
+      "status": "not_run",
+      "reference_gap": "Remaining wake-event detection and handoff behavior requires independently generated UVM/assertion checks grounded in the current input interfaces and topology."
+    },
+    {
+      "id": "PIN-05",
+      "scope": "pinmux",
+      "requirement": "Check strap capture and lifecycle-qualified debug/test routing including non-debug-reset effects.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--pinmux--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/pinmux/doc/theory_of_operation.md",
+          "section": "Strap Sampling and TAP Isolation",
+          "anchor_exact": "## Strap Sampling and TAP Isolation"
+        }
+      ],
+      "checks": [
+        "Check strap capture and lifecycle-qualified debug/test routing including non-debug-reset effects."
+      ],
+      "negative_tests": [
+        "Forbidden lifecycle encodings and reset during strap/TAP transitions."
+      ],
+      "coverage_dimensions": [
+        "lifecycle_class",
+        "strap_phase",
+        "reset_kind"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/pinmux/data/pinmux_fpv_testplan.hjson",
+          "name": "TapStrap_A",
+          "anchor_exact": "name: TapStrap_A",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "ALT-01",
+      "scope": "alert_handler",
+      "requirement": "Inject channels/classes and predict enabled cause bits, accumulated count, interrupts and threshold behavior.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/alert_handler/doc/theory_of_operation.md",
+          "section": "Alert Classification and Interrupts",
+          "anchor_exact": "### Alert Classification and Interrupts"
+        }
+      ],
+      "checks": [
+        "Inject channels/classes and predict enabled cause bits, accumulated count, interrupts and threshold behavior."
+      ],
+      "negative_tests": [
+        "Masked alerts, simultaneous classes and accumulator saturation."
+      ],
+      "coverage_dimensions": [
+        "channel",
+        "class",
+        "enable",
+        "count_boundary"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler_testplan.hjson",
+          "name": "esc_accum",
+          "anchor_exact": "name: esc_accum",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "ALT-02",
+      "scope": "alert_handler",
+      "requirement": "Measure escalation phase order/duration, trigger/clear/lock behavior and reset request delivered to PWRMGR.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/alert_handler/doc/theory_of_operation.md",
+          "section": "Programmable Escalation Protocol",
+          "anchor_exact": "### Programmable Escalation Protocol"
+        }
+      ],
+      "checks": [
+        "Measure escalation phase order/duration, trigger/clear/lock behavior and reset request delivered to PWRMGR."
+      ],
+      "negative_tests": [
+        "Threshold/timeout collisions and attempted clear during escalation."
+      ],
+      "coverage_dimensions": [
+        "trigger",
+        "phase",
+        "clear_allowed"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler_testplan.hjson",
+          "name": "esc_timeout",
+          "anchor_exact": "name: esc_timeout",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "ALT-03",
+      "scope": "alert_handler",
+      "requirement": "Respond to alert/escalation pings, then suppress/corrupt responses and compare timeout/integrity handling.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/alert_handler/doc/theory_of_operation.md",
+          "section": "Ping Testing",
+          "anchor_exact": "### Ping Testing"
+        }
+      ],
+      "checks": [
+        "Respond to alert/escalation pings, then suppress/corrupt responses and compare timeout/integrity handling."
+      ],
+      "negative_tests": [
+        "Asynchronous differential-pair skew and missing escalation receiver response."
+      ],
+      "coverage_dimensions": [
+        "channel_kind",
+        "ping_response",
+        "integrity_error"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler_testplan.hjson",
+          "name": "ping_timeout",
+          "anchor_exact": "name: ping_timeout",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "ALT-04",
+      "scope": "alert_handler",
+      "requirement": "Qualify monitoring by clock/reset low-power-group indications and check restored monitoring after wake.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/alert_handler/doc/theory_of_operation.md",
+          "section": "Low-power Management of Alert Channels",
+          "anchor_exact": "### Low-power Management of Alert Channels"
+        }
+      ],
+      "checks": [
+        "Qualify monitoring by clock/reset low-power-group indications and check restored monitoring after wake."
+      ],
+      "negative_tests": [
+        "Ping overlaps low-power entry/exit; invalid indication encoding."
+      ],
+      "coverage_dimensions": [
+        "group_state",
+        "ping_phase",
+        "indication_valid"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler_testplan.hjson",
+          "name": "lpg",
+          "anchor_exact": "name: lpg",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "INT-01",
+      "scope": "pwrmgr",
+      "requirement": "Drive SYSRST wake/reset or PINMUX retained-pad wake into PWRMGR and check coordinated CLKMGR/RSTMGR/PINMUX transitions and cause records.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--pwrmgr--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/doc/theory_of_operation.md",
+          "section": "Reset Request Handling",
+          "anchor_exact": "## Reset Request Handling"
+        }
+      ],
+      "checks": [
+        "Drive SYSRST wake/reset or PINMUX retained-pad wake into PWRMGR and check coordinated CLKMGR/RSTMGR/PINMUX transitions and cause records."
+      ],
+      "negative_tests": [
+        "Concurrent alert escalation and external reset during wake."
+      ],
+      "coverage_dimensions": [
+        "trigger",
+        "power_state",
+        "concurrent_escalation"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/pwrmgr/data/pwrmgr_testplan.hjson",
+          "name": "reset_wakeup_race",
+          "anchor_exact": "name: reset_wakeup_race",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "INT-02",
+      "scope": "alert_handler",
+      "requirement": "Escalate a distinguishable alert class, capture through RSTMGR, reset and compare software-visible retained data under documented controls.",
+      "source_refs": [
+        {
+          "source_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--theory_of_operation-md",
+          "upstream_path": "hw/top_earlgrey/ip_autogen/alert_handler/doc/theory_of_operation.md",
+          "section": "Crashdump Output",
+          "anchor_exact": "#### Crashdump Output"
+        }
+      ],
+      "checks": [
+        "Escalate a distinguishable alert class, capture through RSTMGR, reset and compare software-visible retained data under documented controls."
+      ],
+      "negative_tests": [
+        "Disabled capture and consecutive escalations; expected dump comes from stimulus/spec, not RTL internals."
+      ],
+      "coverage_dimensions": [
+        "class",
+        "capture_enable",
+        "reset_source"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler_testplan.hjson",
+          "name": "crashdump_trigger_cg",
+          "anchor_exact": "name: crashdump_trigger_cg",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "BUS-01",
+      "scope": "shared_contract",
+      "requirement": "Implement the declared TL-UL subset and software-visible peripheral isolation.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--tlul--README-md",
+          "upstream_path": "hw/ip/tlul/README.md",
+          "anchor_exact": "# Bus Specification"
+        }
+      ],
+      "checks": [
+        "Use an active TL-UL agent, independent request/response scoreboard and backpressure; interleave accesses to all selected modules."
+      ],
+      "negative_tests": [
+        "Malformed requests require specified errors; do not invent integrity encoding from an incomplete source."
+      ],
+      "coverage_dimensions": [
+        "target",
+        "opcode",
+        "backpressure",
+        "error_class"
+      ],
+      "reference_testpoints": [],
+      "status": "not_run"
+    },
+    {
+      "id": "CSR-01",
+      "scope": "shared_contract",
+      "requirement": "Derive all selected CSR reset values, access semantics, locks, valid fields and side effects from the supplied register specifications and HJSON.",
+      "source_refs": [
+        {
+          "source_id": "doc--contributing--hw--comportability--README-md",
+          "upstream_path": "doc/contributing/hw/comportability/README.md",
+          "anchor_exact": "# Comportability Definition and Specification"
+        }
+      ],
+      "checks": [
+        "Create UVM RAL and independent frontdoor register checks for every included module, including reset and lock sequencing."
+      ],
+      "negative_tests": [
+        "Illegal widths/masks/addresses and locked writes must have explicit specified results."
+      ],
+      "coverage_dimensions": [
+        "module",
+        "register/field",
+        "access_kind",
+        "lock_state",
+        "reset_state"
+      ],
+      "reference_testpoints": [],
+      "status": "not_run"
+    }
+  ],
+  "source_conflicts": [
+    {
+      "id": "COMMON-TLUL-INTEGRITY",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--tlul--README-md",
+          "upstream_path": "hw/ip/tlul/README.md",
+          "section": "Bus Integrity Scheme",
+          "anchor_exact": "### Bus Integrity Scheme"
+        }
+      ],
+      "issue": "The locked README leaves the Bus Integrity Scheme unfilled and contains historical planned-behavior statements. The input does not fully define integrity encoding and fault acceptance.",
+      "required_resolution": "Apply the revised question's CT-01, D-02; retain their checker obligations and any precise local gate. Do not reopen settled prose contradictions or silently copy golden RTL.",
+      "adjudication_ids": [
+        "CT-01",
+        "D-02"
+      ],
+      "resolution_state": "contract_defined"
+    }
+  ],
+  "reference_gaps": [
+    "Historical upstream RTL/UVM/testpoint names are comparison evidence, not required execution dependencies or the authored golden.",
+    "The candidate must supply its own complete portable SV/UVM/SVA closure and independent contract-derived oracle.",
+    "Cadence execution, checker activity and coverage remain not_run until actual external tool evidence is verified."
+  ],
+  "adjudication_revision": "opentitan-adjudications-cadence-v2",
+  "adjudication_obligations": [
+    {
+      "issue_id": "AC-01",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "rstmgr",
+      "requirement": "For this exercise the NDM reset summary table governs: outside PROD/PROD_END, assert LC and module trees and retain SYS; in PROD/PROD_END assert LC, SYS and module trees. NDM does not assert POR. This author choice resolves two conflicting prose accounts, not an observed RTL bug.",
+      "checks": [
+        "Check each tree separately under both lifecycle groups, including debug retention and reset-cause recording."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AC-01"
+    },
+    {
+      "issue_id": "AC-02",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "sysrst_ctrl",
+      "requirement": "INTR_STATE.event_detected is read-only status. Clear the relevant source latch with its W1C operation: COMBO_INTR_STATUS, KEY_INTR_STATUS or ULP_STATUS as applicable. Apply the source-aggregation scope in Q-08; clearing one source does not clear another asserted source.",
+      "checks": [
+        "Set two independent sources, clear them separately, try an INTR_STATE write and verify remaining status/IRQ and enable behavior."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AC-02"
+    },
+    {
+      "issue_id": "AC-03",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "sysrst_ctrl",
+      "requirement": "Program combo precondition duration through COM_PRE_DET_CTL for the selected combo. Keep selection and duration fields distinct.",
+      "checks": [
+        "Program distinct selection/duration values and check the resulting precondition timing against the configured timer width/clock."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AC-03"
+    },
+    {
+      "issue_id": "AC-04",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "pinmux",
+      "requirement": "Use the generated CSR layout: input_disable bit 7, slew_rate [17:16], drive_strength [23:20]. Map these named fields explicitly into the pad attribute interface; N-01 describes a different packed layout.",
+      "checks": [
+        "Write distinguishable fields and check named-field mapping, reserved bits and readback under the declared pad capability profile (D-01)."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AC-04"
+    },
+    {
+      "issue_id": "AH-01",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "Escalation due to accumulation occurs on the next alert after the threshold is reached: threshold 0 triggers on the first eligible alert; threshold 1 on the second; threshold 15 on the sixteenth, subject to class enable and escalation configuration.",
+      "checks": [
+        "For thresholds 0,1,15 check the preceding count, exact trigger and later events; separate accumulation from IRQ timeout causes."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AH-01"
+    },
+    {
+      "issue_id": "AH-02",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "Class configuration is guarded by the separate CLASSx_REGWEN CSR bound by CLASSx_CTRL_SHADOWED.regwen, for x=A..D.",
+      "checks": [
+        "Lock each class via its declared guard, attempt a shadowed configuration update and verify lock persistence and independent classes."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AH-02"
+    },
+    {
+      "issue_id": "AH-03",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "For each class A..D the escalation abort/clear write goes through CLASSx_CLR_SHADOWED and is guarded by CLASSx_CLR_REGWEN. CLASSx_REGWEN guards configuration, not this clear path. CTRL_SHADOWED.LOCK affects the separately documented clear lock behavior.",
+      "checks": [
+        "Cross configuration-lock and clear-lock states; test accepted and rejected clears in every class and confirm ESC_CNT remains read-only."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AH-03"
+    },
+    {
+      "issue_id": "AH-04",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "PING_TIMER_REGWEN is rw0c with reset value 1. A write of zero clears the enable; writing one preserves its value. Once cleared, guarded ping configuration writes cannot restore it until reset.",
+      "checks": [
+        "Check reset=1, write1 retention, write0 lock, failed re-enable and rejected guarded writes while locked."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AH-04"
+    },
+    {
+      "issue_id": "AH-05",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "Ping response timeout uses PING_TIMEOUT_CYC_SHADOWED. CLASSx_TIMEOUT_CYC_SHADOWED controls the separate class interrupt timeout escalation path.",
+      "checks": [
+        "Set visibly different ping/class timeouts and independently stimulate missed ping and unserviced class IRQ."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AH-05"
+    },
+    {
+      "issue_id": "CT-01",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "aon_control_subsystem",
+      "requirement": "Use the logical instr_type/cmd_intg/data_intg and rsp_intg/data_intg sidebands with the explicit bench_tl_v1 packed ABI in cadence_contract.md. Historical reserved/parity typedefs do not define this exercise's ABI.",
+      "checks": [
+        "Check field ordering, width and CRC7 oracle against cadence_contract.md and D-02 on both RTL and UVM sides."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CT-01"
+    },
+    {
+      "issue_id": "CT-02",
+      "classification": "background_scope",
+      "resolution_state": "contract_defined",
+      "module": "aon_control_subsystem",
+      "requirement": "The selected top configuration instantiates uart0..uart3 (four UARTs). UART is whole-chip background and is outside both reduced subsystem DUTs.",
+      "checks": [
+        "Check scope inventory; do not add UART RTL, UART coverage bins or a global execution blocker."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CT-02"
+    },
+    {
+      "issue_id": "CT-03",
+      "classification": "scope_interpretation",
+      "resolution_state": "contract_defined",
+      "module": "pinmux",
+      "requirement": "The base pinout has 47 muxed pads: IOA=9, IOB=13, IOC=13, IOR=12; direct IOR8/IOR9 are excluded. A 32-bit GPIO vector is not a count of all MIO pads. This constrains AON PINMUX geometry; it is external context in serial-I/O.",
+      "checks": [
+        "For in-scope PINMUX check enumeration, index bounds and direct/muxed classification; otherwise retain a boundary fact only."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CT-03"
+    },
+    {
+      "issue_id": "CT-04",
+      "classification": "background_scope",
+      "resolution_state": "contract_defined",
+      "module": "aon_control_subsystem",
+      "requirement": "The local ROM-key table enumerates seven slots, 0..6. Treat the earlier three-slot count as obsolete background; ROM/key provisioning is outside these exercises.",
+      "checks": [
+        "Retain the table/count correction in provenance; create no ROM DUT bins or global gate."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CT-04"
+    },
+    {
+      "issue_id": "CT-05",
+      "classification": "scope_interpretation",
+      "resolution_state": "contract_defined",
+      "module": "aon_control_subsystem",
+      "requirement": "In serial-I/O use the selected SPI_DEVICE CONTROL modes disabled/flashmode/passthrough with TPM controlled separately. Do not add a legacy Firmware mode without a declared interface. In AON this SPI paragraph is out-of-scope background only.",
+      "checks": [
+        "Check selected mode enumeration for serial-I/O; for AON check only that the scope remains the six control IPs."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CT-05"
+    },
+    {
+      "issue_id": "Q-07",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "sysrst_ctrl",
+      "requirement": "For auto-block debounce the explicit two-sample description governs: qualify the start and end samples; an intermediate pulse that is not sampled at either endpoint is not guaranteed to cancel detection. This rule is confined to auto-block, not every SYSRST timer.",
+      "checks": [
+        "Check start/end levels, just-before-expiry changes and an intermediate returned pulse; distinguish sampling guarantees from analog pulse capture."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-07"
+    },
+    {
+      "issue_id": "Q-08",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "sysrst_ctrl",
+      "requirement": "Author convention for the status IRQ: include a latched ULP_STATUS.ulp_wakeup alongside enabled combo/key source status in event_detected; INTR_ENABLE gates the output IRQ. Clear ULP at its declared W1C ULP_STATUS source, not at read-only INTR_STATE. The abbreviated combo/keyboard summary is not a prohibition of ULP.",
+      "checks": [
+        "Trigger ULP alone and concurrently with a key/combo source; mask/unmask, clear each source and check source-OR retention. This authored merge rule must be evaluated as such."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-08"
+    },
+    {
+      "issue_id": "Q-09",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "pwrmgr",
+      "requirement": "For wake recording, interpret leaving Active in the context of a valid low-power-entry path. A reset-only transition out of Active does not open a new wake-recording window. Apply the documented recording stop/clear controls within the valid low-power path.",
+      "checks": [
+        "Contrast valid low-power entry, entry abort/fall-through and reset-only exit; inject wake before/inside/after the defined recording window."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-09"
+    },
+    {
+      "issue_id": "Q-10",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "rstmgr",
+      "requirement": "Use the explicit exercise reset map in cadence_contract.md: all six selected peripheral leaves derive from LC; the external CPU derives from SYS. POR asserts both, LC propagates to SYS and isolated SYS reset does not assert LC. Each leaf has one parent and synchronized release.",
+      "checks": [
+        "Check one reset parent per selected leaf; cover POR, LC, SYS, stopped-clock assertion and domain-specific release without stale state."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-10"
+    },
+    {
+      "issue_id": "Q-11",
+      "classification": "not_a_conflict",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "Clearing the escalation counter describes an effect of the CLASSx_CLR_SHADOWED operation, subject to CLASSx_CLR_REGWEN. ESC_CNT remains read-only. The link to the counter describes the observed state, not a writable entry point.",
+      "checks": [
+        "Clear through the shadowed clear interface and observe the counter/escalation effect; verify a write to the RO counter cannot substitute for clear."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-11"
+    },
+    {
+      "issue_id": "Q-12",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "Author-chosen exercise reset contract: class A..D interrupt state resets to zero, sets on its qualified alert and clears through the declared interrupt W1C action. The interrupt-list description has no explicit reset field; this addendum supplies the exercise value rather than claiming an inferred generator/RTL result.",
+      "checks": [
+        "Check all four state bits immediately after reset, first qualifying alerts and independent clear operations; record this as an authored reset convention."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-12"
+    },
+    {
+      "issue_id": "Q-13",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "pinmux",
+      "requirement": "Use dft0=IOR5, dft1=IOR7, tap0=IOC8 and tap1=IOC5. Any optional third generic DFT strap is tied zero by this authored wrapper contract and tested as zero; no third external pad is required.",
+      "checks": [
+        "Check named straps, sampling and lifecycle gating plus the constant third strap if instantiated; no unbound configuration port is permitted."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-13"
+    },
+    {
+      "issue_id": "D-01",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "pinmux",
+      "requirement": "Use the explicit digital pad capability/WARL/reset table in cadence_contract.md, including IOC8 pull-enable reset=1. This authored profile exercises mux, attributes, retention and wake without production IO technology assets.",
+      "checks": [
+        "Check all 47 MIO and 16 DIO named-field mappings, unsupported native-OD zero readback, slew/drive clipping and IOC8 reset exception; do not claim analog signoff."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-D-01"
+    },
+    {
+      "issue_id": "D-02",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "aon_control_subsystem",
+      "requirement": "cadence_contract.md defines bench_tl_v1 field widths/order, CRC7 polynomial, bit iteration, protected words, known vectors, masks and error policy. This logical bus exercise does not claim binary or SECDED compatibility with upstream TL-UL.",
+      "checks": [
+        "Independently calculate known vectors, single-bit protected-word faults and invalid requests; check rejection has no CSR or FIFO side effects."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-D-02"
+    },
+    {
+      "issue_id": "N-01",
+      "classification": "not_a_conflict",
+      "resolution_state": "contract_defined",
+      "module": "pinmux",
+      "requirement": "CSR slew [17:16]/drive [23:20] and packed attr_i slew [9:8]/drive [13:10] are different interfaces. Translate by field name; differing packed positions are valid. AC-04 resolves the actual stale CSR layout.",
+      "checks": [
+        "Use different field values and verify explicit CSR-to-attribute mapping in both directions supported by the interface."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-N-01"
+    },
+    {
+      "issue_id": "N-04",
+      "classification": "not_a_conflict",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "The selected HJSON provides NAlerts=65, NLpg=24 and the LpgMap/AsyncOn defaults. Parse those provided parameter values for the profile; the early see-RTL table does not leave them missing. Do not copy a reference implementation to populate them.",
+      "checks": [
+        "Validate parameter dimensions/ranges from the complete HJSON arrays and ensure RTL and DV use the same selected values."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-N-04"
+    },
+    {
+      "issue_id": "CADENCE",
+      "classification": "execution_contract",
+      "resolution_state": "contract_defined",
+      "module": "aon_control_subsystem",
+      "requirement": "Implement the selected subsystem as self-contained synthesizable SystemVerilog with an independent SystemVerilog UVM/SVA environment. Cadence Xcelium/IMC and Jasper/Genus are the execution targets. Upstream RTL, build descriptions and tests are historical comparison material, not required build inputs or an independent golden for this authored contract.",
+      "checks": [
+        "No network fetch or code generation may occur during EDA execution."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CADENCE"
+    }
+  ],
+  "evaluation_contract": {
+    "toolchain": {
+      "family": "cadence",
+      "simulation": "xcelium",
+      "coverage": "imc",
+      "lint": "jasper_superlint",
+      "cdc": "jasper_cdc",
+      "formal": "jasper_fpv",
+      "synthesis": "genus",
+      "execution": "external",
+      "native_build_required": false
+    },
+    "normative_input": "input/cadence_contract.md",
+    "reference_testpoint_role": "historical_review_hints",
+    "upstream_native_regression_required": false,
+    "independent_oracle_required": true,
+    "functional_coverage_percent": 90,
+    "execution_status": "not_run"
+  }
+}

@@ -1,0 +1,11 @@
+* -text whitespace=cr-at-eol
+# Preserve exact pinned RISC-V originals, including their published whitespace.
+*/input/sources/riscv-riscv-isa-manual/src/*.adoc whitespace=cr-at-eol,-blank-at-eol,-blank-at-eof
+*/input/licenses/riscv-riscv-isa-manual/LICENSE whitespace=cr-at-eol,-blank-at-eol,-blank-at-eof
+# Unified patches intentionally contain a space on blank context lines.
+*/answers/upstream.patch whitespace=cr-at-eol,-blank-at-eol,-blank-at-eof
+# The affected RVV decode files retain the exact parent/fixed upstream blobs.
+coralnpu-vector-zero-retirement/input/baseline/hdl/verilog/rvv/design/rvv_backend_decode_unit_ari.sv whitespace=cr-at-eol,-blank-at-eol
+coralnpu-vector-zero-retirement/input/baseline/hdl/verilog/rvv/design/rvv_backend_decode_unit_lsu.sv whitespace=cr-at-eol,-blank-at-eol
+coralnpu-vector-zero-retirement/answers/reference/hdl/verilog/rvv/design/rvv_backend_decode_unit_ari.sv whitespace=cr-at-eol,-blank-at-eol
+coralnpu-vector-zero-retirement/answers/reference/hdl/verilog/rvv/design/rvv_backend_decode_unit_lsu.sv whitespace=cr-at-eol,-blank-at-eol

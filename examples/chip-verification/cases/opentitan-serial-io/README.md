@@ -1,0 +1,14 @@
+# opentitan-serial-io
+
+Public specification-only design/DV problem from [OpenTitan](https://github.com/lowRISC/opentitan/tree/c69eaea24a57c581ed274779887cb4a0c1405e3b), fixed at `c69eaea24a57c581ed274779887cb4a0c1405e3b`.
+
+- In-scope IPs: spi_host, spi_device, usbdev.
+- Unique credited original specification bodies: **567,411 bytes**, above 512 KiB. JSON wrapping, authored contracts, register HJSON and system context are excluded from this count.
+- [Problem and required outputs](input/problem.md), [input specification](input/spec.json), [source manifest](input/source_manifest.json).
+- Evaluator-only [answer guide](answer_guide.md) and [obligations](obligations.json); actual unchanged [reference source inventory](../reference/opentitan-c69eaea/manifest.json).
+
+Stage only `input/` into a separate execution workspace using the case tool. Opening this entire repository gives the host access to the reference answers. Exporting input files does not enforce network or filesystem isolation.
+
+Reference material is upstream RTL, UVM/FPV, testplans and build metadata, not a generated candidate or a unique textual answer. The stored original system top-level provides integration context; it is not the authored reduced-subsystem wrapper requested by this exercise. Shared/external dependencies are not a proven complete closure. The authored [Cadence contract](input/cadence_contract.md) defines a fresh portable SV implementation and independent SV UVM/SVA environment. The upstream subset is historical comparison material; no upstream native build or complete upstream checkout is required. The case tool stages a Cadence execution kit separately from original sources. Corpus integrity, actual host execution, functional correctness and measured coverage are separate results.
+
+Original OpenTitan files retain their Apache-2.0 license and notices. Exercise scope, profile, graph and evaluator obligations are explicitly authored fixture material. Preserve [LICENSE](input/licenses/LICENSE) and [NOTICE](input/licenses/NOTICE) when exporting the input.

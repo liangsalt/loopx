@@ -1,0 +1,279 @@
+diff --git a/hdl/verilog/rvv/design/rvv_backend_decode_unit_ari.sv b/hdl/verilog/rvv/design/rvv_backend_decode_unit_ari.sv
+index cf46cf46841bc7a76860af12de16ab60d5e6b15e..689e48ba0789faf440d28d08a8c3a4c679f44c47 100644
+--- a/hdl/verilog/rvv/design/rvv_backend_decode_unit_ari.sv
++++ b/hdl/verilog/rvv/design/rvv_backend_decode_unit_ari.sv
+@@ -3755,11 +3755,11 @@ module rvv_backend_decode_unit_ari
+                       `ifdef ZVT_ON
+                         || isVmeAlu
+                       `endif
+-                        )&
++                        )
+                       `ifdef ZVE32F_ON
+-                        check_frm&
++                        &check_frm
+                       `endif
+-                        check_vl_not_0;
++                        ;
+ 
+   // check whether vd is aligned to emul_vd
+   always_comb begin
+diff --git a/hdl/verilog/rvv/design/rvv_backend_decode_unit_lsu.sv b/hdl/verilog/rvv/design/rvv_backend_decode_unit_lsu.sv
+index 94c1a5db1119671fc6fa085fb07b50f5784b0536..9c0741f7141f9732ac68f4aba6a8217721fda6a2 100644
+--- a/hdl/verilog/rvv/design/rvv_backend_decode_unit_lsu.sv
++++ b/hdl/verilog/rvv/design/rvv_backend_decode_unit_lsu.sv
+@@ -3424,8 +3424,7 @@ module rvv_backend_decode_unit_lsu
+   end
+ 
+   //check common requirements for all instructions
+-  assign check_common = check_vd_align&check_vs2_align&check_vd_in_range&check_sew&check_lmul
+-                        &check_evl_not_0;
++  assign check_common = check_vd_align&check_vs2_align&check_vd_in_range&check_sew&check_lmul;
+ 
+   // check whether vd is aligned to emul_vd
+   always_comb begin
+diff --git a/rules/uvm_denylist.bzl b/rules/uvm_denylist.bzl
+index 0b5fa248cde172e9cf6e3579c1b09bc82d166e13..912140a3b2fdd64e2f711e60a80ff008290f7c50 100644
+--- a/rules/uvm_denylist.bzl
++++ b/rules/uvm_denylist.bzl
+@@ -108,6 +108,7 @@ SPIKE_DENYLIST = [
+     "//tests/cocotb/rvv:rvv_small_loop_test",
+     "//tests/cocotb:csr_behavior",
+     "//tests/cocotb/rvv:rvv_vfrdiv_test",
++    "//tests/cocotb/rvv:rvv_vl0_v0_corruption_test",
+     "//tests/cocotb/rvv:rvv_vleff_test",
+ ]
+ 
+diff --git a/tests/cocotb/BUILD b/tests/cocotb/BUILD
+index ce7fcead87b356ce81d558156d0c5d661f61799a..e2ad0c1f42cf6e9ec862c08094d6a21d3a663e28 100644
+--- a/tests/cocotb/BUILD
++++ b/tests/cocotb/BUILD
+@@ -280,13 +280,15 @@ RVV_ASSEMBLY_TESTCASES = [
+     "core_mini_rvv_vstart_vset_test",
+     "core_mini_rvv_vfrdiv_test",
+     "core_mini_rvv_vleff_test",
++    "core_mini_rvv_vl0_v0_corruption_test",
+ ]
+ # END_TESTCASES_FOR_rvv_assembly_cocotb_test
+ 
+ # BEGIN_TESTCASES_FOR_rvv_load_store_test
+ RVV_LOAD_STORE_TESTCASES = [
+     "load_store_bits",
+     "load_store_whole_register_test",
++    "whole_reg_repro",
+     "load_unit_masked",
+     "load_unit_ff",
+     "load_unit_all_vtypes_test",
+diff --git a/tests/cocotb/rvv/BUILD b/tests/cocotb/rvv/BUILD
+index e8d7424880934c77573c23a5de1d58d19a751476..5906bbdb39fcca566d5608cc6aa76e22ac657df8 100644
+--- a/tests/cocotb/rvv/BUILD
++++ b/tests/cocotb/rvv/BUILD
+@@ -104,6 +104,9 @@ template_rule(
+         "rvv_vfrdiv_test": {
+             "srcs": ["rvv_vfrdiv_test.S"],
+         },
++        "rvv_vl0_v0_corruption_test": {
++            "srcs": ["rvv_vl0_v0_corruption_test.S"],
++        },
+         "rvv_vleff_test": {
+             "srcs": ["rvv_vleff_test.S"],
+         },
+@@ -119,6 +122,7 @@ filegroup(
+         "rvv_small_loop_test.elf",
+         "rvv_vfrdiv_test.elf",
+         "rvv_vill_loop_trap_test.elf",
++        "rvv_vl0_v0_corruption_test.elf",
+         "rvv_vleff_test.elf",
+         "rvv_vstart_rob_test.elf",
+         "rvv_vstart_trap_flush_test.elf",
+diff --git a/tests/cocotb/rvv/rvv_vl0_v0_corruption_test.S b/tests/cocotb/rvv/rvv_vl0_v0_corruption_test.S
+new file mode 100644
+index 0000000000000000000000000000000000000000..a93eabccb29dffa47a3d7c3620ba5e17fdc842eb
+--- /dev/null
++++ b/tests/cocotb/rvv/rvv_vl0_v0_corruption_test.S
+@@ -0,0 +1,100 @@
++/*
++ * Copyright 2026 Google LLC
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++/*
++ * Verifies that executing a vector instruction (such as vmsbc.vvm) when vl = 0:
++ * 1. Preserves undisturbed vector registers (specifically mask register v0).
++ * 2. Leaves the destination register (v29) unmodified.
++ * 3. Advances normally through the pipeline and ROB without trapping or deadlocking.
++ */
++
++.section .data
++.align 16
++
++.global v0_init
++.global op_data_a
++.global op_data_b
++.global output_v0_after_vmsbc
++.global output_v29_after_vmsbc
++
++v0_init:
++    // 0xf0b0e6759579717a4fc03532a0a512b6 in little-endian:
++    .word 0xa0a512b6, 0x4fc03532, 0x9579717a, 0xf0b0e675
++
++op_data_a:
++    .word 0x11223344, 0x55667788, 0x99aabbcc, 0xddeeff00
++
++op_data_b:
++    .word 0x01020304, 0x05060708, 0x090a0b0c, 0x0d0e0f10
++
++output_v0_after_vmsbc:
++    .word 0xDEADBEEF, 0xDEADBEEF, 0xDEADBEEF, 0xDEADBEEF
++
++output_v29_after_vmsbc:
++    .word 0xDEADBEEF, 0xDEADBEEF, 0xDEADBEEF, 0xDEADBEEF
++
++.section .text
++.global main
++.option norelax
++
++main:
++    // 1. Pre-load v0 with known non-zero pattern (VLEN=128, SEW=32, LMUL=1)
++    vsetivli x0, 4, e32, m1, ta, ma
++    la t0, v0_init
++    vle32.v v0, (t0)
++
++    // Pre-load operands into v23, v5, v29
++    la t1, op_data_a
++    la t2, op_data_b
++    vle32.v v23, (t1)
++    vle32.v v5, (t2)
++    vle32.v v29, (t1)
++
++    // Wait for vector memory loads
++    .rept 20
++    nop
++    .endr
++
++    // 2. Set vl = 0: vsetivli t1, 0, e8, mf4, tu, mu (0xc0607357)
++    .word 0xc0607357
++
++    .rept 10
++    nop
++    .endr
++
++    // 3. 0x40740: vmsbc.vvm v29, v23, v5, v0 (0x4d728ed7)
++    .word 0x4d728ed7
++
++    // Wait for vmsbc to commit in ROB
++    .rept 30
++    nop
++    .endr
++
++    // Read out v0 and v29
++    vsetivli x0, 4, e32, m1, ta, ma
++    la t3, output_v0_after_vmsbc
++    vse32.v v0, (t3)
++    la t4, output_v29_after_vmsbc
++    vse32.v v29, (t4)
++
++    .rept 30
++    nop
++    .endr
++
++    li t5, 0x800
++    csrs mie, t5
++    wfi
++    ret
+diff --git a/tests/cocotb/rvv_assembly_cocotb_test.py b/tests/cocotb/rvv_assembly_cocotb_test.py
+index 7bf5443bfc0a36e7e1733f31122c43e9b1d39bb8..261cba565b23c5791e1d5e4afb8860d74b4bd842 100644
+--- a/tests/cocotb/rvv_assembly_cocotb_test.py
++++ b/tests/cocotb/rvv_assembly_cocotb_test.py
+@@ -2293,3 +2293,59 @@ async def core_mini_rvv_vleff_test(dut):
+     assert np.array_equal(
+         v3_result, expected_v3
+     ), f"v3 mismatch (unaligned vle32ff): got {[hex(x) for x in v3_result]}, expected {[hex(x) for x in expected_v3]}"
++
++
++@cocotb.test()
++async def core_mini_rvv_vl0_v0_corruption_test(dut):
++    """Directed test to check vector mask register v0 preservation when vl=0."""
++    core_mini_axi = CoreMiniAxiInterface(dut)
++    await core_mini_axi.init()
++    await core_mini_axi.reset()
++    cocotb.start_soon(core_mini_axi.clock.start())
++    r = runfiles.Create()
++
++    elf_path = r.Rlocation(
++        "coralnpu_hw/tests/cocotb/rvv/rvv_vl0_v0_corruption_test.elf"
++    )
++    if not elf_path:
++        raise ValueError("elf_path must consist a valid path")
++    with open(elf_path, "rb") as f:
++        entry_point = await core_mini_axi.load_elf(f)
++
++    with open(elf_path, "rb") as f:
++        output_v0_after_vmsbc_addr = core_mini_axi.lookup_symbol(
++            f, "output_v0_after_vmsbc"
++        )
++        output_v29_after_vmsbc_addr = core_mini_axi.lookup_symbol(
++            f, "output_v29_after_vmsbc"
++        )
++
++    # Initial expected v0: 0xf0b0e6759579717a4fc03532a0a512b6
++    expected_v0 = np.array([0xA0A512B6, 0x4FC03532, 0x9579717A, 0xF0B0E675],
++                           dtype=np.uint32)
++
++    await core_mini_axi.execute_from(entry_point)
++    await core_mini_axi.wait_for_wfi()
++
++    v0_after_vmsbc = (
++        await core_mini_axi.read(output_v0_after_vmsbc_addr, 16)
++    ).view(np.uint32)
++    v29_after_vmsbc = (
++        await core_mini_axi.read(output_v29_after_vmsbc_addr, 16)
++    ).view(np.uint32)
++
++    dut._log.info(
++        f"v0_after_vmsbc:  0x{v0_after_vmsbc[3]:08x}_{v0_after_vmsbc[2]:08x}_{v0_after_vmsbc[1]:08x}_{v0_after_vmsbc[0]:08x}"
++    )
++    dut._log.info(
++        f"v29_after_vmsbc: 0x{v29_after_vmsbc[3]:08x}_{v29_after_vmsbc[2]:08x}_{v29_after_vmsbc[1]:08x}_{v29_after_vmsbc[0]:08x}"
++    )
++    dut._log.info(
++        f"expected_v0:     0x{expected_v0[3]:08x}_{expected_v0[2]:08x}_{expected_v0[1]:08x}_{expected_v0[0]:08x}"
++    )
++
++    np.testing.assert_array_equal(
++        v0_after_vmsbc,
++        expected_v0,
++        err_msg="Vector mask v0 corrupted after vmsbc.vvm under vl=0",
++    )
+diff --git a/tests/cocotb/rvv_load_store_test.py b/tests/cocotb/rvv_load_store_test.py
+index 77b9a17a75781fe4b6a4831721966d17ec3ea1aa..4744f2b28630335edfc5795542919641d1c33f33 100644
+--- a/tests/cocotb/rvv_load_store_test.py
++++ b/tests/cocotb/rvv_load_store_test.py
+@@ -3982,3 +3982,17 @@ async def load_store_whole_register_test(dut):
+                         assert (store_data[data_written:] == 0xFF).all()
+                     else:
+                         assert (store_data[data_written:] == 0x00).all()
++
++
++@cocotb.test()
++async def whole_reg_repro(dut):
++    """Testbench to run whole_reg_repro."""
++    fixture = await Fixture.Create(dut)
++    r = runfiles.Create()
++    await fixture.load_elf_and_lookup_symbols(
++        r.Rlocation(
++            'coralnpu_hw/tests/cocotb/rvv/load_store/whole_reg_repro.elf'
++        ),
++        [],
++    )
++    await fixture.run_to_halt()

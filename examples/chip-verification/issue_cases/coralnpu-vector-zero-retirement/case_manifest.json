@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "id": "coralnpu-vector-zero-retirement",
+  "input_files": [
+    {
+      "path": "baseline/hdl/chisel/src/coralnpu/Parameters.scala",
+      "bytes": 10279,
+      "sha256": "fb2c2a57e04f8b169d3f62f819dc4b645a36a28c6497f71d00c5df017ae9c3b5"
+    },
+    {
+      "path": "baseline/hdl/chisel/src/coralnpu/RetirementBuffer.scala",
+      "bytes": 28051,
+      "sha256": "fc896a95ae05208a0ab6b4729e5fc709061f64522c2766f99c310a89eb941615"
+    },
+    {
+      "path": "baseline/hdl/chisel/src/coralnpu/rvv/RvvInterface.scala",
+      "bytes": 4933,
+      "sha256": "f8f308801ce606bb6545d325bc83cd3f3e299c362055686a5ed2cc02e2958152"
+    },
+    {
+      "path": "baseline/hdl/verilog/rvv/design/rvv_backend_decode_unit_ari.sv",
+      "bytes": 122432,
+      "sha256": "6fd53dd3d03df42218a5fa67bd5e659ce3ab962a05e46e65a56f4f5eb3b989c0"
+    },
+    {
+      "path": "baseline/hdl/verilog/rvv/design/rvv_backend_decode_unit_lsu.sv",
+      "bytes": 133508,
+      "sha256": "a7d84cdbc978a39d091cd311aca82ea5d85f00913aabec7e4d93ab0bfb933e85"
+    },
+    {
+      "path": "cadence_contract.md",
+      "bytes": 18095,
+      "sha256": "8c41b3f311f1b2a706a31215317cf8d258cedf84064fec88cc262ed599d5e546"
+    },
+    {
+      "path": "contracts/coral_vector_contract_pkg.sv",
+      "bytes": 1679,
+      "sha256": "b63595c563d72ee2390f2ea471397372b5e11d8d23e21853db2595fadd95c648"
+    },
+    {
+      "path": "contracts/coral_vector_ports.svh",
+      "bytes": 657,
+      "sha256": "9550f00f369fd7b65db3677d1e73d4220b5c0f5e66c4aae02d2eea1fcdf6ad2c"
+    },
+    {
+      "path": "integration_profile.json",
+      "bytes": 3596,
+      "sha256": "e96587011078b4e81c127df6b70f8650a076935b910dae89dde54a1c7d00f0e6"
+    },
+    {
+      "path": "licenses/google-coral-coralnpu/LICENSE",
+      "bytes": 11357,
+      "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+    },
+    {
+      "path": "licenses/riscv-riscv-isa-manual/LICENSE",
+      "bytes": 18652,
+      "sha256": "cce5d01fa4a83b794271bd2c28cffdf99afd43c803e6ddefddae39b591ea7448"
+    },
+    {
+      "path": "module_graph.json",
+      "bytes": 3596,
+      "sha256": "8ee2e7ac865ed7214b424761a587f079a4deedb3489c96298c881488066752a0"
+    },
+    {
+      "path": "problem.md",
+      "bytes": 3263,
+      "sha256": "2ce9ad43d4aba55c71392bb071aba0c4c42e4f3358ab53ce93bab99a2ddb15d9"
+    },
+    {
+      "path": "scope_policy.md",
+      "bytes": 2024,
+      "sha256": "60378cf41478fafebc780a14ff7c97c05e9294c30807391259a1eb0d97cf994f"
+    },
+    {
+      "path": "source_manifest.json",
+      "bytes": 28603,
+      "sha256": "298f47da15bf510c5e0e602cb90923900e5c9efa172f5e4acee47cea6282cf27"
+    },
+    {
+      "path": "sources/google-coral-coralnpu/doc/integration_guide.md",
+      "bytes": 11046,
+      "sha256": "e8c15e79dd90189094e5c64b23f806d8ef21f53f7c57138dac7d2702bd77f75c"
+    },
+    {
+      "path": "sources/google-coral-coralnpu/doc/microarch/debug.md",
+      "bytes": 14354,
+      "sha256": "ccc06e038135d8470dea0bfab7346b44870b064ff619bdef686ea4b26a54245b"
+    },
+    {
+      "path": "sources/google-coral-coralnpu/doc/microarch/dispatch.md",
+      "bytes": 1656,
+      "sha256": "b7764c72a6212ed7e1adfd3ba69708fd16247154de48c1f80722e744422a6e2b"
+    },
+    {
+      "path": "sources/google-coral-coralnpu/doc/microarch/lsu.md",
+      "bytes": 9835,
+      "sha256": "e2d883d98004990dd1abd6e929f3c2fb0160ce94adeb5c0868fcf297a0b7eeec"
+    },
+    {
+      "path": "sources/google-coral-coralnpu/doc/microarch/microarch.md",
+      "bytes": 1416,
+      "sha256": "a442c4052cd741b0862317f105c61a491bc72a0fa6d6ab9d4de564906fe975f4"
+    },
+    {
+      "path": "sources/google-coral-coralnpu/doc/overview.md",
+      "bytes": 4373,
+      "sha256": "9e0cc05ebb04413041e8cbe3afe6b2837e45b66042681b9b292bc4c3c9556f9f"
+    },
+    {
+      "path": "sources/riscv-riscv-isa-manual/src/machine.adoc",
+      "bytes": 130015,
+      "sha256": "8f618a44306091b44bad55f7d2aaee7c8b332a2d6aa665d8476247257f072a57"
+    },
+    {
+      "path": "sources/riscv-riscv-isa-manual/src/mm-eplan.adoc",
+      "bytes": 78511,
+      "sha256": "a66623aad41c6caf2b38d063410ecdfd2c6b75271441329b8da94e3ec31dbdd5"
+    },
+    {
+      "path": "sources/riscv-riscv-isa-manual/src/mm-formal.adoc",
+      "bytes": 60586,
+      "sha256": "508c6914ee23bcd0b620e83150690d8f69adca21bd4a1062b86f514ec1e424a0"
+    },
+    {
+      "path": "sources/riscv-riscv-isa-manual/src/rv32.adoc",
+      "bytes": 46690,
+      "sha256": "77106c3fc0bdbc687291a9e8c9598b2e7cd3ab4cdf62e9bfae4f5a3c05a148d7"
+    },
+    {
+      "path": "sources/riscv-riscv-isa-manual/src/rvwmo.adoc",
+      "bytes": 24813,
+      "sha256": "4603bf79b740af390775949046459abc6f00cd853ebcc399ca1855e35110800e"
+    },
+    {
+      "path": "sources/riscv-riscv-isa-manual/src/v-st-ext.adoc",
+      "bytes": 212269,
+      "sha256": "f114464f32de3825863df04ff903137685a94a89973a8b38df3c4e804adf116f"
+    },
+    {
+      "path": "sources/riscv-riscv-isa-manual/src/zicsr.adoc",
+      "bytes": 11249,
+      "sha256": "8ef986fdc464ac604851a8d0b021eb9c3414d3d4f790cb348313b9510bc8438c"
+    },
+    {
+      "path": "spec.json",
+      "bytes": 669251,
+      "sha256": "be61720d8ff4c4f84523266ac832f1618a8918e21b551f56420f77bb132703ff"
+    }
+  ],
+  "answer_files": [
+    {
+      "path": "behavior_oracle.md",
+      "bytes": 7027,
+      "sha256": "ed89879361af2a3459971c3aa6b0a653f926c39dcfe498ee3ea90d8a61b9849a"
+    },
+    {
+      "path": "LICENSE",
+      "bytes": 11357,
+      "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+    },
+    {
+      "path": "README.md",
+      "bytes": 2690,
+      "sha256": "492fde950bf3800da1ab721eecdaf9ff279b21f6c59b453c0bd98b6e7d127b0a"
+    },
+    {
+      "path": "reference/hdl/verilog/rvv/design/rvv_backend_decode_unit_ari.sv",
+      "bytes": 122417,
+      "sha256": "be32980b85aebc7e8216c0e6bf90957eafb1bb26dadad35d9920f889876685c2"
+    },
+    {
+      "path": "reference/hdl/verilog/rvv/design/rvv_backend_decode_unit_lsu.sv",
+      "bytes": 133467,
+      "sha256": "ff5d273aed4eb3f375cfb833ef44ea44f7f082b991bd29b0eb15e06ce02f4a9b"
+    },
+    {
+      "path": "reference/rules/uvm_denylist.bzl",
+      "bytes": 6292,
+      "sha256": "cdeda5adb800e447376f8c4796dac804ef379952702cbbeb0619cb22d4c49bfe"
+    },
+    {
+      "path": "reference/tests/cocotb/BUILD",
+      "bytes": 34964,
+      "sha256": "6e5cceddea95040a5b359cf5aa4f719c7cfe9415478b5e63d43af22accd3e131"
+    },
+    {
+      "path": "reference/tests/cocotb/rvv/BUILD",
+      "bytes": 4285,
+      "sha256": "1bd718465f32f2f60d74b5c511a26f31a35458e23405828d5fc5125f4a9caf81"
+    },
+    {
+      "path": "reference/tests/cocotb/rvv/rvv_vl0_v0_corruption_test.S",
+      "bytes": 2425,
+      "sha256": "c361ff9c8e27943eec5df2360bdeea6fe2583ed97a0f6bb7d851baf901f196c1"
+    },
+    {
+      "path": "reference/tests/cocotb/rvv_assembly_cocotb_test.py",
+      "bytes": 84256,
+      "sha256": "18eb3899616187b30717c20f1091ffa58176ab7e18ed9b8220d73390f8f8e6a3"
+    },
+    {
+      "path": "reference/tests/cocotb/rvv_load_store_test.py",
+      "bytes": 171749,
+      "sha256": "8f113a91ca24cf746c3a6e77a3561f98680e007726e280e3b641cb9d67cccbab"
+    },
+    {
+      "path": "reference_manifest.json",
+      "bytes": 4882,
+      "sha256": "fce50e44a777ccbd2d09154252cbc3c1c9717682daa5f75d2520f985d833cb0d"
+    },
+    {
+      "path": "review_rubric.json",
+      "bytes": 5107,
+      "sha256": "02808d149c9e037d773080b1d51391effbff093ab939e967ca6f444b8d10a393"
+    },
+    {
+      "path": "upstream.patch",
+      "bytes": 9872,
+      "sha256": "4cb2eb477b22668c3cee0b0844e0d5a0b77852a855fbc89b606308b1b331385b"
+    }
+  ]
+}

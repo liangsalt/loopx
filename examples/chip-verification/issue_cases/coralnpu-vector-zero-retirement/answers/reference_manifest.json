@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "case_id": "coralnpu-vector-zero-retirement",
+  "repository": "https://github.com/google-coral/coralnpu",
+  "base_revision": "c0b98e39b995174fa052c3dd248bd540d120e96f",
+  "fixed_revision": "5c599a884fb07b25f12be6cd027c12e93a99de45",
+  "fix_parent": "c0b98e39b995174fa052c3dd248bd540d120e96f",
+  "commit_url": "https://github.com/google-coral/coralnpu/commit/5c599a884fb07b25f12be6cd027c12e93a99de45",
+  "patch_path": "upstream.patch",
+  "patch_format": "Unified per-file hunks obtained from GitHub commit API; complete changed-file snapshots are authoritative.",
+  "files": [
+    {
+      "path": "reference/hdl/verilog/rvv/design/rvv_backend_decode_unit_ari.sv",
+      "upstream_path": "hdl/verilog/rvv/design/rvv_backend_decode_unit_ari.sv",
+      "git_blob_sha1": "689e48ba0789faf440d28d08a8c3a4c679f44c47",
+      "sha256": "be32980b85aebc7e8216c0e6bf90957eafb1bb26dadad35d9920f889876685c2",
+      "url": "https://raw.githubusercontent.com/google-coral/coralnpu/5c599a884fb07b25f12be6cd027c12e93a99de45/hdl/verilog/rvv/design/rvv_backend_decode_unit_ari.sv"
+    },
+    {
+      "path": "reference/hdl/verilog/rvv/design/rvv_backend_decode_unit_lsu.sv",
+      "upstream_path": "hdl/verilog/rvv/design/rvv_backend_decode_unit_lsu.sv",
+      "git_blob_sha1": "9c0741f7141f9732ac68f4aba6a8217721fda6a2",
+      "sha256": "ff5d273aed4eb3f375cfb833ef44ea44f7f082b991bd29b0eb15e06ce02f4a9b",
+      "url": "https://raw.githubusercontent.com/google-coral/coralnpu/5c599a884fb07b25f12be6cd027c12e93a99de45/hdl/verilog/rvv/design/rvv_backend_decode_unit_lsu.sv"
+    },
+    {
+      "path": "reference/rules/uvm_denylist.bzl",
+      "upstream_path": "rules/uvm_denylist.bzl",
+      "git_blob_sha1": "912140a3b2fdd64e2f711e60a80ff008290f7c50",
+      "sha256": "cdeda5adb800e447376f8c4796dac804ef379952702cbbeb0619cb22d4c49bfe",
+      "url": "https://raw.githubusercontent.com/google-coral/coralnpu/5c599a884fb07b25f12be6cd027c12e93a99de45/rules/uvm_denylist.bzl"
+    },
+    {
+      "path": "reference/tests/cocotb/BUILD",
+      "upstream_path": "tests/cocotb/BUILD",
+      "git_blob_sha1": "e2ad0c1f42cf6e9ec862c08094d6a21d3a663e28",
+      "sha256": "6e5cceddea95040a5b359cf5aa4f719c7cfe9415478b5e63d43af22accd3e131",
+      "url": "https://raw.githubusercontent.com/google-coral/coralnpu/5c599a884fb07b25f12be6cd027c12e93a99de45/tests/cocotb/BUILD"
+    },
+    {
+      "path": "reference/tests/cocotb/rvv/BUILD",
+      "upstream_path": "tests/cocotb/rvv/BUILD",
+      "git_blob_sha1": "5906bbdb39fcca566d5608cc6aa76e22ac657df8",
+      "sha256": "1bd718465f32f2f60d74b5c511a26f31a35458e23405828d5fc5125f4a9caf81",
+      "url": "https://raw.githubusercontent.com/google-coral/coralnpu/5c599a884fb07b25f12be6cd027c12e93a99de45/tests/cocotb/rvv/BUILD"
+    },
+    {
+      "path": "reference/tests/cocotb/rvv/rvv_vl0_v0_corruption_test.S",
+      "upstream_path": "tests/cocotb/rvv/rvv_vl0_v0_corruption_test.S",
+      "git_blob_sha1": "a93eabccb29dffa47a3d7c3620ba5e17fdc842eb",
+      "sha256": "c361ff9c8e27943eec5df2360bdeea6fe2583ed97a0f6bb7d851baf901f196c1",
+      "url": "https://raw.githubusercontent.com/google-coral/coralnpu/5c599a884fb07b25f12be6cd027c12e93a99de45/tests/cocotb/rvv/rvv_vl0_v0_corruption_test.S"
+    },
+    {
+      "path": "reference/tests/cocotb/rvv_assembly_cocotb_test.py",
+      "upstream_path": "tests/cocotb/rvv_assembly_cocotb_test.py",
+      "git_blob_sha1": "261cba565b23c5791e1d5e4afb8860d74b4bd842",
+      "sha256": "18eb3899616187b30717c20f1091ffa58176ab7e18ed9b8220d73390f8f8e6a3",
+      "url": "https://raw.githubusercontent.com/google-coral/coralnpu/5c599a884fb07b25f12be6cd027c12e93a99de45/tests/cocotb/rvv_assembly_cocotb_test.py"
+    },
+    {
+      "path": "reference/tests/cocotb/rvv_load_store_test.py",
+      "upstream_path": "tests/cocotb/rvv_load_store_test.py",
+      "git_blob_sha1": "4744f2b28630335edfc5795542919641d1c33f33",
+      "sha256": "8f113a91ca24cf746c3a6e77a3561f98680e007726e280e3b641cb9d67cccbab",
+      "url": "https://raw.githubusercontent.com/google-coral/coralnpu/5c599a884fb07b25f12be6cd027c12e93a99de45/tests/cocotb/rvv_load_store_test.py"
+    }
+  ],
+  "simulation_executed": false,
+  "patch_application_checked": true,
+  "patched_files_matching_fixed_git_blobs": 8,
+  "coverage_percent": null,
+  "reference_validity": "Verified upstream parent/fix relationship and original file digests. The patch was applied to original parent files locally and every changed file matched its fixed Git blob. Upstream tests are claimed in its commit, not locally reproduced. Extended system/UVM acceptance is an authored rubric, not upstream signoff.",
+  "role": "historical_mechanism_reference",
+  "required_for_cadence_execution": false,
+  "oracle_for_standalone_subsystem": false,
+  "execution_toolchain": "cadence_external_standard_sv"
+}
