@@ -1,0 +1,3 @@
+* -text whitespace=cr-at-eol
+# Preserve the pinned upstream blob's mixed indentation, rather than editing its bytes.
+reference/opentitan-c69eaea/upstream/hw/ip/usbdev/data/usbdev_testplan.hjson whitespace=cr-at-eol,-space-before-tab

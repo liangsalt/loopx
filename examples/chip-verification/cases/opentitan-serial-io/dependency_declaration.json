@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "case_id": "opentitan-serial-io",
+  "repository": "https://github.com/lowRISC/opentitan",
+  "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+  "dependency_closure_verified": false,
+  "runtime_validation": "not_performed",
+  "stored_module_reference_files": 241,
+  "stored_build_descriptors": [
+    "hw/ip/spi_device/dv/env/spi_device_env.core",
+    "hw/ip/spi_device/dv/spi_device_sim.core",
+    "hw/ip/spi_device/dv/sva/spi_device_sva.core",
+    "hw/ip/spi_device/dv/tests/spi_device_test.core",
+    "hw/ip/spi_device/pre_dv/spi_tpm_sim.core",
+    "hw/ip/spi_device/pre_dv/spid_jedec.core",
+    "hw/ip/spi_device/pre_dv/spid_passthrough.core",
+    "hw/ip/spi_device/pre_dv/spid_readcmd.core",
+    "hw/ip/spi_device/pre_dv/spid_status.core",
+    "hw/ip/spi_device/pre_dv/spid_upload.core",
+    "hw/ip/spi_device/spi_device.core",
+    "hw/ip/spi_device/spi_device_pkg.core",
+    "hw/ip/spi_host/dv/cov/spi_host_cov.core",
+    "hw/ip/spi_host/dv/env/spi_host_env.core",
+    "hw/ip/spi_host/dv/spi_host_sim.core",
+    "hw/ip/spi_host/dv/sva/spi_host_sva.core",
+    "hw/ip/spi_host/dv/tests/spi_host_test.core",
+    "hw/ip/spi_host/spi_host.core",
+    "hw/ip/usbdev/dv/env/usbdev_env.core",
+    "hw/ip/usbdev/dv/sva/usbdev_sva.core",
+    "hw/ip/usbdev/dv/tests/usbdev_test.core",
+    "hw/ip/usbdev/dv/usbdev_sim.core",
+    "hw/ip/usbdev/usb_fs_nb_pe.core",
+    "hw/ip/usbdev/usbdev.core",
+    "hw/ip/usbdev/usbdev_pkg.core"
+  ],
+  "shared_system_reference_files": [
+    "hw/top_earlgrey/data/autogen/top_earlgrey.gen.hjson",
+    "hw/top_earlgrey/rtl/autogen/top_earlgrey.sv",
+    "hw/top_earlgrey/rtl/autogen/top_earlgrey_pkg.sv",
+    "hw/top_earlgrey/rtl/autogen/top_earlgrey_rnd_cnst_pkg.sv",
+    "hw/top_earlgrey/rtl/top_pkg.sv",
+    "hw/top_earlgrey/top_earlgrey.core",
+    "hw/top_earlgrey/top_earlgrey_pkg.core",
+    "hw/top_earlgrey/top_pkg.core"
+  ],
+  "additional_dependency_candidate_roots": [
+    {
+      "path": "hw/dv/README.md",
+      "candidate_file_count": 1
+    },
+    {
+      "path": "hw/dv/doc",
+      "candidate_file_count": 1
+    },
+    {
+      "path": "hw/dv/dpi",
+      "candidate_file_count": 50
+    },
+    {
+      "path": "hw/dv/sv",
+      "candidate_file_count": 462
+    },
+    {
+      "path": "hw/dv/tools",
+      "candidate_file_count": 58
+    },
+    {
+      "path": "hw/dv/verilator",
+      "candidate_file_count": 24
+    },
+    {
+      "path": "hw/ip/lc_ctrl",
+      "candidate_file_count": 11
+    },
+    {
+      "path": "hw/ip/prim",
+      "candidate_file_count": 501
+    },
+    {
+      "path": "hw/ip/prim_generic",
+      "candidate_file_count": 67
+    },
+    {
+      "path": "hw/ip/tlul",
+      "candidate_file_count": 36
+    },
+    {
+      "path": "hw/top_earlgrey/ip",
+      "candidate_file_count": 30
+    },
+    {
+      "path": "hw/top_earlgrey/rtl",
+      "candidate_file_count": 6
+    }
+  ],
+  "limitations": [
+    "The stored RTL/UVM/FPV/testplan subset is an inspectable upstream reference, not a proved standalone build closure.",
+    "Candidate dependency roots are discovery hints, not an exhaustive list or a claim that every file under them is required.",
+    "Reggen/topgen artifacts, shared primitives/packages/VIPs, build tooling and third-party/tool dependencies must be resolved against this same upstream revision before execution.",
+    "Use upstream build descriptors and DVSim/FuseSoC configuration as source material; no Vivado compatibility or runnable top-level is qualified by this corpus.",
+    "A complete upstream reference build and its independent checker activity must pass before comparison results are accepted.",
+    "The system input is a selected subsystem exercise, not a provided production SoC integration or implementation signoff."
+  ]
+}

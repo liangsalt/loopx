@@ -1,0 +1,948 @@
+{
+  "schema_version": 1,
+  "case_id": "opentitan-serial-io",
+  "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+  "scope_note": "Authored evaluator rubric grounded in problem sources. Upstream testpoints are evaluator-side comparison references, not candidate input. Review obligations are not an exhaustive requirement set or coverage-bin denominator.",
+  "coverage_policy": {
+    "target_percent": 90,
+    "meaning": "Functional coverage of a reviewed, versioned applicable-bin inventory; code coverage reported separately.",
+    "denominator_rule": "Freeze applicable bins and reviewed exclusions before closure. File counts, rubric completion and Python behavioral tests do not establish SystemVerilog/UVM simulation coverage.",
+    "required_evidence": [
+      "tool/version",
+      "RTL/TB hashes",
+      "commands/seeds",
+      "compile/elaboration/run logs",
+      "assertion and scoreboard outcomes",
+      "native coverage database/report",
+      "covered/applicable bins",
+      "reviewed exclusions",
+      "negative/mutation controls"
+    ],
+    "current_status": "not_run"
+  },
+  "obligations": [
+    {
+      "id": "SPI-01",
+      "scope": "spi_host",
+      "requirement": "Predict each segment's direction, lane speed, CSID, byte count and CSAAT-driven chip-select sequence from commands; compare serial pins and received bytes.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_host/doc/theory_of_operation.md",
+          "section": "Command Interface",
+          "anchor_exact": "## Command Interface"
+        }
+      ],
+      "checks": [
+        "Predict each segment's direction, lane speed, CSID, byte count and CSAAT-driven chip-select sequence from commands; compare serial pins and received bytes."
+      ],
+      "negative_tests": [
+        "Invalid CSID and dual/quad bidirectional commands must produce specified errors."
+      ],
+      "coverage_dimensions": [
+        "direction",
+        "speed",
+        "CSID",
+        "CSAAT"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/spi_host/data/spi_host_testplan.hjson",
+          "name": "duplex",
+          "anchor_exact": "name: duplex",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "SPI-02",
+      "scope": "spi_host",
+      "requirement": "Measure SCK and sample edges for every CPOL/CPHA combination, full-cycle setting and resolved divider/CS timing configuration.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_host/doc/theory_of_operation.md",
+          "section": "Configuration Options",
+          "anchor_exact": "### Configuration Options"
+        }
+      ],
+      "checks": [
+        "Measure SCK and sample edges for every CPOL/CPHA combination, full-cycle setting and resolved divider/CS timing configuration."
+      ],
+      "negative_tests": [
+        "Change configuration between queued segments and check mandatory idle delays."
+      ],
+      "coverage_dimensions": [
+        "CPOL",
+        "CPHA",
+        "FULLCYC",
+        "divider_boundary"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/spi_host/data/spi_host_testplan.hjson",
+          "name": "cpol_cpha",
+          "anchor_exact": "name: cpol_cpha",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "SPI-03",
+      "scope": "spi_host",
+      "requirement": "Predict transmitted byte order and received word byte enables for aligned and partial words in both ByteOrder configurations.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_host/doc/theory_of_operation.md",
+          "section": "Data Formatting",
+          "anchor_exact": "## Data Formatting"
+        }
+      ],
+      "checks": [
+        "Predict transmitted byte order and received word byte enables for aligned and partial words in both ByteOrder configurations."
+      ],
+      "negative_tests": [
+        "Use lengths around word boundaries and forbidden zero-byte TX writes."
+      ],
+      "coverage_dimensions": [
+        "ByteOrder",
+        "length_mod_4",
+        "direction"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/spi_host/data/spi_host_testplan.hjson",
+          "name": "unaligned_data_cg",
+          "anchor_exact": "name: unaligned_data_cg",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "SPI-04",
+      "scope": "spi_host",
+      "requirement": "Exhaust TX or fill RX during transfer; refill/drain and check no missing/duplicate bytes and correct retained CS.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_host/doc/theory_of_operation.md",
+          "section": "Stall Conditions",
+          "anchor_exact": "#### Stall Conditions"
+        }
+      ],
+      "checks": [
+        "Exhaust TX or fill RX during transfer; refill/drain and check no missing/duplicate bytes and correct retained CS."
+      ],
+      "negative_tests": [
+        "Delay service for multiple serial periods and stall at a segment boundary."
+      ],
+      "coverage_dimensions": [
+        "stall_kind",
+        "speed",
+        "segment_boundary"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/spi_host/data/spi_host_testplan.hjson",
+          "name": "stall",
+          "anchor_exact": "name: stall",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "SPI-05",
+      "scope": "spi_host",
+      "requirement": "Check documented FIFO/command/pin reset behavior and ability to start a clean transaction after software reset.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_host/doc/theory_of_operation.md",
+          "section": "Component reset",
+          "anchor_exact": "### Component reset"
+        }
+      ],
+      "checks": [
+        "Check documented FIFO/command/pin reset behavior and ability to start a clean transaction after software reset."
+      ],
+      "negative_tests": [
+        "Reset during a transfer, stall or passthrough transition."
+      ],
+      "coverage_dimensions": [
+        "reset_phase",
+        "mode",
+        "FIFO_state"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/spi_host/data/spi_host_testplan.hjson",
+          "name": "sw_reset",
+          "anchor_exact": "name: sw_reset",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "SPI-06",
+      "scope": "spi_host",
+      "requirement": "Check event/error enables, status/clear effects and interrupts with an independently logged event stream.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_host/doc/theory_of_operation.md",
+          "section": "Interrupt Aggregation",
+          "anchor_exact": "## Interrupt Aggregation"
+        }
+      ],
+      "checks": [
+        "Check event/error enables, status/clear effects and interrupts with an independently logged event stream."
+      ],
+      "negative_tests": [
+        "Clear status concurrently with new event; command while READY is low."
+      ],
+      "coverage_dimensions": [
+        "event_class",
+        "enable",
+        "concurrent_clear"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/spi_host/data/spi_host_testplan.hjson",
+          "name": "error_event_intr",
+          "anchor_exact": "name: error_event_intr",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "SPI-07",
+      "scope": "spi_host",
+      "requirement": "Compare passthrough requests and returned data with physical flash-side pins, output enables and ownership.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_host/doc/theory_of_operation.md",
+          "section": "Pass-through Mode",
+          "anchor_exact": "## Pass-through Mode"
+        }
+      ],
+      "checks": [
+        "Compare passthrough requests and returned data with physical flash-side pins, output enables and ownership."
+      ],
+      "negative_tests": [
+        "Overlap host work and passthrough transition; enforce the documented ownership constraints."
+      ],
+      "coverage_dimensions": [
+        "passthrough_state",
+        "host_activity",
+        "reset"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/spi_host/data/spi_host_testplan.hjson",
+          "name": "passthrough_mode",
+          "anchor_exact": "name: passthrough_mode",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "DEV-01",
+      "scope": "spi_device",
+      "requirement": "Exercise command slots and compare decoded opcode/address/dummy/payload phases and lane widths against programmed command metadata.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_device--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_device/doc/theory_of_operation.md",
+          "section": "Command Information List",
+          "anchor_exact": "### Command Information List"
+        }
+      ],
+      "checks": [
+        "Exercise command slots and compare decoded opcode/address/dummy/payload phases and lane widths against programmed command metadata."
+      ],
+      "negative_tests": [
+        "Shortest permitted inactive CS spacing and unsupported command encodings."
+      ],
+      "coverage_dimensions": [
+        "command_slot",
+        "mode",
+        "address_length",
+        "lane_width"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/spi_device/data/spi_device_testplan.hjson",
+          "name": "cmd_info_slots",
+          "anchor_exact": "name: cmd_info_slots",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "DEV-02",
+      "scope": "spi_device",
+      "requirement": "Independently predict flash status, busy/WEL and software update effects before and after serial commands.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_device--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_device/doc/theory_of_operation.md",
+          "section": "Status Control",
+          "anchor_exact": "### Status Control"
+        }
+      ],
+      "checks": [
+        "Independently predict flash status, busy/WEL and software update effects before and after serial commands."
+      ],
+      "negative_tests": [
+        "Race software status changes against serial status reads."
+      ],
+      "coverage_dimensions": [
+        "busy",
+        "WEL",
+        "operation"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/spi_device/data/spi_device_testplan.hjson",
+          "name": "cmd_read_status",
+          "anchor_exact": "name: cmd_read_status",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "DEV-03",
+      "scope": "spi_device",
+      "requirement": "Compare complete configured JEDEC bytes and SFDP discovery reads at address/length boundaries.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_device--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_device/doc/theory_of_operation.md",
+          "section": "JEDEC ID Control",
+          "anchor_exact": "### JEDEC ID Control"
+        }
+      ],
+      "checks": [
+        "Compare complete configured JEDEC bytes and SFDP discovery reads at address/length boundaries."
+      ],
+      "negative_tests": [
+        "Abort reads and read beyond configured ranges using explicitly specified expected behavior."
+      ],
+      "coverage_dimensions": [
+        "read_kind",
+        "address_boundary",
+        "length"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/spi_device/data/spi_device_testplan.hjson",
+          "name": "cmd_read_jedec",
+          "anchor_exact": "name: cmd_read_jedec",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "DEV-04",
+      "scope": "spi_device",
+      "requirement": "Use independent memory contents to predict pipelined reads, dummy cycles, mailbox transitions and 3B/4B addresses.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_device--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_device/doc/theory_of_operation.md",
+          "section": "Read Command Processor",
+          "anchor_exact": "### Read Command Processor"
+        }
+      ],
+      "checks": [
+        "Use independent memory contents to predict pipelined reads, dummy cycles, mailbox transitions and 3B/4B addresses."
+      ],
+      "negative_tests": [
+        "Cross mailbox/read-buffer boundaries while software updates buffers."
+      ],
+      "coverage_dimensions": [
+        "address_mode",
+        "boundary",
+        "dummy_cycles",
+        "speed"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/spi_device/data/spi_device_testplan.hjson",
+          "name": "cmd_read_pipeline",
+          "anchor_exact": "name: cmd_read_pipeline",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "DEV-05",
+      "scope": "spi_device",
+      "requirement": "Track opcode/address/payload entries and ordering from observed serial commands to software-visible upload FIFOs.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_device--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_device/doc/theory_of_operation.md",
+          "section": "Command Upload",
+          "anchor_exact": "### Command Upload"
+        }
+      ],
+      "checks": [
+        "Track opcode/address/payload entries and ordering from observed serial commands to software-visible upload FIFOs."
+      ],
+      "negative_tests": [
+        "Fill upload storage and abort commands; no fictitious completed upload."
+      ],
+      "coverage_dimensions": [
+        "payload_size",
+        "FIFO_state",
+        "command_type"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/spi_device/data/spi_device_testplan.hjson",
+          "name": "flash_cmd_upload",
+          "anchor_exact": "name: flash_cmd_upload",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "DEV-06",
+      "scope": "spi_device",
+      "requirement": "Predict command filtering, address/payload transformations and locally intercepted responses before downstream transmission.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_device--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_device/doc/theory_of_operation.md",
+          "section": "Passthrough",
+          "anchor_exact": "### Passthrough"
+        }
+      ],
+      "checks": [
+        "Predict command filtering, address/payload transformations and locally intercepted responses before downstream transmission."
+      ],
+      "negative_tests": [
+        "Filtered writes must cause no downstream side effect; test mask and mailbox boundaries."
+      ],
+      "coverage_dimensions": [
+        "filter",
+        "address_swap",
+        "payload_swap",
+        "intercept"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/spi_device/data/spi_device_testplan.hjson",
+          "name": "pass_cmd_filtering",
+          "anchor_exact": "name: pass_cmd_filtering",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "DEV-07",
+      "scope": "spi_device",
+      "requirement": "Check TPM framing, read/write bytes, readiness behavior and hardware-return registers against an independent model.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_device--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_device/doc/theory_of_operation.md",
+          "section": "TPM over SPI",
+          "anchor_exact": "## TPM over SPI"
+        }
+      ],
+      "checks": [
+        "Check TPM framing, read/write bytes, readiness behavior and hardware-return registers against an independent model."
+      ],
+      "negative_tests": [
+        "Mix TPM and flash/passthrough with minimum inactive CS spacing."
+      ],
+      "coverage_dimensions": [
+        "direction",
+        "return_mode",
+        "size",
+        "competing_mode"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/spi_device/data/spi_device_testplan.hjson",
+          "name": "tpm_read",
+          "anchor_exact": "name: tpm_read",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "USB-01",
+      "scope": "usbdev",
+      "requirement": "Predict SETUP/OUT/IN token/data/handshake sequences, address/endpoint qualification and data toggle transitions.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--usbdev--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/usbdev/doc/theory_of_operation.md",
+          "section": "USB Protocol Engine",
+          "anchor_exact": "## USB Protocol Engine"
+        }
+      ],
+      "checks": [
+        "Predict SETUP/OUT/IN token/data/handshake sequences, address/endpoint qualification and data toggle transitions."
+      ],
+      "negative_tests": [
+        "Repeated tokens, wrong addresses and invalid toggles follow specified reject/retry behavior."
+      ],
+      "coverage_dimensions": [
+        "endpoint",
+        "direction",
+        "transfer_kind",
+        "toggle"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/usbdev/data/usbdev_testplan.hjson",
+          "name": "setup_stage",
+          "anchor_exact": "name: setup_stage",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "USB-02",
+      "scope": "usbdev",
+      "requirement": "Track unique buffer ownership from software availability to receive FIFO metadata and reclamation; compare payload/length.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--usbdev--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/usbdev/doc/theory_of_operation.md",
+          "section": "Buffer Interface",
+          "anchor_exact": "## Buffer Interface"
+        }
+      ],
+      "checks": [
+        "Track unique buffer ownership from software availability to receive FIFO metadata and reclamation; compare payload/length."
+      ],
+      "negative_tests": [
+        "Exhaust available buffers and fill RX FIFO; no overwrite or false packet completion."
+      ],
+      "coverage_dimensions": [
+        "buffer_state",
+        "packet_length",
+        "endpoint"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/usbdev/data/usbdev_testplan.hjson",
+          "name": "av_buffer",
+          "anchor_exact": "name: av_buffer",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "USB-03",
+      "scope": "usbdev",
+      "requirement": "Compare IN bytes, length and completion metadata including zero/minimum/maximum packet boundaries.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--usbdev--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/usbdev/doc/theory_of_operation.md",
+          "section": "Transmission",
+          "anchor_exact": "### Transmission"
+        }
+      ],
+      "checks": [
+        "Compare IN bytes, length and completion metadata including zero/minimum/maximum packet boundaries."
+      ],
+      "negative_tests": [
+        "Retries, STALL, isochronous mode and interrupted transfers must not create false completion."
+      ],
+      "coverage_dimensions": [
+        "length_boundary",
+        "endpoint",
+        "transfer_mode"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/usbdev/data/usbdev_testplan.hjson",
+          "name": "max_length_in_transaction",
+          "anchor_exact": "name: max_length_in_transaction",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "USB-04",
+      "scope": "usbdev",
+      "requirement": "Independently decode received USB data and validate accepted payload and metadata.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--usbdev--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/usbdev/doc/theory_of_operation.md",
+          "section": "Reception",
+          "anchor_exact": "### Reception"
+        }
+      ],
+      "checks": [
+        "Independently decode received USB data and validate accepted payload and metadata."
+      ],
+      "negative_tests": [
+        "Inject bad CRC/PID/bit stuffing and malformed lengths; reject corrupted completions."
+      ],
+      "coverage_dimensions": [
+        "error_kind",
+        "endpoint",
+        "buffer_available"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/usbdev/data/usbdev_testplan.hjson",
+          "name": "rx_crc_err",
+          "anchor_exact": "name: rx_crc_err",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "USB-05",
+      "scope": "usbdev",
+      "requirement": "Drive connect/reset/suspend/resume timing and check link state, bus behavior and interrupts.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--usbdev--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/usbdev/doc/theory_of_operation.md",
+          "section": "USB Link State",
+          "anchor_exact": "## USB Link State"
+        }
+      ],
+      "checks": [
+        "Drive connect/reset/suspend/resume timing and check link state, bus behavior and interrupts."
+      ],
+      "negative_tests": [
+        "Resume/reset at suspend boundary and lose VBUS/sense while active."
+      ],
+      "coverage_dimensions": [
+        "link_transition",
+        "enable",
+        "clock_state"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/usbdev/data/usbdev_testplan.hjson",
+          "name": "link_reset",
+          "anchor_exact": "name: link_reset",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "USB-06",
+      "scope": "usbdev",
+      "requirement": "Exercise supported PHY pin/bus settings and compare transmit/receive decoding in the corresponding digital PHY model.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--usbdev--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/usbdev/doc/theory_of_operation.md",
+          "section": "USB Interface Pins",
+          "anchor_exact": "## USB Interface Pins"
+        }
+      ],
+      "checks": [
+        "Exercise supported PHY pin/bus settings and compare transmit/receive decoding in the corresponding digital PHY model."
+      ],
+      "negative_tests": [
+        "Constrain or explicitly reject unsupported configuration combinations."
+      ],
+      "coverage_dimensions": [
+        "bus_type",
+        "pinflip",
+        "TX_mode",
+        "RX_mode"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/usbdev/data/usbdev_testplan.hjson",
+          "name": "phy_config_pinflip",
+          "anchor_exact": "name: phy_config_pinflip",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "USB-07",
+      "scope": "usbdev",
+      "requirement": "Check suspend request, wake-detection-active and wake-acknowledge ordering while USB functional clocks stop/restart.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--usbdev--doc--wake_resume-md",
+          "upstream_path": "hw/ip/usbdev/doc/wake_resume.md",
+          "section": "Overview",
+          "anchor_exact": "# Overview"
+        }
+      ],
+      "checks": [
+        "Check suspend request, wake-detection-active and wake-acknowledge ordering while USB functional clocks stop/restart."
+      ],
+      "negative_tests": [
+        "Inject resume, reset or sense loss during handoff and require retained wake event."
+      ],
+      "coverage_dimensions": [
+        "wake_reason",
+        "handoff_phase",
+        "clock_running"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/usbdev/data/usbdev_testplan.hjson",
+          "name": "link_suspend",
+          "anchor_exact": "name: link_suspend",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "INT-01",
+      "scope": "spi_device",
+      "requirement": "Run an external host transaction through SPI_DEVICE and SPI_HOST0 to a flash model; compare both interfaces and resulting memory effects.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_device--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_device/doc/theory_of_operation.md",
+          "section": "Passthrough",
+          "anchor_exact": "### Passthrough"
+        }
+      ],
+      "checks": [
+        "Run an external host transaction through SPI_DEVICE and SPI_HOST0 to a flash model; compare both interfaces and resulting memory effects."
+      ],
+      "negative_tests": [
+        "Filter/translate the command and reset one side during active passthrough; use an explicitly versioned recovery contract."
+      ],
+      "coverage_dimensions": [
+        "command_class",
+        "filter",
+        "transform",
+        "reset_phase"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/spi_device/data/spi_device_testplan.hjson",
+          "name": "pass_addr_translation",
+          "anchor_exact": "name: pass_addr_translation",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "INT-02",
+      "scope": "usbdev",
+      "requirement": "Integrate the actual USB wake interface with a controllable pinmux/AON boundary model and verify wake completion after clock removal.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--usbdev--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/usbdev/doc/theory_of_operation.md",
+          "section": "Optional external AON/Wake functionality",
+          "anchor_exact": "## Optional external AON/Wake functionality"
+        }
+      ],
+      "checks": [
+        "Integrate the actual USB wake interface with a controllable pinmux/AON boundary model and verify wake completion after clock removal."
+      ],
+      "negative_tests": [
+        "A stimulus-only pulse is insufficient: check request/active/acknowledge ordering and absence of lost wake."
+      ],
+      "coverage_dimensions": [
+        "wake_reason",
+        "power_state",
+        "handoff_phase"
+      ],
+      "reference_testpoints": [
+        {
+          "upstream_path": "hw/ip/usbdev/data/usbdev_testplan.hjson",
+          "name": "link_resume",
+          "anchor_exact": "name: link_resume",
+          "support": "representative_comparison_reference_not_full_obligation_evidence"
+        }
+      ],
+      "status": "not_run"
+    },
+    {
+      "id": "BUS-01",
+      "scope": "shared_contract",
+      "requirement": "Implement the declared TL-UL subset and software-visible peripheral isolation.",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--tlul--README-md",
+          "upstream_path": "hw/ip/tlul/README.md",
+          "anchor_exact": "# Bus Specification"
+        }
+      ],
+      "checks": [
+        "Use an active TL-UL agent, independent request/response scoreboard and backpressure; interleave accesses to all selected modules."
+      ],
+      "negative_tests": [
+        "Malformed requests require specified errors; do not invent integrity encoding from an incomplete source."
+      ],
+      "coverage_dimensions": [
+        "target",
+        "opcode",
+        "backpressure",
+        "error_class"
+      ],
+      "reference_testpoints": [],
+      "status": "not_run"
+    },
+    {
+      "id": "CSR-01",
+      "scope": "shared_contract",
+      "requirement": "Derive all selected CSR reset values, access semantics, locks, valid fields and side effects from the supplied register specifications and HJSON.",
+      "source_refs": [
+        {
+          "source_id": "doc--contributing--hw--comportability--README-md",
+          "upstream_path": "doc/contributing/hw/comportability/README.md",
+          "anchor_exact": "# Comportability Definition and Specification"
+        }
+      ],
+      "checks": [
+        "Create UVM RAL and independent frontdoor register checks for every included module, including reset and lock sequencing."
+      ],
+      "negative_tests": [
+        "Illegal widths/masks/addresses and locked writes must have explicit specified results."
+      ],
+      "coverage_dimensions": [
+        "module",
+        "register/field",
+        "access_kind",
+        "lock_state",
+        "reset_state"
+      ],
+      "reference_testpoints": [],
+      "status": "not_run"
+    }
+  ],
+  "source_conflicts": [
+    {
+      "id": "COMMON-TLUL-INTEGRITY",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--tlul--README-md",
+          "upstream_path": "hw/ip/tlul/README.md",
+          "section": "Bus Integrity Scheme",
+          "anchor_exact": "### Bus Integrity Scheme"
+        }
+      ],
+      "issue": "The locked README leaves the Bus Integrity Scheme unfilled and contains historical planned-behavior statements. The input does not fully define integrity encoding and fault acceptance.",
+      "required_resolution": "Record missing normative requirements; version an explicit addendum before claiming full integrity coverage. Golden RTL cannot silently supply specification."
+    },
+    {
+      "id": "SPI-LEN-WIDTH",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_host/doc/theory_of_operation.md",
+          "section": "About Command Segments",
+          "anchor_exact": "### About Command Segments"
+        },
+        {
+          "source_id": "hw--ip--spi_host--doc--registers-md",
+          "upstream_path": "hw/ip/spi_host/doc/registers.md",
+          "section": "COMMAND",
+          "anchor_exact": "## COMMAND"
+        }
+      ],
+      "issue": "The theory COMMAND table says LEN is 8 bits (0:255); the register definition says 9 bits.",
+      "required_resolution": "Record a versioned interpretation citing both sources before generating length constraints, then test accepted maximum and adjacent boundaries."
+    },
+    {
+      "id": "SPI-CLOCK-INTERFACE",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_host--README-md",
+          "upstream_path": "hw/ip/spi_host/README.md",
+          "section": "Features",
+          "anchor_exact": "## Features"
+        },
+        {
+          "source_id": "hw--ip--spi_host--doc--interfaces-md",
+          "upstream_path": "hw/ip/spi_host/doc/interfaces.md",
+          "section": "Hardware Interfaces",
+          "anchor_exact": "# Hardware Interfaces"
+        }
+      ],
+      "issue": "README describes separate core clock; the interface and selected top configuration expose one clk_i.",
+      "required_resolution": "Explicitly bind this profile to the locked declared interface; do not invent another port or silently infer it from RTL."
+    },
+    {
+      "id": "SPI-CLKDIV-EQUATIONS",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_host/doc/theory_of_operation.md",
+          "anchor_exact": "#### Clock rate selection"
+        },
+        {
+          "source_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_host/doc/theory_of_operation.md",
+          "anchor_exact": "### Clock Divider"
+        },
+        {
+          "source_id": "hw--ip--spi_host--doc--registers-md",
+          "upstream_path": "hw/ip/spi_host/doc/registers.md",
+          "anchor_exact": "### CONFIGOPTS . CLKDIV"
+        }
+      ],
+      "issue": "The theory SCK-period and timeslice equations divide by CLKDIV+1, conflicting with the slower-clock prose, counter description and register formula T(sck)=2*(CLK_DIV+1)*T(core).",
+      "required_resolution": "Explicitly choose and version a coherent timing contract using the normative source evidence before defining SPI-02 timing oracle; do not copy a golden RTL counter as the definition."
+    },
+    {
+      "id": "SPI-EVENT-IRQ-SEMANTICS",
+      "source_refs": [
+        {
+          "source_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+          "upstream_path": "hw/ip/spi_host/doc/theory_of_operation.md",
+          "anchor_exact": "The SPI event interrupt is signaled only when the IP enters the corresponding state."
+        },
+        {
+          "source_id": "hw--ip--spi_host--doc--registers-md",
+          "upstream_path": "hw/ip/spi_host/doc/registers.md",
+          "anchor_exact": "## INTR_STATE"
+        },
+        {
+          "source_id": "hw--ip--spi_host--doc--registers-md",
+          "upstream_path": "hw/ip/spi_host/doc/registers.md",
+          "anchor_exact": "## EVENT_ENABLE"
+        }
+      ],
+      "issue": "Theory describes state-entry-only event interrupts, while read-only/status interrupt register descriptions and event predicates require careful level-versus-event interpretation. The source texts do not provide a single unambiguous temporal oracle.",
+      "required_resolution": "Record exact assertion/deassertion and enable-while-condition-active behavior before generating SPI-06 expected interrupts; cover entry, sustained condition, mask changes and repeat entry separately."
+    }
+  ],
+  "reference_gaps": [
+    "Upstream leaf RTL/DV is not an existing implementation or verification suite for the authored reduced subsystem wrapper.",
+    "Selected reference files are not a proved standalone dependency closure; use a full pinned checkout to resolve build dependencies.",
+    "No simulation, CDC/lint signoff, formal proof or coverage percentage is certified."
+  ]
+}

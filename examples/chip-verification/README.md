@@ -1,4 +1,41 @@
-# 复杂芯片规范入门案例
+# 芯片设计与 UVM 验证案例
+
+## 仓库内的复杂题目与参考答案
+
+`cases/` 保存两个可离线使用的公开题目，以及同一 OpenTitan 固定版本的实际参考 RTL、UVM、测试计划和 FPV 文件。每题 `input/spec.json` 的**独立上游规格正文大于 512 KiB（524,288 字节）**，JSON 包装、重复文档、作者补充的系统题设、RTL、验证代码和许可证均不计入门槛。两题共享的协议资料在每题只计算一次。
+
+| 题目 | 设计范围 | spec.json 字节 | 独立规格正文字节 | 题目与答案 |
+| --- | --- | ---: | ---: | --- |
+| 串行 I/O 子系统 | SPI Host、SPI Device、USB Device；TL-UL 访问、FIFO/缓冲、模式切换、错误与中断、时钟复位和外部连接约束 | 886,487 | 567,411 | [opentitan-serial-io](cases/opentitan-serial-io/README.md) |
+| 常开控制子系统 | 电源、复位、时钟、系统复位、引脚复用与告警处理；低功耗进入/退出、唤醒、保持、复位原因、升级处理 | 1,079,612 | 592,589 | [opentitan-aon-control](cases/opentitan-aon-control/README.md) |
+
+每题从作者明确标注的系统题设，连接到原始架构、微架构和模块/寄存器规格。设计线与 DV 线读取同一份 `module_graph.json` 和集成约束。这些文件是输入材料与验收依据，不是另一个任务状态管理器；运行状态仍由 LoopX 保存。
+
+目录中的 `answer_guide.md` 和 `obligations.json` 解释预期行为、来源、负向测试、覆盖维度与已知歧义；共享 `reference/` 保存锁定版本的上游实现。答案用于语义和接口比较，不要求候选 RTL 与上游逐字一致。Pinmux 在该版本具有 FPV/安全测试计划，缺少同版本独立 UVM 环境，不能用其他模块的 UVM 代替其验收。
+
+先在仓库根目录离线校验，再导出一个**仓库外的新目录**作为待测宿主工作区：
+
+```powershell
+python examples/chip-verification/case_tool.py validate
+python examples/chip-verification/case_tool.py stage --case opentitan-serial-io --destination ..\chip-runs\serial-io-01
+python -m loopx.cli chip-verification --workspace ..\chip-runs\serial-io-01 import --spec spec.json --flow design-dv --execute
+```
+
+另一题使用 `--case opentitan-aon-control` 和独立目标目录。导出器只复制题目与许可证，不复制答案或旧运行状态，也不会覆盖已有目录。这是输入物料隔离，不能约束宿主访问其他目录或网络。公平评测还需为候选运行设置实际访问权限和评测规则。不要在包含答案的 LoopX checkout 中让候选 Agent 直接解题。
+
+Codex、TRAE 中国版及其他宿主使用现有 [chip-verification 能力](../../loopx/capabilities/chip_verification/README.md)，通过状态查询、领取任务、限定上下文和结果提交推进两条线。只有一个 Agent runtime 也可以运行；更换会话不改变项目状态。不要将整个大规格粘贴进对话。
+
+参考材料已锁定来源并保留许可证，但依赖闭包与本机仿真基线尚未合格。完整验收必须分别进行“候选 RTL × 参考 TB”“候选 TB × 参考 RTL”、错误变异检出，以及固定覆盖分母下的回归。`case_tool.py` 只证明文件完整性、输入隔离和大小；它不执行仿真，不生成覆盖率百分比。
+
+本目录的静态公开题库是明确选定、带许可证的仓库内容。下面的旧版下载式 starter 保持原有行为；其临时下载、用户设计、生成物和运行日志仍留在忽略目录，不因新增题库而变为应提交材料。
+
+离线回归：
+
+```powershell
+python -m unittest discover -s examples/chip-verification -p test_case_tool.py -v
+```
+
+## 下载式入门资料集合
 
 这里提供两个固定版本的公开资料集合，使用标准 Python 下载并生成可导入 LoopX 的 `spec.json`。每个案例同时包含系统、微架构和模块层资料，规范角色的独立自然语言正文超过 200 KiB；RTL、已有测试、测试计划、软件和许可证不用于凑这个大小。
 
@@ -57,7 +94,7 @@ python examples/chip-verification/fetch.py --workspace .local/chip-starters --of
 python examples/chip-verification/fetch.py --workspace .local/chip-starters-copy --offline --cache-root .local/chip-starters
 ```
 
-未提供 `--offline` 时，只有网络失败且显式提供了 `--cache-root` 才会回退到校验过的缓存，回退会写入获取收据。已有文件哈希错误时直接拒绝，不静默覆盖。不要将生成的原文、规格、仿真日志或用户验证状态提交到 LoopX 源码库。
+未提供 `--offline` 时，只有网络失败且显式提供了 `--cache-root` 才会回退到校验过的缓存，回退会写入获取收据。已有文件哈希错误时直接拒绝，不静默覆盖。下载式 starter 生成的原文、规格、仿真日志或用户验证状态留在本地，不提交到 LoopX 源码库。
 
 获取器的本地完整性检查不访问网络：
 

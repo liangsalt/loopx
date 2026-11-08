@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "case_id": "opentitan-aon-control",
+  "repository": "https://github.com/lowRISC/opentitan",
+  "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+  "dependency_closure_verified": false,
+  "runtime_validation": "not_performed",
+  "stored_module_reference_files": 323,
+  "stored_build_descriptors": [
+    "hw/ip/pinmux/fpv/pinmux_common_fpv.core",
+    "hw/ip/pinmux/fpv/pinmux_fpv.core",
+    "hw/ip/pinmux/pinmux.core",
+    "hw/ip/pinmux/pinmux_component.core",
+    "hw/ip/pinmux/pinmux_reg.core",
+    "hw/ip/sysrst_ctrl/dv/cov/sysrst_ctrl_cov.core",
+    "hw/ip/sysrst_ctrl/dv/env/sysrst_ctrl_env.core",
+    "hw/ip/sysrst_ctrl/dv/sva/sysrst_ctrl_sva.core",
+    "hw/ip/sysrst_ctrl/dv/sysrst_ctrl_sim.core",
+    "hw/ip/sysrst_ctrl/dv/tests/sysrst_ctrl_test.core",
+    "hw/ip/sysrst_ctrl/sysrst_ctrl.core",
+    "hw/top_earlgrey/ip/pinmux/fpv/pinmux_chip_fpv.core",
+    "hw/top_earlgrey/ip/pinmux/pinmux_reg.core",
+    "hw/top_earlgrey/ip_autogen/alert_handler/alert_handler.core",
+    "hw/top_earlgrey/ip_autogen/alert_handler/alert_handler_component.core",
+    "hw/top_earlgrey/ip_autogen/alert_handler/alert_handler_reg.core",
+    "hw/top_earlgrey/ip_autogen/alert_handler/dv/alert_handler_sim.core",
+    "hw/top_earlgrey/ip_autogen/alert_handler/dv/cov/alert_handler_cov.core",
+    "hw/top_earlgrey/ip_autogen/alert_handler/dv/env/alert_handler_env.core",
+    "hw/top_earlgrey/ip_autogen/alert_handler/dv/sva/alert_handler_sva.core",
+    "hw/top_earlgrey/ip_autogen/alert_handler/dv/tb/alert_handler_tb.core",
+    "hw/top_earlgrey/ip_autogen/alert_handler/dv/tests/alert_handler_test.core",
+    "hw/top_earlgrey/ip_autogen/alert_handler/fpv/alert_handler_esc_timer_fpv.core",
+    "hw/top_earlgrey/ip_autogen/alert_handler/fpv/alert_handler_ping_timer_fpv.core",
+    "hw/top_earlgrey/ip_autogen/clkmgr/clkmgr.core",
+    "hw/top_earlgrey/ip_autogen/clkmgr/clkmgr_pkg.core",
+    "hw/top_earlgrey/ip_autogen/clkmgr/clkmgr_reg.core",
+    "hw/top_earlgrey/ip_autogen/clkmgr/dv/clkmgr_sim.core",
+    "hw/top_earlgrey/ip_autogen/clkmgr/dv/env/clkmgr_env.core",
+    "hw/top_earlgrey/ip_autogen/clkmgr/dv/sva/clkmgr_pwrmgr_sva_if.core",
+    "hw/top_earlgrey/ip_autogen/clkmgr/dv/sva/clkmgr_sva.core",
+    "hw/top_earlgrey/ip_autogen/clkmgr/dv/sva/clkmgr_sva_ifs.core",
+    "hw/top_earlgrey/ip_autogen/clkmgr/dv/tests/clkmgr_test.core",
+    "hw/top_earlgrey/ip_autogen/pwrmgr/dv/env/pwrmgr_env.core",
+    "hw/top_earlgrey/ip_autogen/pwrmgr/dv/pwrmgr_sim.core",
+    "hw/top_earlgrey/ip_autogen/pwrmgr/dv/sva/pwrmgr_rstmgr_sva_if.core",
+    "hw/top_earlgrey/ip_autogen/pwrmgr/dv/sva/pwrmgr_sva.core",
+    "hw/top_earlgrey/ip_autogen/pwrmgr/dv/sva/pwrmgr_unit_only_sva.core",
+    "hw/top_earlgrey/ip_autogen/pwrmgr/dv/tests/pwrmgr_test.core",
+    "hw/top_earlgrey/ip_autogen/pwrmgr/pwrmgr.core",
+    "hw/top_earlgrey/ip_autogen/pwrmgr/pwrmgr_components.core",
+    "hw/top_earlgrey/ip_autogen/pwrmgr/pwrmgr_pkg.core",
+    "hw/top_earlgrey/ip_autogen/pwrmgr/pwrmgr_reg.core",
+    "hw/top_earlgrey/ip_autogen/rstmgr/dv/env/rstmgr_env.core",
+    "hw/top_earlgrey/ip_autogen/rstmgr/dv/rstmgr_cnsty_chk/rstmgr_cnsty_chk_sim.core",
+    "hw/top_earlgrey/ip_autogen/rstmgr/dv/rstmgr_sim.core",
+    "hw/top_earlgrey/ip_autogen/rstmgr/dv/sva/rstmgr_sva.core",
+    "hw/top_earlgrey/ip_autogen/rstmgr/dv/sva/rstmgr_sva_ifs.core",
+    "hw/top_earlgrey/ip_autogen/rstmgr/dv/tests/rstmgr_test.core",
+    "hw/top_earlgrey/ip_autogen/rstmgr/rstmgr.core",
+    "hw/top_earlgrey/ip_autogen/rstmgr/rstmgr_cnsty_chk.core",
+    "hw/top_earlgrey/ip_autogen/rstmgr/rstmgr_pkg.core",
+    "hw/top_earlgrey/ip_autogen/rstmgr/rstmgr_reg.core"
+  ],
+  "shared_system_reference_files": [
+    "hw/top_earlgrey/data/autogen/top_earlgrey.gen.hjson",
+    "hw/top_earlgrey/rtl/autogen/top_earlgrey.sv",
+    "hw/top_earlgrey/rtl/autogen/top_earlgrey_pkg.sv",
+    "hw/top_earlgrey/rtl/autogen/top_earlgrey_rnd_cnst_pkg.sv",
+    "hw/top_earlgrey/rtl/top_pkg.sv",
+    "hw/top_earlgrey/top_earlgrey.core",
+    "hw/top_earlgrey/top_earlgrey_pkg.core",
+    "hw/top_earlgrey/top_pkg.core"
+  ],
+  "additional_dependency_candidate_roots": [
+    {
+      "path": "hw/dv/README.md",
+      "candidate_file_count": 1
+    },
+    {
+      "path": "hw/dv/doc",
+      "candidate_file_count": 1
+    },
+    {
+      "path": "hw/dv/dpi",
+      "candidate_file_count": 50
+    },
+    {
+      "path": "hw/dv/sv",
+      "candidate_file_count": 462
+    },
+    {
+      "path": "hw/dv/tools",
+      "candidate_file_count": 58
+    },
+    {
+      "path": "hw/dv/verilator",
+      "candidate_file_count": 24
+    },
+    {
+      "path": "hw/ip/lc_ctrl",
+      "candidate_file_count": 11
+    },
+    {
+      "path": "hw/ip/prim",
+      "candidate_file_count": 501
+    },
+    {
+      "path": "hw/ip/prim_generic",
+      "candidate_file_count": 67
+    },
+    {
+      "path": "hw/ip/tlul",
+      "candidate_file_count": 36
+    },
+    {
+      "path": "hw/top_earlgrey/ip",
+      "candidate_file_count": 30
+    },
+    {
+      "path": "hw/top_earlgrey/rtl",
+      "candidate_file_count": 6
+    }
+  ],
+  "limitations": [
+    "The stored RTL/UVM/FPV/testplan subset is an inspectable upstream reference, not a proved standalone build closure.",
+    "Candidate dependency roots are discovery hints, not an exhaustive list or a claim that every file under them is required.",
+    "Reggen/topgen artifacts, shared primitives/packages/VIPs, build tooling and third-party/tool dependencies must be resolved against this same upstream revision before execution.",
+    "Use upstream build descriptors and DVSim/FuseSoC configuration as source material; no Vivado compatibility or runnable top-level is qualified by this corpus.",
+    "A complete upstream reference build and its independent checker activity must pass before comparison results are accepted.",
+    "The system input is a selected subsystem exercise, not a provided production SoC integration or implementation signoff."
+  ]
+}

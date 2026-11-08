@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "case_id": "opentitan-aon-control",
+  "root_module": "aon_control_subsystem",
+  "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+  "classification": "author_defined_reduced_integration_profile",
+  "scope": "Selected EarlGrey subsystem; the reduced wrapper is a benchmark design choice, not an upstream native top-level. External boundaries do not become DUT RTL targets.",
+  "modules": [
+    {
+      "instance": "pwrmgr_aon",
+      "type": "pwrmgr"
+    },
+    {
+      "instance": "rstmgr_aon",
+      "type": "rstmgr"
+    },
+    {
+      "instance": "clkmgr_aon",
+      "type": "clkmgr"
+    },
+    {
+      "instance": "sysrst_ctrl_aon",
+      "type": "sysrst_ctrl"
+    },
+    {
+      "instance": "pinmux_aon",
+      "type": "pinmux"
+    },
+    {
+      "instance": "alert_handler",
+      "type": "alert_handler"
+    }
+  ],
+  "external_boundaries": [
+    {
+      "id": "tlul_boundary",
+      "description": "TL-UL host/interconnect model"
+    },
+    {
+      "id": "ast_boundary",
+      "description": "AST power-good and root clock controls"
+    },
+    {
+      "id": "cpu_boundary",
+      "description": "CPU sleep/debug/reset/crashdump boundary"
+    },
+    {
+      "id": "boot_boundary",
+      "description": "OTP/lifecycle/flash/ROM startup acknowledgements"
+    },
+    {
+      "id": "usbdev_boundary",
+      "description": "USBDEV wake interface"
+    },
+    {
+      "id": "edn_boundary",
+      "description": "EDN entropy response"
+    },
+    {
+      "id": "pads_and_other_wakes",
+      "description": "external pads and unselected wake/reset sources"
+    }
+  ],
+  "design_choices": [
+    "Implement the six control instances; CPU, AST, lifecycle, OTP, flash, ROM and USBDEV remain explicit environment boundaries.",
+    "Preserve source-defined parameters, clocks/resets and CSR semantics in a versioned configuration. Reduced counts/widths form a distinct profile and cannot inherit full-profile coverage.",
+    "Boundary models expose controllable latency, withheld acknowledgement, errors and stopped clocks. Permanently-ready tieoffs cannot substantiate startup/low-power scenarios.",
+    "Use one shared interface/module graph for RTL and DV planning; runtime sessions receive relevant source shards and durable state handles.",
+    "RTL microarchitecture choices may vary; observable specified behavior and declared integration relationships form the acceptance contract."
+  ],
+  "top_configuration_evidence": [
+    {
+      "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+      "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+      "line_start": 319,
+      "line_end": 325,
+      "excerpt": "    { name: \"alert_handler\",\n      type: \"alert_handler\",\n      clock_srcs: {clk_i: \"io_div4\", clk_edn_i: \"main\"},\n      clock_group: \"secure\",\n      reset_connections: {rst_ni: \"lc_io_div4\", rst_edn_ni: \"lc\"},\n      base_addr: \"0x40150000\",\n      attr: \"ipgen\",",
+      "count_toward_specification_body_bytes": false
+    },
+    {
+      "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+      "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+      "line_start": 351,
+      "line_end": 460,
+      "excerpt": "    { name: \"pwrmgr_aon\",\n      type: \"pwrmgr\",\n      clock_group: \"powerup\",\n      clock_srcs: {\n        clk_i: \"io_div4\",\n        clk_slow_i: \"aon\",\n        clk_lc_i: \"io_div4\",\n        clk_esc_i: {\n          clock: \"io_div4\",\n          group: \"secure\"\n        }\n      },\n      reset_connections: {\n        rst_ni: {\n          name: \"por_io_div4\",\n          domain: \"Aon\"\n        },\n        rst_main_ni: {\n          name: \"por_aon\",\n          domain: \"0\"\n        },\n        rst_lc_ni: {\n          name: \"lc_io_div4\",\n          domain: \"Aon\"\n        },\n        rst_esc_ni: {\n          name: \"lc_io_div4\",\n          domain: \"Aon\"\n        },\n        rst_slow_ni: {\n          name: \"por_aon\",\n          domain: \"Aon\",\n        },\n      },\n      domain: [\"Aon\", \"0\"],\n      base_addr: \"0x40400000\",\n      attr: \"ipgen\",\n    },\n    { name: \"rstmgr_aon\",\n      type: \"rstmgr\",\n      clock_srcs: {\n        clk_i: {\n          clock: \"io_div4\",\n          group: \"powerup\"\n        },\n        clk_por_i: \"io_div4\", clk_aon_i: \"aon\", clk_main_i: \"main\", clk_io_i: \"io\", clk_usb_i: \"usb\",\n        clk_io_div2_i: \"io_div2\", clk_io_div4_i: \"io_div4\"\n      },\n      clock_group: \"powerup\",\n      reset_connections: {\n        rst_ni: {\n          name: \"lc_io_div4\",\n          domain: \"Aon\"\n        },\n        rst_por_ni: {\n          name: \"por_io_div4\",\n          domain: \"Aon\"\n        },\n      },\n      domain: [\"Aon\", \"0\"],\n      base_addr: \"0x40410000\",\n      attr: \"ipgen\",\n    },\n    { name: \"clkmgr_aon\",\n      type: \"clkmgr\",\n      clock_srcs: {\n        clk_i: \"io_div4\",\n        clk_main_i: {\n          group: \"ast\",\n          clock: \"main\"\n        },\n        clk_io_i: {\n          group: \"ast\",\n          clock: \"io\"\n        },\n        clk_usb_i: {\n          group: \"ast\",\n          clock: \"usb\"\n        },\n        clk_aon_i: {\n          group: \"ast\",\n          clock: \"aon\"\n        }\n      },\n      clock_group: \"powerup\",\n      reset_connections: {rst_ni: \"lc_io_div4\",\n                          rst_aon_ni: \"lc_aon\",\n                          rst_io_ni: \"lc_io\",\n                          rst_io_div2_ni: \"lc_io_div2\",\n                          rst_io_div4_ni: \"lc_io_div4\",\n                          rst_main_ni: \"lc\",\n                          rst_usb_ni: \"lc_usb\",\n                          rst_root_ni: \"por_io_div4\",\n                          rst_root_io_ni: \"por_io\",\n                          rst_root_io_div2_ni: \"por_io_div2\",\n                          rst_root_io_div4_ni: \"por_io_div4\",\n                          rst_root_main_ni: \"por\",\n                          rst_root_usb_ni: \"por_usb\",\n                         },\n      domain: [\"Aon\"],\n      base_addr: \"0x40420000\",\n      attr: \"ipgen\",\n    },\n    { name: \"sysrst_ctrl_aon\",\n      type: \"sysrst_ctrl\",\n      clock_srcs: {clk_i: \"io_div4\", clk_aon_i: \"aon\"},\n      clock_group: \"secure\",\n      reset_connections: {rst_ni: \"lc_io_div4\", rst_aon_ni: \"lc_aon\"},\n      domain: [\"Aon\"],\n      base_addr: \"0x40430000\"",
+      "count_toward_specification_body_bytes": false
+    },
+    {
+      "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+      "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+      "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+      "line_start": 478,
+      "line_end": 494,
+      "excerpt": "    { name: \"pinmux_aon\",\n      type: \"pinmux\",\n      clock_srcs: {clk_i: \"io_div4\", clk_aon_i: \"aon\"},\n      clock_group: \"powerup\",\n      reset_connections: {rst_ni: \"lc_io_div4\",\n                          rst_aon_ni: \"lc_aon\",\n                          rst_sys_ni: \"sys_io_div4\"\n                         },\n      domain: [\"Aon\"],\n      base_addr: \"0x40460000\",\n      attr: \"templated\",\n      param_decl: {\n        // NOTE THAT THIS IS A FEATURE FOR TEST CHIPS ONLY TO MITIGATE\n        // THE RISK OF A BROKEN OTP MACRO. THIS WILL BE DISABLED FOR\n        // PRODUCTION DEVICES.\n        SecVolatileRawUnlockEn: \"top_pkg::SecVolatileRawUnlockEn\",\n      }",
+      "count_toward_specification_body_bytes": false
+    }
+  ],
+  "relationship_evidence": [
+    {
+      "from": "pwrmgr_aon",
+      "to": "rstmgr_aon",
+      "relationship": "power/reset request-response",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 927,
+        "line_end": 931,
+        "excerpt": "      'pwrmgr_aon.pwr_flash'    : ['flash_ctrl.pwrmgr'],\n      'pwrmgr_aon.pwr_rst'      : ['rstmgr_aon.pwr'],\n      'pwrmgr_aon.pwr_clk'      : ['clkmgr_aon.pwr'],\n      'pwrmgr_aon.pwr_otp'      : ['otp_ctrl.pwr_otp'],\n      'pwrmgr_aon.pwr_lc'       : ['lc_ctrl.pwr_lc'],",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "pwrmgr_aon",
+      "to": "clkmgr_aon",
+      "relationship": "power/clock request-response",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 927,
+        "line_end": 931,
+        "excerpt": "      'pwrmgr_aon.pwr_flash'    : ['flash_ctrl.pwrmgr'],\n      'pwrmgr_aon.pwr_rst'      : ['rstmgr_aon.pwr'],\n      'pwrmgr_aon.pwr_clk'      : ['clkmgr_aon.pwr'],\n      'pwrmgr_aon.pwr_otp'      : ['otp_ctrl.pwr_otp'],\n      'pwrmgr_aon.pwr_lc'       : ['lc_ctrl.pwr_lc'],",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "pwrmgr_aon",
+      "to": "pinmux_aon",
+      "relationship": "strap sampling and sleep indication",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 932,
+        "line_end": 934,
+        "excerpt": "      'pwrmgr_aon.strap'        : ['pinmux_aon.strap_en'],\n      'pwrmgr_aon.low_power'    : ['pinmux_aon.sleep_en',\n                                   'aon_timer_aon.sleep_mode'],",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "alert_handler",
+      "to": "pwrmgr_aon",
+      "relationship": "escalation reset channel",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 909,
+        "line_end": 916,
+        "excerpt": "      'alert_handler.esc_rx'    : ['rv_core_ibex.esc_rx',\n                                   'lc_ctrl.esc_scrap_state0_rx',\n                                   'lc_ctrl.esc_scrap_state1_rx',\n                                   'pwrmgr_aon.esc_rst_rx'],\n      'alert_handler.esc_tx'    : ['rv_core_ibex.esc_tx',\n                                   'lc_ctrl.esc_scrap_state0_tx',\n                                   'lc_ctrl.esc_scrap_state1_tx',\n                                   'pwrmgr_aon.esc_rst_tx'],",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "alert_handler",
+      "to": "rstmgr_aon",
+      "relationship": "crashdump",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 908,
+        "line_end": 908,
+        "excerpt": "      'alert_handler.crashdump' : ['rstmgr_aon.alert_dump'],",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "rstmgr_aon",
+      "to": "pwrmgr_aon",
+      "relationship": "software reset request",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/top_earlgrey.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+        "line_start": 1060,
+        "line_end": 1061,
+        "excerpt": "      // Reset manager software reset request to pwrmgr\n      'rstmgr_aon.sw_rst_req' : ['pwrmgr_aon.sw_rst_req'],",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "sysrst_ctrl_aon",
+      "to": "pwrmgr_aon",
+      "relationship": "wake and reset request vector membership",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/autogen/top_earlgrey.gen.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "611a13bcd616ff15fded70a64ca5e580bb9907320a7ed2baa9a78e65023c0348",
+        "line_start": 8662,
+        "line_end": 8675,
+        "excerpt": "      pwrmgr_aon.wakeups:\n      [\n        sysrst_ctrl_aon.wkup_req\n        adc_ctrl_aon.wkup_req\n        pinmux_aon.pin_wkup_req\n        pinmux_aon.usb_wkup_req\n        aon_timer_aon.wkup_req\n        sensor_ctrl_aon.wkup_req\n      ]\n      pwrmgr_aon.rstreqs:\n      [\n        sysrst_ctrl_aon.rst_req\n        aon_timer_aon.aon_timer_rst_req\n      ]",
+        "count_toward_specification_body_bytes": false
+      }
+    },
+    {
+      "from": "pinmux_aon",
+      "to": "pwrmgr_aon",
+      "relationship": "pin and USB wake vector membership",
+      "classification": "real_upstream_connection",
+      "evidence": {
+        "upstream_path": "hw/top_earlgrey/data/autogen/top_earlgrey.gen.hjson",
+        "revision": "c69eaea24a57c581ed274779887cb4a0c1405e3b",
+        "sha256": "611a13bcd616ff15fded70a64ca5e580bb9907320a7ed2baa9a78e65023c0348",
+        "line_start": 8662,
+        "line_end": 8675,
+        "excerpt": "      pwrmgr_aon.wakeups:\n      [\n        sysrst_ctrl_aon.wkup_req\n        adc_ctrl_aon.wkup_req\n        pinmux_aon.pin_wkup_req\n        pinmux_aon.usb_wkup_req\n        aon_timer_aon.wkup_req\n        sensor_ctrl_aon.wkup_req\n      ]\n      pwrmgr_aon.rstreqs:\n      [\n        sysrst_ctrl_aon.rst_req\n        aon_timer_aon.aon_timer_rst_req\n      ]",
+        "count_toward_specification_body_bytes": false
+      }
+    }
+  ],
+  "context_size_credit": 0,
+  "source_precedence": "Record normative source contradictions explicitly. Do not use candidate or golden RTL to silently supply missing requirements."
+}
