@@ -388,18 +388,32 @@ class StateStore:
     def ready_tasks(self, limit: int = 20) -> list[dict]:
         with self._db() as db:
             baseline_id = self._current(db)
+            hold_filter = (
+                "AND NOT EXISTS(SELECT 1 FROM watchdog_holds h WHERE h.task_id=t.id "
+                "AND h.baseline_id=t.baseline_id AND h.active=1) "
+                if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='watchdog_holds'").fetchone()
+                else "")
             ids = db.execute(
                 "SELECT t.id FROM tasks t WHERE t.baseline_id=? AND t.status='pending' "
                 "AND NOT EXISTS(SELECT 1 FROM dependencies d JOIN tasks p ON p.id=d.depends_on "
                 "WHERE d.task_id=t.id AND (p.status<>'done' OR p.baseline_id<>t.baseline_id)) "
-                "ORDER BY t.created,t.id LIMIT ?", (baseline_id, limit)).fetchall()
+                + hold_filter + "ORDER BY t.created,t.id LIMIT ?", (baseline_id, limit)).fetchall()
             return [self._task(db, row[0]) for row in ids]
+
+    def _assert_not_held(self, db, task_id):
+        """A durable review hold fences retries without changing task evidence."""
+        if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='watchdog_holds'").fetchone():
+            held = db.execute("SELECT incident_id FROM watchdog_holds WHERE task_id=? AND baseline_id=? AND active=1",
+                              (task_id, self._current(db))).fetchone()
+            if held:
+                raise ConflictError("Watchdog holds this work; inspect and resolve incident " + held[0])
 
     def claim(self, task_id: str, session_id: str, lease_seconds: float = 300) -> dict:
         if not session_id or lease_seconds <= 0:
             raise ValueError("A session identity and positive lease duration are required")
         with self._db(write=True) as db:
             task = self._task(db, task_id)
+            self._assert_not_held(db, task_id)
             baseline_id = self._current(db)
             if task["baseline_id"] != baseline_id or task["status"] != "pending":
                 raise ConflictError(f"Task cannot be claimed from {task['status']}")
@@ -640,6 +654,7 @@ class StateStore:
     def requeue(self, task_id: str, *, payload: dict | None = None) -> dict:
         with self._db(write=True) as db:
             task = self._task(db, task_id)
+            self._assert_not_held(db, task_id)
             if task["status"] not in {"failed", "blocked", "stale", "cancelled"}:
                 raise StateError(f"Cannot requeue a task in {task['status']}")
             baseline_id = self._current(db)
@@ -658,6 +673,12 @@ class StateStore:
             recovered = []
             for attempt in expired:
                 task = self._task(db, attempt["task_id"])
+                try:
+                    self._assert_not_held(db, task["id"])
+                except ConflictError:
+                    # An independent review owns recovery of held work. Other
+                    # tasks may still recover through the normal host path.
+                    continue
                 db.execute("UPDATE attempts SET status='abandoned',ended=?,reason=? WHERE id=?",
                            (now, "Execution lease expired", attempt["id"]))
                 if task["status"] == "running" and task["attempt_id"] == attempt["id"]:
@@ -732,6 +753,8 @@ class StateStore:
         if status not in RUN_TRANSITIONS or not run_id or not tool:
             raise ValueError("A run needs an identity, tool and supported status")
         metadata, artifacts = metadata or {}, artifacts or []
+        if "event_protocol" in metadata:
+            raise ValueError("event_protocol is reserved for the event registration owner")
         with self._db(write=True) as db:
             baseline_id = self._current(db)
             existing = db.execute("SELECT * FROM runs WHERE id=?", (run_id,)).fetchone()
@@ -741,6 +764,7 @@ class StateStore:
                     raise ConflictError("Run identity is already registered to different work")
                 return self._decode(existing, ("metadata", "artifacts"))
             if task_id:
+                self._assert_not_held(db, task_id)
                 task = self._task(db, task_id)
                 if task["baseline_id"] != baseline_id:
                     raise ConflictError("Cannot submit a run for stale work")
@@ -764,6 +788,8 @@ class StateStore:
             if status != row["status"] and status not in RUN_TRANSITIONS.get(row["status"], set()):
                 raise StateError(f"Invalid external run transition: {row['status']} -> {status}")
             merged_metadata = json.loads(row["metadata"])
+            if merged_metadata.get("event_protocol"):
+                raise StateError("Event-managed runs must be updated through event-ingest")
             merged_metadata.update(metadata or {})
             validity = "current" if row["baseline_id"] == self._current(db) and row["validity"] == "current" else "stale"
             db.execute("UPDATE runs SET status=?,metadata=?,artifacts=?,validity=?,updated=? WHERE id=?",

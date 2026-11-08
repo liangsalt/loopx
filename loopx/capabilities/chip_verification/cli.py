@@ -95,6 +95,30 @@ def register_chip_verification_commands(
     job.add_argument("--job-id", required=True)
     action("report", "Read coverage evidence and limitations without exporting files.")
     action("install-trae", "Preview or install workspace-scoped Trae integration.")
+    registered = action("run-register", "Register immutable external EDA work before dispatch; never launches EDA.")
+    for key in ("run-id", "task-id", "tool", "source", "input-digest"):
+        registered.add_argument("--" + key, required=True)
+    registered.add_argument("--attempt-id")
+    registered.add_argument("--heartbeat-seconds", type=int, default=300)
+    registered.add_argument("--timeout-seconds", type=int, default=86400)
+    registered.add_argument("--queue-timeout-seconds", type=int, default=3600)
+    event = action("event-ingest", "Durably deliver an adapter event; duplicate IDs are safe to replay.")
+    event.add_argument("--event-file", required=True, help="Workspace-relative event envelope, at most 64 KiB.")
+    events = action("event-status", "Read bounded event receipts and observed runs; no task acceptance.")
+    events.add_argument("--run-id")
+    events.add_argument("--after", type=int, default=0)
+    events.add_argument("--limit", type=int, default=50)
+    detail = action("event-read", "Recall one immutable event body in bounded character slices.")
+    detail.add_argument("--cursor", required=True, type=int)
+    detail.add_argument("--offset", type=int, default=0)
+    detail.add_argument("--limit", type=int, default=8000)
+    action("watchdog-tick", "Reconcile progress and health once, independently of worker sessions.")
+    action("watchdog-status", "Read incidents, holds, review work and Watchdog liveness.")
+    policy = action("watchdog-policy", "Version validated Watchdog thresholds with an explicit reason.")
+    policy.add_argument("--policy-file", required=True)
+    policy.add_argument("--reason", required=True)
+    apply = action("watchdog-apply", "Apply an accepted independent review with current-state fencing.")
+    apply.add_argument("--review-task-id", required=True)
 
 
 def _render(payload: dict[str, Any]) -> str:
@@ -120,7 +144,9 @@ def handle_chip_verification_command(
             fields = ("spec", "name", "scope", "chunk_chars", "context_chars", "dimension", "limit",
                       "kind", "task_id", "session_id", "attempt_id", "response_file", "response",
                       "reason", "rtl_files", "top", "profile_path", "scope_id", "manifest", "simulator", "job_id",
-                      "timeout", "run_smoke", "flow", "contract_task_id", "rtl_task_id")
+                      "timeout", "run_smoke", "flow", "contract_task_id", "rtl_task_id",
+                      "run_id", "tool", "source", "input_digest", "heartbeat_seconds", "timeout_seconds",
+                      "queue_timeout_seconds", "event_file", "after", "policy_file", "review_task_id", "cursor", "offset")
             arguments = {key: getattr(args, key) for key in fields if getattr(args, key, None) is not None}
             if "response" in arguments:
                 raw = arguments["response"]

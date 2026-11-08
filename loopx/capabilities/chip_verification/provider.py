@@ -32,10 +32,15 @@ def _project(root, *, write=False):
 def _status(project):
     status = project.store.status()
     ready = project.store.ready_tasks(10000)
+    reviews = [task for task in ready if task["kind"] == "watchdog-review"]
+    ready = [task for task in ready if task["kind"] != "watchdog-review"]
     if project.config.get("engineering_enabled"):
         ready = [task for task in ready if task["kind"] != "plan"]
         status["ready_count"] = len(ready)
     status.update(initialized=True, capability_id="chip-verification",
+                  ready_count=len(ready),
+                  watchdog_reviews=[{"task_id": t["id"], "title": t["title"]} for t in reviews[:8]],
+                  watchdog_review_count=len(reviews),
                   context_budget_chars=project.config.get("host_context_chars", project.config["context_chars"]),
                   next_tasks=[{key: t[key] for key in ("id", "kind", "title", "status")}
                               for t in ready[:8]],
@@ -152,6 +157,31 @@ def invoke(action: str, *, workspace: str | Path, arguments: dict | None = None,
         return _status(project)
     if action == "report":
         return _report(project)
+    if action in {"run-register", "event-ingest", "event-status", "event-read"}:
+        from .engine import event_inbox
+        if action == "run-register":
+            project.assert_inputs_current()
+            return event_inbox.register(project, args)
+        if action == "event-ingest":
+            return event_inbox.ingest(project, _object_argument(root, args, "event"))
+        if action == "event-read":
+            return event_inbox.read_event(project, args["cursor"], offset=args.get("offset", 0),
+                                          limit=args.get("limit", 8000))
+        return event_inbox.status(project, run_id=args.get("run_id"),
+                                  after=args.get("after", 0), limit=args.get("limit", 50))
+    if action.startswith("watchdog-"):
+        from .engine import watchdog
+        if action == "watchdog-status":
+            from .watchdog_service import read_service_status, dispatch_status
+            return {**watchdog.status(project), "service": read_service_status(project),
+                    "review_dispatches": dispatch_status(project)}
+        if action == "watchdog-tick":
+            return watchdog.tick(project)
+        if action == "watchdog-policy":
+            return watchdog.configure(project, _object_argument(root, args, "policy"), args["reason"])
+        if action == "watchdog-apply":
+            project.assert_inputs_current()
+            return watchdog.apply(project, args["review_task_id"])
     if action == "design-map":
         from .engine.hierarchy import design_map
         return design_map(project, dimension=args.get("dimension"), limit=args.get("limit", 100), refresh=False)
@@ -209,3 +239,15 @@ def invoke(action: str, *, workspace: str | Path, arguments: dict | None = None,
         from .jobs import status
         return status(project, args["job_id"])
     raise ValueError("Unsupported chip verification action: " + action)
+
+
+def _object_argument(root, args, key):
+    value = args.get(key)
+    if key + "_file" in args:
+        path = _path(root, args[key + "_file"])
+        if path.stat().st_size > 65536:
+            raise ValueError(key + " file exceeds 64 KiB; reference bulky evidence instead")
+        value = json.loads(path.read_text(encoding="utf-8-sig"))
+    if not isinstance(value, dict):
+        raise ValueError(key + " must be an object")
+    return value

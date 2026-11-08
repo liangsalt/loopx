@@ -26,6 +26,9 @@ def digest(value):
 
 def _domain(task):
     """Select the chip-domain validator, without changing session ownership."""
+    if task["kind"] == "watchdog-review":
+        from .engine import watchdog
+        return watchdog
     if task["kind"] in {"spec-contract", "contract-plan"}:
         from .engine import engineering
         return engineering
@@ -38,7 +41,20 @@ def _domain(task):
 def _feedback(project, task, prompt):
     items = [item["description"] for item in project.store.list_issues()
              if item["task_id"] == task["id"] and item["category"] == "candidate_revision" and item["status"] == "open"]
-    return prompt + ("\nRevision feedback (preserve the source contract):\n" + items[-1] if items else "")
+    prompt += "\nRevision feedback (preserve the source contract):\n" + items[-1] if items else ""
+    if task["kind"] != "watchdog-review":
+        with project.store._db() as db:
+            if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='watchdog_incidents'").fetchone():
+                review = db.execute(
+                    "SELECT t.id,t.result FROM watchdog_incidents i JOIN tasks t ON t.id=i.review_task_id "
+                    "WHERE i.task_id=? AND i.baseline_id=? AND i.status='resumed' AND t.status='done' "
+                    "ORDER BY i.updated DESC LIMIT 1", (task["id"], task["baseline_id"])).fetchone()
+                if review:
+                    result = json.loads(review["result"])
+                    prompt += ("\nAccepted independent recovery review " + review["id"] +
+                               " (preserve the source contract and evidence gates):\n" +
+                               encoded({key: result[key] for key in ("diagnosis", "strategy")}))
+    return prompt
 
 
 def revise(project, task_id, reason):
@@ -62,8 +78,13 @@ def revise(project, task_id, reason):
 
 
 def _resume_revisions(project):
+    with project.store._db() as db:
+        held = ({row[0] for row in db.execute("SELECT task_id FROM watchdog_holds WHERE active=1 AND baseline_id=?",
+                                            (project.store._current(db),))}
+                if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='watchdog_holds'").fetchone()
+                else set())
     for task in project.store.list_tasks(status="stale"):
-        if (task["kind"] in {"rtl", "implement"} and (task["reason"] or "").startswith("Candidate revision ")
+        if (task["id"] not in held and task["kind"] in {"rtl", "implement"} and (task["reason"] or "").startswith("Candidate revision ")
                 and all(project.store.get_task(key)["status"] == "done" for key in task["depends_on"])):
             project.store.requeue(task["id"])
 
@@ -103,6 +124,9 @@ def summary(project, item):
 
 
 def prepare(project, task, prompt, schema, session_id, request=None, budget=None):
+    if task["kind"] == "watchdog-review":
+        from .engine.watchdog import assert_review_session
+        assert_review_session(project, task, session_id)
     budget = budget or project.config.get("host_context_chars", project.config["context_chars"])
     contract = {"task_id": task["id"], "kind": task["kind"], "prompt": prompt,
                 "host_instruction": HOST_INSTRUCTION, "output_schema": schema, "context_budget_chars": budget}
@@ -324,7 +348,8 @@ def submit(project, attempt_id, response):
 def claim(project, arguments):
     project.assert_inputs_current()
     project.store.verify_artifacts()
-    project.store.recover_expired()
+    if arguments.get("kind") != "watchdog-review":
+        project.store.recover_expired()
     project.reconcile()
     _resume_revisions(project)
     if project.config.get("engineering_enabled"):
@@ -336,6 +361,10 @@ def claim(project, arguments):
     selected = arguments.get("task_id")
     ready = ([project.store.get_task(selected)] if selected else project.store.ready_tasks(10000))
     ready = [t for t in ready if not arguments.get("kind") or t["kind"] == arguments["kind"]]
+    # A review is explicitly claimed in a separate host session, never silently
+    # assigned to the worker whose recent actions it must assess.
+    if arguments.get("kind") != "watchdog-review":
+        ready = [t for t in ready if t["kind"] != "watchdog-review"]
     if project.config.get("engineering_enabled"):
         ready = [task for task in ready if task["kind"] != "plan"]
     for task in ready:
@@ -346,6 +375,7 @@ def claim(project, arguments):
             return prepare(project, task, prompt, schema, session)
         if task["kind"] in {"model", "plan"}:
             prompt, schema, _ = project.task_context(task)
+            prompt = _feedback(project, task, prompt)
             return prepare(project, task, prompt, schema, session)
         if task["kind"] in {"architecture", "implement"}:
             basis = task["payload"].get("basis")

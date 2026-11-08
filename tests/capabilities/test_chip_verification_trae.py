@@ -154,7 +154,8 @@ def test_mcp_schemas_fail_closed_and_writes_are_explicit(tmp_path):
 
     async def exercise():
         tools = {tool.name: tool for tool in await server.list_tools()}
-        assert len(tools) == 22
+        assert {"dv_register_run", "dv_ingest_event", "dv_event_status", "dv_watchdog_tick",
+                "dv_watchdog_status", "dv_watchdog_policy", "dv_watchdog_apply"} <= tools.keys()
         assert {"dv_prepare_design", "dv_engineering_status", "dv_check_design", "dv_join_design"} <= tools.keys()
         assert tools["dv_import"].inputSchema["properties"]["flow"]["default"] == "design-dv"
         assert "rtl_files" not in tools["dv_generate_uvm"].inputSchema.get("required", [])

@@ -41,7 +41,9 @@ def create_server(workspace: str | Path, *, invoker: Callable[..., dict] | None 
             "reads dv_context and submits its result. Fresh sessions or optional child "
             "sessions relieve context pressure; neither workflow requires two agents. "
             "A session_id is a caller-supplied execution label, not verified TRAE identity. "
-            "Poll asynchronous build receipts with dv_job_status."
+            "Poll local build receipts with dv_job_status; external adapters deliver dv_ingest_event. "
+            "Read dv_watchdog_status for durable incidents and explicitly claim kind=watchdog-review "
+            "in a separate session. A pending review is not an automatic host wake-up."
         ),
         log_level="WARNING",
     )
@@ -149,6 +151,51 @@ def create_server(workspace: str | Path, *, invoker: Callable[..., dict] | None 
     def dv_job_status(job_id: str) -> dict:
         """Read an asynchronous EDA job receipt and bounded diagnostics."""
         return call("job-status", {"job_id": job_id})
+
+    @tool
+    def dv_register_run(run_id: str, task_id: str, tool: str, source: str, input_digest: str,
+                        attempt_id: str | None = None, heartbeat_seconds: int = 300,
+                        timeout_seconds: int = 86400, queue_timeout_seconds: int = 3600) -> dict:
+        """Pin external work to current task inputs before the adapter dispatches it; no EDA launch."""
+        return call("run-register", {"run_id": run_id, "task_id": task_id, "tool": tool,
+                    "source": source, "input_digest": input_digest, "attempt_id": attempt_id,
+                    "heartbeat_seconds": heartbeat_seconds, "timeout_seconds": timeout_seconds,
+                    "queue_timeout_seconds": queue_timeout_seconds}, execute=True)
+
+    @tool
+    def dv_ingest_event(event: dict) -> dict:
+        """Durably ingest a bounded adapter event; tool completion cannot certify DV acceptance."""
+        return call("event-ingest", {"event": event}, execute=True)
+
+    @tool
+    def dv_event_status(run_id: str | None = None, after: int = 0, limit: int = 50) -> dict:
+        """Read an event cursor and observed runs; retain the cursor outside the session."""
+        return call("event-status", {"run_id": run_id, "after": after, "limit": limit})
+
+    @tool
+    def dv_watchdog_status() -> dict:
+        """Explain current progress/health incidents, holds, review tasks and last control tick."""
+        return call("watchdog-status")
+
+    @tool
+    def dv_event_read(cursor: int, offset: int = 0, limit: int = 8000) -> dict:
+        """Recall an immutable event body in bounded slices; compare its fingerprint across reads."""
+        return call("event-read", {"cursor": cursor, "offset": offset, "limit": limit})
+
+    @tool
+    def dv_watchdog_tick() -> dict:
+        """Run one independent control pass; repeated calls are durable and restart safe."""
+        return call("watchdog-tick", execute=True)
+
+    @tool
+    def dv_watchdog_policy(policy: dict, reason: str) -> dict:
+        """Version bounded detection/backoff thresholds; cannot rewrite task goals or execute code."""
+        return call("watchdog-policy", {"policy": policy, "reason": reason}, execute=True)
+
+    @tool
+    def dv_watchdog_apply(review_task_id: str) -> dict:
+        """Apply only an accepted review; stale evidence or exhausted recovery budgets hold work."""
+        return call("watchdog-apply", {"review_task_id": review_task_id}, execute=True)
 
     @tool
     def dv_report() -> dict:

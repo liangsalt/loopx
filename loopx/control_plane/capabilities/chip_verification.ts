@@ -7,12 +7,15 @@ export const CHIP_VERIFICATION_ACTIONS = [
   "heartbeat", "abandon", "retry", "export-plan", "generation-scopes", "generate-uvm",
   "build-uvm", "job-status", "report", "install-trae",
   "prepare-design", "engineering-status", "check-design", "join-design", "revise",
+  "run-register", "event-ingest", "event-status", "event-read", "watchdog-tick", "watchdog-status",
+  "watchdog-policy", "watchdog-apply",
 ] as const;
 export type ChipVerificationAction = (typeof CHIP_VERIFICATION_ACTIONS)[number];
 const MUTATIONS: ReadonlySet<ChipVerificationAction> = new Set([
   "import", "claim", "submit", "heartbeat", "abandon", "retry", "export-plan",
   "generate-uvm", "build-uvm", "install-trae",
   "prepare-design", "check-design", "join-design", "revise",
+  "run-register", "event-ingest", "watchdog-tick", "watchdog-policy", "watchdog-apply",
 ]);
 
 const object = (value: unknown, label: string): JsonObject => {
@@ -46,8 +49,36 @@ export function admitChipVerification(input: unknown) {
     "generate-uvm": ["top"], "build-uvm": ["manifest"], "job-status": ["job_id"],
     "check-design": ["rtl_task_id"], "join-design": ["rtl_task_id", "manifest"],
     revise: ["task_id", "reason"],
+    "run-register": ["run_id", "task_id", "tool", "source", "input_digest"],
+    "watchdog-policy": ["reason"], "watchdog-apply": ["review_task_id"],
   };
   for (const key of required[action] ?? []) text(args[key], key);
+  if (action === "event-ingest" || action === "watchdog-policy") {
+    const key = action === "event-ingest" ? "event" : "policy";
+    const fileKey = key + "_file";
+    const hasValue = args[key] !== undefined && args[key] !== null;
+    const hasFile = args[fileKey] !== undefined && args[fileKey] !== null;
+    if (hasValue === hasFile) throw new EffectRuntimeRequestError(`${action} requires exactly one of ${key} or ${fileKey}`);
+    if (hasValue) object(args[key], key);
+    if (hasFile) text(args[fileKey], fileKey);
+  }
+  if (args.after !== undefined && (!Number.isSafeInteger(args.after) || (args.after as number) < 0)) {
+    throw new EffectRuntimeRequestError("after must be a nonnegative safe integer");
+  }
+  if (action === "event-status" && args.limit !== undefined && (args.limit as number) > 200) {
+    throw new EffectRuntimeRequestError("event-status limit must not exceed 200");
+  }
+  if (action === "event-read") {
+    if (!Number.isSafeInteger(args.cursor) || (args.cursor as number) < 1) {
+      throw new EffectRuntimeRequestError("cursor must be a positive safe integer");
+    }
+    if (args.offset !== undefined && (!Number.isSafeInteger(args.offset) || (args.offset as number) < 0)) {
+      throw new EffectRuntimeRequestError("offset must be a nonnegative safe integer");
+    }
+    if (args.limit !== undefined && (args.limit as number) > 16000) {
+      throw new EffectRuntimeRequestError("event-read limit must not exceed 16000");
+    }
+  }
   for (const key of ["task_id", "attempt_id", "session_id", "kind", "profile_path", "scope_id", "simulator", "contract_task_id", "rtl_task_id"]) {
     if (args[key] !== undefined && args[key] !== null) text(args[key], key);
   }

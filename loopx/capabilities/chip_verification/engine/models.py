@@ -21,6 +21,7 @@ class Stage(StrEnum):
     SMOKE = "smoke"
     REGRESS = "regress"
     ANALYZE = "analyze"
+    WATCHDOG_REVIEW = "watchdog-review"
 
 
 class TaskStatus(StrEnum):
