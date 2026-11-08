@@ -38,7 +38,7 @@ def synthetic_spec(root: Path, *, large: bool = False) -> Path:
         "fixture_notice": "SYNTHETIC protocol test only; no chip coverage qualification.",
         "modules": [{"name": f"synthetic_unit_{number:03d}", "description": (
             f"Synthetic unit {number} acknowledges a request after reset is released. "
-            "This deliberately repetitive payload tests bounded import and durable source identities. "
+            "This deliberately repetitive payload tests module-scoped import and durable source identities. "
         ) * 8} for number in range(paragraphs)],
     }
     path = root / "synthetic-spec.json"
@@ -128,18 +128,18 @@ def test_input_path_escape_fails_before_domain_initialization(tmp_path: Path) ->
     assert not (workspace / STATE).exists()
 
 
-def test_large_spec_bounded_context_survives_restart_and_replay(tmp_path: Path) -> None:
+def test_large_spec_module_context_survives_restart_and_replay(tmp_path: Path) -> None:
     imported = import_fixture(tmp_path, large=True)
     assert imported["spec_bytes"] >= 200 * 1024
     assert imported["model_tasks"] > 1
     claimed = invoke("claim", workspace=tmp_path, arguments={"session_id": "synthetic-host-before-restart", "kind": "model"}, execute=True)
     assert claimed["status"] == "awaiting_host"
-    assert claimed["context_chars"] <= claimed["context_budget_chars"] == 24000
+    assert claimed["context_chars"] > 0 and claimed["context_budget_chars"] is None
     attempt = claimed["attempt_id"]
     original = invoke("context", workspace=tmp_path, arguments={"attempt_id": attempt})
     restored = fresh_process("context", tmp_path, {"attempt_id": attempt})
     assert restored == original
-    assert len(json.dumps(restored, ensure_ascii=False, separators=(",", ":"))) <= 24000
+    assert restored["context_budget_chars"] is None
     assert len(restored["prompt"]) < imported["spec_bytes"] / 5
     response = response_for(restored)
     response_path = tmp_path / "synthetic-response.json"
@@ -164,6 +164,29 @@ def test_large_spec_bounded_context_survives_restart_and_replay(tmp_path: Path) 
     with pytest.raises((ValueError, RuntimeError), match="accepted testpoint"):
         invoke("generation-scopes", workspace=tmp_path)
     assert files(tmp_path) == before
+
+
+def test_complete_function_context_can_exceed_former_limit_and_ignore_legacy_options(tmp_path: Path) -> None:
+    behavior = "The counter increments on each accepted tick while enabled and preserves its value otherwise. " * 800
+    source = tmp_path / "spec.json"
+    source.write_text(json.dumps({"module": "timer", "function": "count", "behavior": behavior}), encoding="utf-8")
+    imported = invoke("import", workspace=tmp_path, arguments={"spec": source.name,
+                      "chunk_chars": 32, "context_chars": 1}, execute=True)
+    assert imported["context_budget_chars"] is None
+    assert imported["decomposition"] == "module_function_relationship_stage"
+    claimed = invoke("claim", workspace=tmp_path, arguments={"session_id": "semantic-host"}, execute=True)
+    assert claimed["context_chars"] > 24000
+    context = invoke("context", workspace=tmp_path, arguments={"attempt_id": claimed["attempt_id"]})
+    pack = json.loads(context["prompt"].rsplit("\n", 1)[1])
+    assert behavior in "".join(item["text"] for item in pack["sources"])
+    assert context["context_budget_chars"] is None
+    assert fresh_process("context", tmp_path, {"attempt_id": claimed["attempt_id"]}) == context
+    # An enormous legacy hint neither creates new partitions nor mutates an
+    # already active attempt on the same semantic baseline.
+    repeated = invoke("import", workspace=tmp_path, arguments={"spec": source.name,
+                      "chunk_chars": 1500000, "context_chars": 1500000}, execute=True)
+    assert repeated["model_tasks"] == imported["model_tasks"]
+    assert invoke("context", workspace=tmp_path, arguments={"attempt_id": claimed["attempt_id"]}) == context
 
 
 def test_invalid_candidate_can_be_corrected_without_losing_attempt(tmp_path: Path) -> None:

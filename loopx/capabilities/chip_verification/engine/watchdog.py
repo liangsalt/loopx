@@ -160,11 +160,13 @@ def _observe(project, db, task, now):
                          "observed_terminal": item["metadata"].get("observed_terminal"),
                          "input_digest": item["metadata"].get("registration", {}).get("input_digest")}
                         for item in runs]
+    # Legacy *_excerpt field names remain readable; task semantics and selected
+    # recovery strategies are complete, not character-limited summaries.
     return {"baseline_id": baseline,
             "target": {key: task[key] for key in ("id", "baseline_id", "kind", "revision", "attempt_id", "status")},
             "progress_fingerprint": progress, "observation_fingerprint": _hash([run_observations, active_identity]),
-            "input_digest": payload_hash, "title": task["title"][:500],
-            "scope_excerpt": str(task["payload"].get("scope", ""))[:1200],
+            "input_digest": payload_hash, "title": task["title"],
+            "scope_excerpt": str(task["payload"].get("scope", "")),
             "shared_contract_task_id": task["payload"].get("contract_task_id"),
             "dependencies": dependencies[:12], "dependency_count": len(dependencies),
             "artifacts": [{key: item[key] for key in ("id", "task_id", "sha256", "created")} | {"path_excerpt": item["path"][:160], "kind": item["kind"][:80]} for item in artifacts[:12]], "artifact_count": len(artifacts),
@@ -175,7 +177,7 @@ def _observe(project, db, task, now):
             "last_review_at": last_review, "lease_until": worker["lease_until"] if worker else None,
             "consecutive_failures": max(_streak(attempt_failures, resumed_at), _streak(run_failures, resumed_at)),
             "recovery_count": repair["resume_count"] if repair else 0,
-            "previous_strategy_excerpts": [item["text"][:400] for item in json.loads(repair["strategies"])[-3:]] if repair else [],
+            "previous_strategy_excerpts": [item["text"] for item in json.loads(repair["strategies"])[-3:]] if repair else [],
             "evidence_refs": [f"task:{task_id}:revision:{task['revision']}",
                               *["attempt:" + item["id"] for item in attempts[:8]],
                               *["run:" + item["id"] for item in runs[:8]],
@@ -197,14 +199,6 @@ def _review_task(project, db, incident, snapshot, generation, now):
     # receives representative references, counts and full-state fingerprints,
     # never a replay of all EDA logs or the original specification.
     snapshot = {**snapshot, "active_runs": snapshot["active_runs"][:8]}
-    budget = min(project.config.get("host_context_chars", project.config["context_chars"]) - 4000, 18000)
-    if len(_json(snapshot)) > budget:
-        snapshot = {**snapshot, "artifacts": snapshot["artifacts"][:4], "attempts": snapshot["attempts"][:4],
-                    "runs": snapshot["runs"][:4], "active_runs": snapshot["active_runs"][:4],
-                    "dependencies": snapshot["dependencies"][:4], "evidence_refs": snapshot["evidence_refs"][:12],
-                    "excerpts_reduced": True}
-    if len(_json(snapshot)) > budget:
-        raise ValidationError("Watchdog snapshot exceeds the configured host budget; increase the budget before review")
     task_id = "watchdog-review-" + _hash([incident["id"], generation])[:24]
     payload = {"incident_id": incident["id"], "snapshot": snapshot}
     db.execute("INSERT INTO tasks(id,baseline_id,kind,title,payload,status,created,updated) VALUES(?,?,'watchdog-review',?,?,'pending',?,?)",
@@ -281,10 +275,10 @@ def tick(project, now=None):
                 review = project.store._task(db, incident["review_task_id"])
                 if review["status"] != "done":
                     project.store._stop_task_current(db, review["id"], "cancelled", "Watchdog observations changed; inspect a fresh snapshot")
-                current.update(goal_excerpt=str(project.config.get("scope", ""))[:1800], reason=incident["reason"], policy_revision=policy_record["revision"])
+                current.update(goal_excerpt=str(project.config.get("scope", "")), reason=incident["reason"], policy_revision=policy_record["revision"])
                 created.append(_review_task(project, db, incident, current, incident["generation"] + 1, now))
             elif incident["status"] == "waiting" and incident["next_check"] <= now and len(created) < policy["max_reviews_per_tick"]:
-                current.update(goal_excerpt=str(project.config.get("scope", ""))[:1800], reason=incident["reason"], policy_revision=policy_record["revision"])
+                current.update(goal_excerpt=str(project.config.get("scope", "")), reason=incident["reason"], policy_revision=policy_record["revision"])
                 created.append(_review_task(project, db, incident, current, incident["generation"] + 1, now))
         cursor = db.execute("SELECT last_task_id FROM watchdog_scan WHERE id=1").fetchone()[0]
         rows = db.execute("SELECT id FROM tasks WHERE baseline_id=? AND kind<>'watchdog-review' AND status NOT IN ('cancelled','stale') AND id>? ORDER BY id LIMIT ?", (baseline, cursor, policy["max_tasks_per_tick"])).fetchall()
@@ -305,7 +299,7 @@ def tick(project, now=None):
         observed = {entry["target"]["id"]: entry for entry in observations}
         for decision in evaluation["decisions"][:max(0, policy["max_reviews_per_tick"] - len(created))]:
             snapshot = observed[decision["task_id"]]
-            snapshot.update(goal_excerpt=str(project.config.get("scope", ""))[:1800], reason=decision["reason"], policy_revision=policy_record["revision"])
+            snapshot.update(goal_excerpt=str(project.config.get("scope", "")), reason=decision["reason"], policy_revision=policy_record["revision"])
             incident_id = "watchdog-" + _hash([baseline, decision["task_id"], snapshot["target"]["revision"], decision["reason"], snapshot["observation_fingerprint"], snapshot["progress_fingerprint"], now])[:24]
             incident = {"id": incident_id, "task_id": decision["task_id"], "baseline_id": baseline, "reason": decision["reason"]}
             db.execute("INSERT INTO watchdog_incidents VALUES(?,?,?,?,'open',?,NULL,0,NULL,?,?)", (incident_id, decision["task_id"], baseline, decision["reason"], _json(snapshot), now, now))
@@ -325,9 +319,9 @@ REVIEW_SCHEMA = {
     "type": "object", "additionalProperties": False,
     "required": ["diagnosis", "evidence_refs", "strategy", "action", "next_check_seconds"],
     "properties": {
-        "diagnosis": {"type": "string", "minLength": 12, "maxLength": 2400},
+        "diagnosis": {"type": "string", "minLength": 12},
         "evidence_refs": {"type": "array", "minItems": 1, "maxItems": 20, "uniqueItems": True, "items": {"type": "string", "maxLength": 200}},
-        "strategy": {"type": "string", "minLength": 12, "maxLength": 2000},
+        "strategy": {"type": "string", "minLength": 12},
         "action": {"enum": ["resume", "wait"]},
         "next_check_seconds": {"type": "integer", "minimum": 30, "maximum": 86400},
     },
@@ -423,7 +417,7 @@ def apply(project, review_task_id, *, _now=None):
         next_check = now + review["result"]["next_check_seconds"] if disposition == "waiting" else None
         next_review = None
         if decision.get("refresh_review"):
-            current.update(goal_excerpt=str(project.config.get("scope", ""))[:1800], reason=incident["reason"], policy_revision=_policy(db)["revision"])
+            current.update(goal_excerpt=str(project.config.get("scope", "")), reason=incident["reason"], policy_revision=_policy(db)["revision"])
             next_review = _review_task(project, db, incident, current, incident["generation"] + 1, now)
         else:
             db.execute("UPDATE watchdog_incidents SET status=?,next_check=?,updated=? WHERE id=?", (disposition, next_check, now, incident["id"]))

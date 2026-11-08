@@ -89,16 +89,19 @@ class AgentTransportTests(unittest.TestCase):
             CodexRuntime(executable=sys.executable).run("new attempt", cwd=self.root, run_dir=self.root / "codex-success")
         self.assertEqual(len(self.children), 1)
 
-    def test_hard_budget_prevents_any_subprocess_or_attempt_write(self):
-        for adapter in (CodexRuntime, PiRuntime):
-            target = self.root / adapter.__name__
-            with patch("loopx.capabilities.chip_verification.engine.agents.subprocess.Popen") as popen, self.assertRaises(AgentError):
-                adapter(executable=sys.executable, max_prompt_chars=20).run("x" * 21, cwd=self.root, run_dir=target)
-            popen.assert_not_called()
-            self.assertFalse(target.exists())
-        with patch("loopx.capabilities.chip_verification.engine.agents.subprocess.Popen") as popen, self.assertRaises(AgentError):
-            PiRuntime(executable=sys.executable, max_prompt_chars=20).run("x", cwd=self.root, run_dir=self.root / "schema-overflow", schema={"type": "object"})
-        popen.assert_not_called()
+    def test_complete_semantic_task_is_dispatched_despite_legacy_length_argument(self):
+        prompt = "One complete functional specification. " * 4000 + "END_OF_FUNCTION"
+        schema = {"type": "object"}
+        for kind, adapter in (("codex", CodexRuntime), ("pi", PiRuntime)):
+            target = self.root / kind
+            with self.subTest(runtime=kind), self.launch(kind, "success"):
+                result = adapter(executable=sys.executable, max_prompt_chars=20).run(
+                    prompt, cwd=self.root, run_dir=target, schema=schema)
+            delivered = (target / "prompt.txt").read_text(encoding="utf-8")
+            expected = prompt if kind == "codex" else prompt + "\nReturn only JSON conforming to this schema:\n" + json.dumps(schema)
+            self.assertEqual(expected, delivered)
+            self.assertEqual(len(expected), result.prompt_chars)
+            self.assertEqual(0, result.returncode)
 
     def test_pi_prefers_final_message_and_records_session_reference(self):
         result = self.run_fixture(kind="pi", schema={"type": "object"})

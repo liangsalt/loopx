@@ -14,6 +14,7 @@ import jsonschema
 from loopx.capabilities.chip_verification.engine.models import ValidationError
 from loopx.capabilities.chip_verification.engine.simulators.xsim import SimulationError, parse_evidence, parse_xcrg_report
 from loopx.capabilities.chip_verification.engine.verification import (
+    _related_testplan,
     campaign_schema,
     close_coverage,
     digest,
@@ -682,7 +683,38 @@ class CoverageResumeTests(unittest.TestCase):
         self.assertEqual(2, runtime_factory.call_count)
         for call in runtime_factory.call_args_list:
             self.assertEqual(("pi",), call.args)
-            self.assertEqual(project.config["context_chars"], call.kwargs["max_prompt_chars"])
+            self.assertIsNone(call.kwargs["max_prompt_chars"])
+
+
+class CoverageContextTests(unittest.TestCase):
+    def project(self, points, requirements=()):
+        store = SimpleNamespace(
+            list_tasks=lambda **query: [{"id": "accepted-plan", "result": {"testpoints": points}}]
+            if query["kind"] == "plan" else [],
+            list_requirements=lambda: requirements)
+        return SimpleNamespace(store=store)
+
+    def test_gap_relationship_selects_complete_testpoint_beyond_old_length_cutoff(self):
+        unrelated = {"id": "unrelated", "name": "other", "stimulus": "x" * 10000, "coverage": ["other"]}
+        relevant = {"id": "late", "name": "reset sequencing", "requirement_ids": ["reset-req"],
+                    "stimulus": "full timing behavior " * 2000, "checkers": ["independent reset predictor"],
+                    "coverage": ["reset transition"], "configurations": ["all domain phases"]}
+        project = self.project([unrelated, relevant])
+        selected = _related_testplan(project, {"features": [{"name": "reset-gap", "requirement_ids": ["reset-req"]}]}, ["reset-gap"])
+        self.assertEqual([{**relevant, "plan_task_id": "accepted-plan"}], selected)
+
+    def test_unknown_gap_preserves_all_accepted_semantics_instead_of_first_text_prefix(self):
+        points = [{"id": str(index), "name": "opaque feature " + str(index), "stimulus": "x" * 10000,
+                   "coverage": ["unspecified mapping"], "checkers": ["complete checker"], "extra_contract": "preserve"}
+                  for index in range(3)]
+        selected = _related_testplan(self.project(points), {"features": [{"name": "unknown-gap"}]}, ["unknown-gap"])
+        self.assertEqual([{**point, "plan_task_id": "accepted-plan"} for point in points], selected)
+
+    def test_requirement_feature_mapping_selects_gap_and_keeps_cross_module_point_intact(self):
+        point = {"id": "cross-module", "requirement_ids": ["a", "b"], "coverage": ["whole relationship"]}
+        project = self.project([{"id": "unrelated"}, point], [{"id": "b", "metadata": {"features": ["cross-domain-reset"]}}])
+        selected = _related_testplan(project, {"features": [{"name": "cross-domain-reset"}]}, ["cross-domain-reset"])
+        self.assertEqual([{**point, "plan_task_id": "accepted-plan"}], selected)
 
 
 if __name__ == "__main__":

@@ -54,7 +54,8 @@ def test_external_events_hold_review_and_recovery_strategy_is_adopted(tmp_path):
         call(tmp_path, "claim", task_id=review, kind="watchdog-review", session_id="design-worker")
     claim = call(tmp_path, "claim", task_id=review, kind="watchdog-review", session_id="independent-review")
     context = call(tmp_path, "context", attempt_id=claim["attempt_id"])
-    assert context["context_chars"] <= context["context_budget_chars"]
+    assert context["context_budget_chars"] is None
+    assert context["context_chars"] >= len(context["prompt"])
     snapshot = DVProject(tmp_path).store.get_task(review)["payload"]["snapshot"]
     strategy = "Inspect the source reset-domain requirements and pin the missing constraints before a different compile."
     response = {"diagnosis": "Three equivalent compiles failed on the same reset constraint with unchanged inputs.",

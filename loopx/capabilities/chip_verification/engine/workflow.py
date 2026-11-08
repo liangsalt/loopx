@@ -1,4 +1,4 @@
-"""Original DV workflow: import -> bounded interpretation -> UVM planning."""
+"""Original DV workflow: import -> structural interpretation -> UVM planning."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from .agents import runtime
 from .context import build_context, render_context
 from .contracts import EXTRACTION_SCHEMA, PLAN_SCHEMA, EXTRACTION_INSTRUCTION, PLAN_INSTRUCTION
 from .spec import ingest_spec, iter_sources, audit_manifest, load_manifest
+from .source_structure import PARTITIONING
 from .state import StateStore
 from .models import ConflictError, ValidationError
 
@@ -36,8 +37,9 @@ def superseded_plan_ids(tasks):
     for original in tasks:
         if original["kind"] != "plan" or original["status"] != "cancelled":
             continue
-        prefix = "Superseded by bounded plan partition "
-        if not (original.get("reason") or "").startswith(prefix):
+        prefixes = ("Superseded by bounded plan partition ", "Superseded by semantic plan partition ")
+        prefix = next((value for value in prefixes if (original.get("reason") or "").startswith(value)), None)
+        if prefix is None:
             continue
         partition = original["reason"][len(prefix):]
         parts = [task for task in tasks if task["kind"] == "plan" and
@@ -59,7 +61,14 @@ def superseded_plan_ids(tasks):
             continue
         flattened = [requirement for task in sorted(parts, key=lambda task: task["payload"]["partition_index"])
                      for requirement in task["payload"].get("requirements", [])]
-        if flattened == original["payload"].get("requirements"):
+        expected = original["payload"].get("requirements")
+        if prefix == "Superseded by semantic plan partition ":
+            def encode(item):
+                return json.dumps(item, sort_keys=True, ensure_ascii=False)
+            matches = sorted(map(encode, flattened)) == sorted(map(encode, expected or []))
+        else:
+            matches = flattened == expected
+        if matches:
             superseded.add(original["id"])
     return superseded
 
@@ -82,29 +91,24 @@ class DVProject:
         return json.loads(self.config_path.read_text(encoding="utf-8"))
 
     def import_spec(self, path: str | Path, *, name: str = "DV project", scope: str = "",
-                    chunk_chars: int = 12000, context_chars: int = 24000):
-        if context_chars < chunk_chars + 3000:
-            raise ValueError("Context budget must reserve at least 3000 characters above the source chunk size")
+                    chunk_chars: int | None = None, context_chars: int | None = None):
         previous = self.config if self.config_path.exists() else {}
 
         def check_existing_identity(spec_hash):
             if previous.get("spec_sha256") != spec_hash:
                 return
-            existing_manifest = load_manifest(previous["manifest_path"])
-            if existing_manifest["max_chunk_chars"] != chunk_chars:
-                raise ValueError("Changing source partition size on the same specification requires a new project directory; the existing state was not changed")
             if previous.get("scope") != scope and self.store.list_tasks():
                 raise ValueError("Changing scope on an existing baseline requires a new project directory; the existing state was not changed")
 
-        # Reject incompatible identities before creating sources, rebinding the
-        # configuration, or modifying SQLite. A larger execution budget remains
-        # compatible with the same source inventory and task identities.
+        # Scope changes still need explicit project ownership. Deprecated length
+        # values do not affect the structural source identity or admission.
         check_existing_identity(hashlib.sha256(Path(path).read_bytes()).hexdigest())
         manifest = ingest_spec(path, self.root / ".loopx" / "chip-verification" / "specs", chunk_chars)
         check_existing_identity(manifest["spec_sha256"])
-        baseline = self.store.initialize(name, path, manifest["spec_sha256"], manifest["spec_bytes"])
+        baseline = self.store.initialize(name, path, manifest["spec_sha256"], manifest["spec_bytes"], partitioning=PARTITIONING)
         config = {"name": name, "scope": scope, "manifest_path": manifest["manifest_path"],
-                  "spec_sha256": manifest["spec_sha256"], "context_chars": context_chars}
+                  "spec_sha256": manifest["spec_sha256"], "context_chars": None, "host_context_chars": None,
+                  "partitioning": PARTITIONING}
         if previous.get("engineering_enabled"):
             config["engineering_enabled"] = True
         save_json(self.config_path, config)
@@ -113,14 +117,14 @@ class DVProject:
             self.store.add_source(source["pointer"], source["text"], metadata, source_id=source["source_id"])
         for task in manifest["extraction_tasks"]:
             payload = {**task["payload"], "scope": scope}
-            self.store.add_task("model", task["title"], payload, task_id=task["task_id"])
+            self.store.add_task("model", task["title"], payload, task_id=task["task_id"] + "_b" + str(baseline["revision"]))
         self._finish_bundle_metadata()
         from .hierarchy import synchronize
         hierarchy = synchronize(self)
         return {"baseline": baseline, "spec_bytes": manifest["spec_bytes"],
                 "sources": manifest["source_count"], "model_tasks": len(manifest["extraction_tasks"]),
                 "design_map": hierarchy,
-                "inventory": audit_manifest(manifest), "semantic_status": "requires_bounded_interpretation"}
+                "inventory": audit_manifest(manifest), "semantic_status": "requires_semantic_interpretation"}
 
     def _finish_bundle_metadata(self):
         """A local schema disposition, recorded as evidence, never as an AI turn."""
@@ -174,7 +178,7 @@ class DVProject:
             cited = set(references)
             if not cited <= allowed or not cited.intersection(owned):
                 raise ValidationError(label + " has sources outside this task or lacks owned source evidence")
-            required = {dependency for source in cited.intersection(owned)
+            required = {dependency for source in cited
                         for dependency in adjudications.get(source, [])}
             if not required <= cited:
                 raise ValidationError(label + " must cite the applicable source adjudication dependencies")
@@ -213,7 +217,8 @@ class DVProject:
             raise ConflictError("Verification scope changed while the agent was running")
         jsonschema.validate(result, PLAN_SCHEMA)
         requirements = task["payload"]["requirements"]
-        allowed = {r["id"] for r in requirements}
+        environment = task["payload"].get("context_requirements", [])
+        allowed = {r["id"] for r in requirements + environment}
         needed = {r["id"] for r in requirements if r["applicability"] == "in_scope"}
         mapped = set()
         ids = set()
@@ -223,6 +228,8 @@ class DVProject:
             ids.add(point["id"])
             if not point["requirement_ids"] or not set(point["requirement_ids"]) <= allowed:
                 raise ValidationError("Testpoint has invalid requirement references")
+            if not set(point["requirement_ids"]).intersection(needed):
+                raise ValidationError("A testpoint must cover an owned in-scope requirement; context is not a test target")
             if (not point["stimulus"].strip() or
                     not all(point[k] and all(value.strip() for value in point[k])
                             for k in ("observations", "checkers", "coverage", "uvm_components"))):
@@ -237,98 +244,78 @@ class DVProject:
         return {"passed": True, "validator": "uvm_plan_mapping_v1",
                 "checks": ["schema_valid", "in_scope_requirements_accounted", "stimulus_checker_coverage_separated"]}
 
-    def _plan_context(self, task_id, requirements):
+    def _plan_context(self, task_id, requirements, context_requirements=None):
         config = self.config
         pack = {"task_id": task_id, "scope": config["scope"],
                 "spec_sha256": config["spec_sha256"], "requirements": requirements}
-        return PLAN_INSTRUCTION + "\n" + json.dumps(pack, ensure_ascii=False), pack
+        if context_requirements:
+            pack["context_requirements"] = context_requirements
+        instruction = PLAN_INSTRUCTION + (
+            "\nContext requirements supply clock/reset/power/interface assumptions, not independent coverage targets. "
+            "Every testpoint must cite an owned in_scope requirement from requirements. It may additionally cite "
+            "relevant supplied context requirements. Preserve uncertain behavior as unresolved.\n")
+        return instruction + "\n" + json.dumps(pack, ensure_ascii=False), pack
+
+    def _recover_legacy_plan_context(self, task):
+        prefix = "Planning context exceeds budget:"
+        if task["status"] not in {"blocked", "pending"} or (
+                task["status"] == "blocked" and not (task["reason"] or "").startswith(prefix)):
+            return task
+        issues = [issue for issue in self.store.list_issues() if issue["task_id"] == task["id"] and
+                  issue["category"] == "context_blocker" and issue["description"].startswith(prefix)]
+        if issues:
+            task, _ = self.store.recover_context(
+                task, issues, "Legacy planning length limits are retired; the complete semantic scope remains intact.")
+        return task
 
     def _materialize_plan(self, model, requirements):
-        """Keep legacy identities when they fit; partition complete requirements."""
+        """Group intact requirements by their declared engineering scope."""
+        from .partitioning import partition_requirements, requirement_scope_key
         config = self.config
         identifier = "plan_" + model["id"]
         payload = {"requirements": requirements, "scope": config["scope"],
                    "source_ids": model["payload"]["source_ids"], "spec_sha256": config["spec_sha256"]}
         original = self.store.add_task("plan", "Plan UVM tests for " + model["title"], payload,
                                        depends_on=[model["id"]], task_id=identifier)
-        # Accepted documents are immutable evidence. A concurrent worker owns
-        # its active claim; reconciliation does not cancel that computation.
-        if original["status"] in {"done", "running"}:
+        original = self._recover_legacy_plan_context(original)
+        if original["status"] in {"done", "running", "blocked"}:
             return 1
-        budget = config["context_chars"]
         if original["status"] == "cancelled":
             tasks = self.store.list_tasks()
             if identifier in superseded_plan_ids(tasks):
-                partition = original["reason"].removeprefix("Superseded by bounded plan partition ")
-                parts = [task for task in tasks if task["payload"].get("supersedes") == identifier and
-                         task["payload"].get("partition_id") == partition]
-                # Changing a context limit must not duplicate accepted plans.
-                # Preserve the original partition and release its blocked item
-                # once an explicit larger budget fits the complete input.
+                parts = [task for task in tasks if task["payload"].get("supersedes") == identifier]
                 for child in parts:
-                    chars = len(self._plan_context(child["id"], child["payload"]["requirements"])[0])
-                    if chars <= budget and child["status"] == "blocked" and (child["reason"] or "").startswith("Planning context exceeds budget:"):
-                        self.store.requeue(child["id"])
-                        for issue in self.store.list_issues():
-                            if issue["task_id"] == child["id"] and issue["category"] == "context_blocker":
-                                self.store.resolve_issue(issue["id"], "The current context budget now fits the complete requirement batch.")
-                    elif chars > budget and child["status"] in {"pending", "failed"}:
-                        reason = f"Planning context exceeds budget: this retained requirement batch needs {chars} characters, budget {budget}. Restore its prior budget or refine the scope; no text was truncated."
-                        self.store.block(child["id"], reason)
-                        self.store.add_issue("context_blocker", reason, task_id=child["id"])
+                    self._recover_legacy_plan_context(child)
                 return len(parts)
-            if not (original["reason"] or "").startswith("Superseded by bounded plan partition "):
-                return 1  # Preserve an explicit operator cancellation.
-        if len(self._plan_context(identifier, requirements)[0]) <= budget:
-            if original["status"] == "blocked" and (original["reason"] or "").startswith("Planning context exceeds budget:"):
-                self.store.requeue(identifier)
-                for issue in self.store.list_issues():
-                    if issue["task_id"] == identifier and issue["category"] == "context_blocker":
-                        self.store.resolve_issue(issue["id"], "The current context budget now fits this complete requirement.")
+            if not (original["reason"] or "").startswith("Superseded by semantic plan partition "):
+                return 1
+        batches = partition_requirements(requirements)
+        if len(batches) <= 1:
             return 1
-
-        # The fingerprint includes the budget because it determines batch
-        # boundaries. IDs use a fixed-width index so the size calculation and
-        # eventual prompt are identical, including the task identity.
-        partition = hashlib.sha256(json.dumps({"requirements": requirements, "budget": budget},
-                                              ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:16]
-        def part_id(index):
-            return identifier + "__part_" + partition + "_" + f"{index:06d}"
-
-        batches, batch = [], []
-        for requirement in requirements:
-            trial = batch + [requirement]
-            if batch and len(self._plan_context(part_id(len(batches)), trial)[0]) > budget:
-                batches.append(batch)
-                batch = []
-            batch.append(requirement)
-        if batch:
-            batches.append(batch)
-
-        if len(batches) == 1:
-            # One requirement cannot be split without changing its semantics.
-            chars = len(self._plan_context(identifier, requirements)[0])
-            reason = f"Planning context exceeds budget: one complete requirement needs {chars} characters, budget {budget}. Refine its semantics or explicitly increase the budget; no text was truncated."
-            if original["status"] != "blocked" or original["reason"] != reason:
-                self.store.block(identifier, reason)
-            self.store.add_issue("context_blocker", reason, task_id=identifier)
-            return 1
-
+        keys = [requirement_scope_key(items[0]) for items in batches]
+        partition = hashlib.sha256(json.dumps(keys, sort_keys=True).encode()).hexdigest()[:16]
         for index, items in enumerate(batches):
-            child_id = part_id(index)
+            scope = keys[index]
+            fingerprint = hashlib.sha256(json.dumps(scope, sort_keys=True).encode()).hexdigest()[:16]
+            child_id = identifier + "__scope_" + fingerprint
+            child_payload = {**payload, "requirements": items, "supersedes": identifier, "partition_id": partition,
+                             "partition_index": index, "partition_count": len(batches), "semantic_scope": scope}
+            owned_ids = {item["id"] for item in items}
+            environment = [item for item in requirements if item["applicability"] == "context" and
+                           item["id"] not in owned_ids and (not item["modules"] or "$project" in item["modules"] or
+                           set(item["modules"]).intersection(scope["modules"]))]
+            try:
+                existing = self.store.get_task(child_id)
+            except KeyError:
+                existing = None
+            # Old receipts/leases retain exactly their admitted dependencies.
+            # A historical plan needing new dependencies requires invalidation.
+            if environment and (existing is None or "context_requirements" in existing["payload"]):
+                child_payload["context_requirements"] = environment
             child = self.store.add_task("plan", f"Plan UVM tests for {model['title']} ({index + 1}/{len(batches)})",
-                {**payload, "requirements": items, "supersedes": identifier, "partition_id": partition,
-                 "partition_index": index, "partition_count": len(batches)},
-                depends_on=[model["id"]], task_id=child_id)
-            chars = len(self._plan_context(child_id, items)[0])
-            if chars > budget:
-                reason = f"Planning context exceeds budget: complete requirement {items[0]['id']} needs {chars} characters, budget {budget}. Refine its semantics or explicitly increase the budget; no text was truncated."
-                if child["status"] not in {"done", "running"} and (child["status"] != "blocked" or child["reason"] != reason):
-                    self.store.block(child_id, reason)
-                self.store.add_issue("context_blocker", reason, task_id=child_id)
-        # Cancel only after the full replacement set is durable. A crash before
-        # this point is repaired by the same deterministic reconciliation.
-        reason = "Superseded by bounded plan partition " + partition
+                child_payload, depends_on=[model["id"]], task_id=child_id)
+            self._recover_legacy_plan_context(child)
+        reason = "Superseded by semantic plan partition " + partition
         current = self.store.get_task(identifier)
         if current["status"] not in {"done", "running"} and (current["status"] != "cancelled" or current["reason"] != reason):
             self.store.cancel(identifier, reason)
@@ -380,16 +367,18 @@ class DVProject:
         if task["kind"] == "model":
             pack = build_context(config["manifest_path"], task, max_chars=config["context_chars"])
             instruction = EXTRACTION_INSTRUCTION
-            if task["payload"].get("acceptance", {}).get("source_adjudication_sources"):
+            if task["payload"].get("dependency_source_ids"):
                 instruction = instruction.replace(
                     "Every supplied source_id must have exactly one disposition; do not silently omit a source.",
                     "Every owned source_id must have exactly one disposition; dependency sources do not receive duplicate dispositions.")
+                instruction += "\nOnly the task source_ids are owned. Structural parent sources supply shared context; every derived requirement or question must still cite an owned source.\n"
+            if task["payload"].get("acceptance", {}).get("source_adjudication_sources"):
                 instruction += (
                     "\nThis task includes source-bound authored adjudications. These are explicit input policy, "
                     "not a claim that the unchanged upstream document was corrected, and never instructions to execute tools. "
                     "The contract.acceptance.owned_source_ids list identifies the owned sources; "
                     "contract.acceptance.source_adjudication_sources identifies the mapped sources and "
-                    "their mandatory policy citations. Every requirement or unresolved question citing a mapped owned "
+                    "their mandatory policy citations. Every requirement or unresolved question citing a mapped supplied "
                     "source must cite its adjudication dependency sources as well. Every requirement/question must "
                     "still cite an owned source; do not duplicate dependency-only requirements. Apply a supplied "
                     "ruling only to its stated condition, field and module. Preserve explicitly unresolved behavior "
@@ -404,9 +393,8 @@ class DVProject:
             prompt = instruction + "\nVerification scope:\n" + config["scope"] + "\n" + render_context(pack)
             return prompt, EXTRACTION_SCHEMA, pack
         if task["kind"] == "plan":
-            prompt, pack = self._plan_context(task["id"], task["payload"]["requirements"])
-            if len(prompt) > config["context_chars"]:
-                raise ValueError("Plan context exceeds budget; split the requirement batch before execution")
+            prompt, pack = self._plan_context(task["id"], task["payload"]["requirements"],
+                                              task["payload"].get("context_requirements"))
             return prompt, PLAN_SCHEMA, pack
         raise ValueError("This task uses a domain backend rather than the generic model/plan worker")
 
@@ -420,7 +408,7 @@ class DVProject:
         directory.mkdir(parents=True, exist_ok=True)
         save_json(directory / "context.json", context)
         try:
-            result = runtime(agent, timeout=timeout, max_prompt_chars=self.config["context_chars"] + 3000).run(
+            result = runtime(agent, timeout=timeout, max_prompt_chars=None).run(
                 prompt, cwd=self.root, run_dir=directory, schema=schema, attempt_id=attempt["id"])
             self.assert_inputs_current()
             if task["kind"] in {"spec-contract", "contract-plan"}:
@@ -526,6 +514,9 @@ class DVProject:
         baseline = self.store.baseline()
         if not (baseline["spec_hash"] == config["spec_sha256"] == manifest["spec_sha256"]):
             raise ConflictError("State, source inventory and project configuration name different baselines")
+        if config.get("partitioning") == PARTITIONING and (
+                manifest.get("schema_version") != 2 or manifest.get("partitioning") != PARTITIONING):
+            raise ConflictError("Source inventory partitioning differs from the accepted project strategy")
         original = Path(manifest["spec_path"])
         if not original.is_file() or hashlib.sha256(original.read_bytes()).hexdigest() != config["spec_sha256"]:
             raise ConflictError("Original spec changed or disappeared; re-import to create a new baseline")

@@ -30,6 +30,8 @@ def _project(root, *, write=False):
 
 
 def _status(project):
+    from .engine.source_structure import PARTITIONING
+
     status = project.store.status()
     ready = project.store.ready_tasks(10000)
     reviews = [task for task in ready if task["kind"] == "watchdog-review"]
@@ -41,16 +43,23 @@ def _status(project):
                   ready_count=len(ready),
                   watchdog_reviews=[{"task_id": t["id"], "title": t["title"]} for t in reviews[:8]],
                   watchdog_review_count=len(reviews),
-                  context_budget_chars=project.config.get("host_context_chars", project.config["context_chars"]),
+                  context_budget_chars=None,
+                  decomposition="module_function_relationship_stage",
                   next_tasks=[{key: t[key] for key in ("id", "kind", "title", "status")}
                               for t in ready[:8]],
                   coverage={"status": "not_evaluated", "percent": None}, signoff=False)
+    status["partitioning"] = project.config.get("partitioning")
+    status["partitioning_migration_required"] = status["partitioning"] != PARTITIONING
     try:
         project.assert_inputs_current()
     except (OSError, ValueError, RuntimeError) as error:
         status.update(inputs_current=False, input_error=str(error), next_action="import")
     else:
         status.update(inputs_current=True, next_action="claim" if status["ready_count"] else "inspect")
+    if status["partitioning_migration_required"]:
+        status.update(next_action="import", migration_instruction=(
+            "Import the same specification through the normal entrypoint to replace legacy character-based "
+            "partitioning. Historical attempts and artifacts are retained; derived work is invalidated for the new decomposition."))
     if project.config.get("engineering_enabled"):
         from .engine.engineering import status as engineering_status
         status["engineering"] = engineering_status(project)
@@ -111,7 +120,7 @@ def invoke(action: str, *, workspace: str | Path, arguments: dict | None = None,
                 "executables": {name: shutil.which(name) for name in ("node", "vivado", "xvlog", "xelab", "xsim", "verible-verilog-lint")},
                 "tool_bindings": {name: os.environ.get(name) for name in ("XILINX_VIVADO", "LOOPX_VERIBLE_LINT")},
                 "host": "trae-cn-ide", "host_ui_validated": False,
-                "instruction": "Enable the project MCP server in the selected runtime. One active session can claim bounded work; child sessions are optional. Tool discovery alone is not an end-to-end verification run."}
+                "instruction": "Enable the project MCP server in the selected runtime. One active session can claim a module, function or engineering-stage task; child sessions are optional. Tool discovery alone is not an end-to-end verification run."}
     initialized = (root / STATE / "project.json").is_file()
     if not initialized and action != "import":
         return {"status": "not_initialized", "initialized": False, "next_action": "import",
@@ -125,21 +134,18 @@ def invoke(action: str, *, workspace: str | Path, arguments: dict | None = None,
         from . import host_work
         host_work.initialize(project)
     if action == "import":
-        from .engine.contracts import EXTRACTION_SCHEMA, PLAN_SCHEMA, EXTRACTION_INSTRUCTION, PLAN_INSTRUCTION
         from .engine.workflow import save_json
-        budget = args.get("context_chars", 24000)
         if initialized and project.config.get("engineering_enabled") and args.get("flow") == "dv":
             raise ValueError("An active design/DV baseline cannot silently switch to legacy DV-only semantics")
-        reserve = max(len(json.dumps(s)) for s in (EXTRACTION_SCHEMA, PLAN_SCHEMA)) + max(len(EXTRACTION_INSTRUCTION), len(PLAN_INSTRUCTION)) + 1000
-        engine_budget = budget - reserve
-        chunk = args.get("chunk_chars", 7000)
-        result = project.import_spec(spec, name=args.get("name", "Chip verification"), scope=args.get("scope", ""),
-                                     chunk_chars=chunk, context_chars=engine_budget)
-        save_json(project.config_path, {**project.config, "host_context_chars": budget})
+        # Legacy size options remain accepted by admission but never determine
+        # domain task boundaries or whether the runtime may read a task.
+        result = project.import_spec(spec, name=args.get("name", "Chip verification"), scope=args.get("scope", ""))
+        save_json(project.config_path, {**project.config, "context_chars": None, "host_context_chars": None})
         if args.get("flow", "design-dv") == "design-dv":
             from .engine.engineering import enable
             result["engineering"] = enable(project)
-        return {"status": "imported", **result, "context_budget_chars": budget, "next_action": "claim"}
+        return {"status": "imported", **result, "context_budget_chars": None,
+                "decomposition": "module_function_relationship_stage", "next_action": "claim"}
     if action == "prepare-design":
         from .engine.engineering import enable
         return enable(project)

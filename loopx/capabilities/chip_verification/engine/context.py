@@ -1,4 +1,4 @@
-"""Build a bounded model view from durable references, never whole sessions."""
+"""Build one semantic task view from durable references, never whole sessions."""
 
 from __future__ import annotations
 
@@ -11,6 +11,8 @@ from .spec import iter_sources, load_manifest
 
 
 class ContextBudgetExceeded(ValueError):
+    """Legacy import compatibility only; semantic context builders never raise it."""
+
     def __init__(self, required_chars: int, max_chars: int, required_tokens: int,
                  max_tokens: int | None, source_ids: list[str]):
         self.required_chars = required_chars
@@ -28,15 +30,13 @@ def render_context(context: dict[str, Any]) -> str:
 
 
 def build_context(manifest: dict[str, Any] | str | Path, task: dict[str, Any],
-                  max_chars: int = 20000, max_tokens: int | None = None) -> dict[str, Any]:
+                  max_chars: int | None = None, max_tokens: int | None = None) -> dict[str, Any]:
     """Materialize only task sources and explicit mandatory source dependencies.
 
-    The optional token budget uses UTF-8 byte count as a conservative estimate,
-    not a provider-specific tokenizer. Both budgets include the serialized pack.
-    External artifact references are retained as references, not silently read.
+    Legacy length arguments are accepted but do not truncate, split or reject
+    a semantic unit. Source size is an observation, not a task boundary. External
+    artifact references are retained as references, not silently read.
     """
-    if max_chars < 1 or (max_tokens is not None and max_tokens < 1):
-        raise ValueError("Context budgets must be positive")
     data = load_manifest(manifest)
     payload = task.get("payload") or {}
     if not isinstance(payload, dict):
@@ -55,7 +55,7 @@ def build_context(manifest: dict[str, Any] | str | Path, task: dict[str, Any],
     if missing:
         raise KeyError("Unknown mandatory source IDs: " + ", ".join(sorted(missing)))
     contract = {}
-    for key in ("instruction", "acceptance", "output_contract", "dependency_refs", "artifact_refs", "known_issues", "shared_contracts"):
+    for key in ("instruction", "acceptance", "semantic_scope", "partitioning", "output_contract", "dependency_refs", "artifact_refs", "known_issues", "shared_contracts"):
         if key in task:
             contract[key] = task[key]
         elif key in payload:
@@ -67,6 +67,8 @@ def build_context(manifest: dict[str, Any] | str | Path, task: dict[str, Any],
             "source_id", "pointer", "start_char", "end_char", "value_kind", "text", "revision", "metadata", "boundary",
             "previous_source_id", "next_source_id"
         )})
+        if "structure" in source:
+            sources[-1]["structure"] = source["structure"]
     pack = {
         "schema_version": 1,
         "task_id": task.get("task_id", task.get("id")),
@@ -76,12 +78,9 @@ def build_context(manifest: dict[str, Any] | str | Path, task: dict[str, Any],
         "contract": contract,
         "sources": sources,
         "retrieval": {"manifest_path": data["manifest_path"], "further_reading_requires_source_id": True},
-        "budget": {"max_chars": max_chars, "max_tokens": max_tokens, "token_estimator": "utf8_bytes_conservative"},
+        "budget": {"max_chars": None, "max_tokens": None},
+        "measurements": {"source_chars": sum(len(source["text"]) for source in sources),
+                         "source_utf8_bytes": sum(len(source["text"].encode("utf-8")) for source in sources)},
     }
     pack["context_id"] = "ctx_" + hashlib.sha256(render_context(pack).encode("utf-8")).hexdigest()
-    rendered = render_context(pack)
-    characters = len(rendered)
-    estimated_tokens = len(rendered.encode("utf-8"))
-    if characters > max_chars or (max_tokens is not None and estimated_tokens > max_tokens):
-        raise ContextBudgetExceeded(characters, max_chars, estimated_tokens, max_tokens, requested)
     return pack

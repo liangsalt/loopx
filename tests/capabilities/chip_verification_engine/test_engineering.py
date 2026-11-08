@@ -347,12 +347,15 @@ class EngineeringTests(unittest.TestCase):
         with self.assertRaisesRegex(ValidationError, "silently omits"):
             engineering.validate(self.project, task, result, [])
 
-    def test_large_single_module_is_losslessly_partitioned_into_bounded_scopes(self):
+    def test_large_module_uses_function_boundaries_independent_of_length(self):
         self.spec.write_text(json.dumps({"clauses": ["Explicit behavior " + str(i) + ": " + "x" * 650 for i in range(320)]}), encoding="utf-8")
         self.assertGreater(self.spec.stat().st_size, 200 * 1024)
         self.project.import_spec(self.spec, chunk_chars=7000, context_chars=24000)
-        tasks = self.extract()
-        self.assertGreater(len(tasks), 1)
+        def classify(requirement):
+            pointer = self.project.store.get_source(requirement["source_ids"][0])["pointer"]
+            requirement["features"] = ["operation-" + str(int(pointer.rsplit("/", 1)[1]) % 3)]
+        tasks = self.extract(classify=classify)
+        self.assertEqual(3, len(tasks))
         mapped = [item["id"] for task in tasks for item in task["payload"]["requirements"]]
         self.assertEqual(320, len(mapped))
         self.assertEqual(320, len(set(mapped)))
@@ -362,7 +365,7 @@ class EngineeringTests(unittest.TestCase):
             self.assertEqual("pending", task["status"])
             self.assertTrue(task["payload"]["partial_module"])
             prompt, schema, _ = engineering.task_context(self.project, task)
-            self.assertLess(len(json.dumps({"prompt": prompt, "output_schema": schema})), 24000)
+            self.assertGreater(len(json.dumps({"prompt": prompt, "output_schema": schema})), 24000)
         obligation = engineering.status(self.project)["composition_obligations"][0]
         self.assertFalse(obligation["whole_module_complete"])
         self.assertEqual(len(tasks), obligation["scope_count"])
@@ -371,12 +374,13 @@ class EngineeringTests(unittest.TestCase):
         self.assertEqual({task["id"] for task in tasks},
                          {task["id"] for task in self.project.store.list_tasks(kind="spec-contract")})
 
-    def test_one_atomic_requirement_that_cannot_fit_remains_explicitly_blocked(self):
+    def test_long_atomic_requirement_stays_whole_and_dispatchable(self):
         self.spec.write_text(json.dumps({"behavior": "x" * 18000}), encoding="utf-8")
         self.project.import_spec(self.spec, chunk_chars=20000, context_chars=24000)
         task = self.extract()[0]
-        self.assertEqual("blocked", task["status"])
-        self.assertIn("no required content was truncated", task["reason"])
+        self.assertEqual("pending", task["status"])
+        prompt, _, _ = engineering.task_context(self.project, task)
+        self.assertIn("x" * 18000, prompt)
         self.assertEqual(1, len(task["payload"]["requirements"]))
         self.assertEqual([], self.project.store.list_tasks(kind="microarchitecture"))
 
@@ -413,28 +417,28 @@ class EngineeringTests(unittest.TestCase):
             tasks.append(task)
         return tasks
 
-    def test_oversized_shared_environment_keeps_one_lossless_blocked_scope(self):
+    def test_large_environment_only_blocks_for_real_source_questions(self):
         requirements = self.oversized_environment(questions=True)
         self.project.reconcile()
         tasks = self.project.store.list_tasks(kind="spec-contract")
         self.assertEqual(1, len(tasks))
         task = tasks[0]
         self.assertEqual("blocked", task["status"])
-        self.assertIn("Shared contract context exceeds budget", task["reason"])
+        self.assertIn("Source clarification required", task["reason"])
         self.assertFalse(task["payload"]["partial_module"])
         self.assertEqual({item["id"]: item for item in requirements},
                          {item["id"]: item for item in task["payload"]["requirements"]})
         self.assertTrue(task["payload"]["known_questions"])
-        self.assertEqual({"spec_blocker", "context_blocker"},
+        self.assertEqual({"spec_blocker"},
                          {item["category"] for item in self.project.store.list_issues()})
         projection = engineering.status(self.project)
         self.assertGreater(projection["contracts"][0]["blocking_questions"], 0)
         blocked = projection["blocked_modules"][0]
-        self.assertTrue(blocked["context_blocked"])
-        self.assertGreater(blocked["context_floor_chars"], blocked["context_budget_chars"])
+        self.assertFalse(blocked["context_blocked"])
+        self.assertIsNone(blocked["context_budget_chars"])
         self.assertGreater(blocked["context_chars"], blocked["context_floor_chars"])
         self.assertGreater(blocked["distinct_source_questions"], 0)
-        self.assertIn("Shared contract context exceeds budget", blocked["reason"])
+        self.assertIn("Source clarification required", blocked["reason"])
         restarted = DVProject(self.root)
         for _ in range(2):
             restarted.reconcile()
@@ -443,20 +447,41 @@ class EngineeringTests(unittest.TestCase):
         self.assertEqual([], restarted.store.list_tasks(kind="microarchitecture"))
         self.assertEqual([], restarted.store.list_tasks(kind="contract-plan"))
 
-    def test_oversized_shared_environment_supersedes_only_unexecuted_partitions(self):
+    def test_semantic_scope_replaces_unexecuted_legacy_length_partitions(self):
         requirements = self.oversized_environment()
         previous = self.previous_environment_partitions(requirements)
         for task in previous[::2]:
             self.project.store.block(task["id"], "Previous oversized source context")
         self.project.reconcile()
-        current = self.project.store.list_tasks(status="blocked", kind="spec-contract")
+        current = self.project.store.list_tasks(status="pending", kind="spec-contract")
         self.assertEqual(1, len(current))
         self.assertEqual({item["id"] for item in requirements},
                          {item["id"] for item in current[0]["payload"]["requirements"]})
         self.assertEqual({task["id"] for task in previous}, engineering.superseded_task_ids(self.project))
         self.project.reconcile()
         self.assertEqual(len(previous) + 1, len(self.project.store.list_tasks(kind="spec-contract")))
-        self.assertEqual([current[0]["id"]], [item["id"] for item in self.project.store.list_tasks(status="blocked", kind="spec-contract")])
+        self.assertEqual([current[0]["id"]], [item["id"] for item in self.project.store.list_tasks(status="pending", kind="spec-contract")])
+
+    def test_existing_contract_and_plan_length_holds_resume_without_new_scope(self):
+        contract = self.extract()[0]
+        reason = "Shared contract context exceeds budget: historical fixed length admission"
+        self.project.store.block(contract["id"], reason)
+        self.project.store.add_issue("context_blocker", reason, task_id=contract["id"])
+        self.project.reconcile()
+        recovered = self.project.store.get_task(contract["id"])
+        self.assertEqual("pending", recovered["status"])
+        self.assertEqual(contract["payload"], recovered["payload"])
+        self.assertEqual([], self.project.store.list_issues())
+        self.commit(recovered, self.candidate(recovered))
+        self.project.reconcile()
+        plan = self.project.store.list_tasks(kind="contract-plan")[0]
+        self.project.store.block(plan["id"], reason)
+        self.project.store.add_issue("context_blocker", reason, task_id=plan["id"])
+        self.project.reconcile()
+        self.assertEqual("pending", self.project.store.get_task(plan["id"])["status"])
+        self.assertEqual(plan["payload"], self.project.store.get_task(plan["id"])["payload"])
+        self.assertEqual([], self.project.store.list_issues())
+        self.assertEqual("done", self.project.store.get_task(contract["id"])["status"])
 
     def preserve_executed_environment_partitions(self, *, accepted):
         requirements = self.oversized_environment()
@@ -476,23 +501,35 @@ class EngineeringTests(unittest.TestCase):
             self.assertEqual(protected[field], current[field])
         self.assertEqual(set(), engineering.superseded_task_ids(self.project))
 
-    def test_oversized_shared_environment_preserves_accepted_partition(self):
-        self.preserve_executed_environment_partitions(accepted=True)
+    def test_changed_semantic_membership_retains_accepted_history_but_not_its_authority(self):
+        requirements = self.oversized_environment()
+        previous = self.previous_environment_partitions(requirements)
+        self.commit(previous[0], self.candidate(previous[0]))
+        result = self.project.store.get_task(previous[0]["id"])["result"]
+        self.project.reconcile()
+        historical = self.project.store.get_task(previous[0]["id"])
+        self.assertEqual("stale", historical["status"])
+        self.assertEqual(result, historical["result"])
+        current = self.project.store.list_tasks(status="pending", kind="spec-contract")
+        self.assertEqual(1, len(current))
+        self.assertEqual({item["id"] for item in requirements}, {item["id"] for item in current[0]["payload"]["requirements"]})
+        with self.assertRaises(ConflictError):
+            engineering.get_contract(self.project, previous[0]["id"])
 
     def test_oversized_shared_environment_preserves_running_partition(self):
         self.preserve_executed_environment_partitions(accepted=False)
 
-    def test_oversized_shared_environment_preserves_attempted_pending_partition(self):
+    def test_failed_legacy_attempt_is_retained_when_semantic_work_replaces_it(self):
         requirements = self.oversized_environment()
-        save_json(self.project.config_path, {**self.project.config, "host_context_chars": 128000})
         previous = self.previous_environment_partitions(requirements)
         attempt = self.project.store.claim(previous[0]["id"], "interrupted-contract-session")
         self.project.store.fail(previous[0]["id"], attempt["id"], "Interrupted before submission")
-        save_json(self.project.config_path, {**self.project.config, "host_context_chars": 24000})
         self.project.reconcile()
-        self.assertEqual({task["id"] for task in previous},
-                         {task["id"] for task in self.project.store.list_tasks(kind="spec-contract")})
-        self.assertEqual(set(), engineering.superseded_task_ids(self.project))
+        self.assertEqual("stale", self.project.store.get_task(previous[0]["id"])["status"])
+        self.assertEqual({task["id"] for task in previous}, engineering.superseded_task_ids(self.project))
+        with self.project.store._db() as db:
+            row = db.execute("SELECT status FROM attempts WHERE id=?", (attempt["id"],)).fetchone()
+        self.assertEqual("failed", row[0])
 
     def test_blocked_module_projection_bounds_reasons_and_counts_source_questions(self):
         source_id = self.project.store.list_tasks(kind="model")[0]["payload"]["source_ids"][0]

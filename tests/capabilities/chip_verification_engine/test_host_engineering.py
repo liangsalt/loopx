@@ -5,7 +5,6 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
 
 import test_generation as uvm_fixture
 
@@ -83,7 +82,8 @@ class SharedHostRecoveryTests(unittest.TestCase):
         pack = json.loads(context["prompt"].splitlines()[-1])
         self.assertEqual(self.contracts["counter_a"], pack["shared_specification"]["task_id"])
         self.assertEqual("counter_a", pack["top_declaration"]["module"])
-        self.assertLessEqual(context["context_chars"], context["context_budget_chars"])
+        self.assertIsNone(context["context_budget_chars"])
+        self.assertGreater(context["context_chars"], 0)
 
     def test_newer_unscoped_request_cannot_steal_earlier_architecture_claim(self):
         first = self.prepare("counter_a")
@@ -103,7 +103,7 @@ class SharedHostRecoveryTests(unittest.TestCase):
         self.prepare("counter_b")
         self.assert_reconnect_claims(task["id"], "implement")
 
-    def test_newest_matching_budget_blocker_never_falls_back_to_older_request(self):
+    def test_large_contract_reconnects_without_a_context_budget_change(self):
         first = self.prepare("counter_a")
         context = host_work.context(self.project, first["attempt_id"])
         pack = json.loads(context["prompt"].splitlines()[-1])
@@ -114,33 +114,21 @@ class SharedHostRecoveryTests(unittest.TestCase):
         task = next(item for item in self.project.store.ready_tasks(100)
                     if item["kind"] == "implement" and item["payload"]["contract_task_id"] == self.contracts["counter_a"])
         result = host_work.generate(self.project, {"top": "counter_a", "rtl_files": [],
-            "contract_task_id": self.contracts["counter_a"], "session_id": "explicit-budget-increase",
-            "context_chars": 64000}, expected_task_id=task["id"])
-        self.assertNotEqual("awaiting_host", result["status"])
-        blocked = self.project.store.get_task(task["id"])
-        issues = self.project.store.list_issues()
-        self.assertEqual("blocked", blocked["status"])
-        self.assertEqual([64000], [json.loads(issue["description"])["context_chars"] for issue in issues])
+            "contract_task_id": self.contracts["counter_a"], "session_id": "legacy-small-context",
+            "context_chars": 1}, expected_task_id=task["id"])
+        self.assertEqual("awaiting_host", result["status"])
+        self.assertEqual(task["id"], result["task_id"])
+        full = host_work.context(self.project, result["attempt_id"])
+        self.assertIsNone(full["context_budget_chars"])
+        self.assertIn(response["shared_contracts"][0]["description"], full["prompt"])
+        self.assertEqual([], self.project.store.list_issues())
+        self.project.store.fail(task["id"], result["attempt_id"], "Reconnect selected semantic work", retryable=True)
         restarted = DVProject(self.root)
         result = host_work.claim(restarted, {"task_id": task["id"], "session_id": "new-connection"})
-        self.assertEqual("no_ready_work", result["status"])
-        self.assertEqual(blocked, restarted.store.get_task(task["id"]))
-        self.assertEqual(issues, restarted.store.list_issues())
-        # Explicitly choosing an earlier budget again must become the latest
-        # request, even though its immutable request identity already exists.
-        host_work.generate(restarted, {"top": "counter_a", "rtl_files": [],
-            "contract_task_id": self.contracts["counter_a"], "session_id": "repeat-earlier-budget",
-            "context_chars": 24000}, expected_task_id=task["id"])
-        with patch.object(host_work, "generate", wraps=host_work.generate) as replay:
-            host_work.claim(restarted, {"task_id": task["id"], "session_id": "replay-latest-choice"})
-        self.assertEqual(1, replay.call_count)
-        self.assertEqual(24000, replay.call_args.args[1]["context_chars"])
-        with restarted.store._db() as db:
-            before = [tuple(row) for row in db.execute("SELECT rowid,* FROM host_generations ORDER BY rowid")]
-        host_work.claim(restarted, {"task_id": task["id"], "session_id": "replay-is-not-a-new-budget"})
-        with restarted.store._db() as db:
-            after = [tuple(row) for row in db.execute("SELECT rowid,* FROM host_generations ORDER BY rowid")]
-        self.assertEqual(before, after, "Claim replay must not supersede a newer explicit generation request")
+        self.assertEqual("awaiting_host", result["status"])
+        self.assertEqual(task["id"], result["task_id"])
+        self.assertIn(response["shared_contracts"][0]["description"], host_work.context(restarted, result["attempt_id"])["prompt"])
+        self.assertEqual([], restarted.store.list_issues())
 
     def component_response(self, context, *, marker=""):
         prompt = context["prompt"].split("\nRevision feedback (preserve the source contract):\n", 1)[0]

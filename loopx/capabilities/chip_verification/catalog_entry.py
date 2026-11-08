@@ -14,8 +14,8 @@ CHIP_VERIFICATION_CATALOG_ENTRY = {
         "site_root": "capabilities/chip-verification",
         "canonical": "README.md",
     },
-    "real_world_anchor": "A chip specification may start at requirements or microarchitecture. Design and UVM verification must share module and interface contracts across bounded sessions while retaining real tool evidence and incomplete integration obligations.",
-    "user_value": "Persist shared source contracts, RTL/IP and UVM work, supply bounded packets to one selected agent runtime, and resume either track without loading the complete specification or retaining a host conversation.",
+    "real_world_anchor": "A chip specification may start at requirements or microarchitecture. Design and UVM verification share module and interface contracts across sessions while retaining real tool evidence and incomplete integration obligations.",
+    "user_value": "Persist shared source contracts, RTL/IP and UVM work; supply module, function, relationship and engineering-stage context to one selected runtime; resume either track without retaining a host conversation. Character counts do not define work boundaries.",
     "entry_command": "loopx chip-verification --help",
     "commands": [
         {"command": "loopx chip-verification --workspace . doctor",
@@ -43,5 +43,5 @@ CHIP_VERIFICATION_CATALOG_ENTRY = {
         "node --experimental-strip-types --test tests/control_plane_ts/chip_verification.test.ts",
         "python -m pytest tests/capabilities/test_chip_verification_cli.py -q",
     ],
-    "next_real_step": "Import a specification, process bounded source and shared-contract tasks, generate design and UVM candidates, and qualify their checks and joint build. Partial module integration and measured coverage remain explicit completion gates.",
+    "next_real_step": "Import a specification, process its structural source units and shared module/function contracts, generate design and UVM candidates, and qualify their checks and joint build. Partial module integration and measured coverage remain explicit completion gates.",
 }

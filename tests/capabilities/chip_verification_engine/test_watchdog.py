@@ -9,7 +9,7 @@ from unittest.mock import patch
 from loopx.capabilities.chip_verification import host_work
 from loopx.capabilities.chip_verification.engine import event_inbox, watchdog
 from loopx.capabilities.chip_verification.engine.models import ConflictError, ValidationError
-from loopx.capabilities.chip_verification.engine.workflow import DVProject
+from loopx.capabilities.chip_verification.engine.workflow import DVProject, save_json
 
 
 class WatchdogTests(unittest.TestCase):
@@ -81,7 +81,7 @@ class WatchdogTests(unittest.TestCase):
         original = watchdog.task_context(self.project, task)
         self.project.store.add_issue("external_observation", "A separate module now reports a diagnostic")
         self.assertEqual(original, watchdog.task_context(self.project, task))
-        self.assertLess(len(original[0]) + len(json.dumps(original[1])), self.project.config["context_chars"])
+        self.assertIn(task["payload"]["snapshot"]["evidence_refs"][0], original[0])
 
     def test_stale_accepted_review_does_not_requeue_cancelled_target(self):
         self.failures()
@@ -92,6 +92,44 @@ class WatchdogTests(unittest.TestCase):
         self.assertEqual("superseded", applied["status"])
         self.assertEqual("cancelled", self.project.store.get_task(self.task["id"])["status"])
         self.assertEqual([], watchdog.status(self.project)["active_holds"])
+
+    def test_review_keeps_task_evidence_despite_legacy_context_budget(self):
+        save_json(self.project.config_path, {**self.project.config, "context_chars": 1, "host_context_chars": 1})
+        self.failures(reason="Known ordering failure with unchanged evidence")
+        review_id = watchdog.tick(self.project)["review_task_ids"][0]
+        task = self.project.store.get_task(review_id)
+        self.assertEqual(3, len(task["payload"]["snapshot"]["attempts"]))
+        claimed = host_work.claim(self.project, {"session_id": "independent", "task_id": review_id,
+                                                "kind": "watchdog-review"})
+        packet = host_work.context(self.project, claimed["attempt_id"])
+        self.assertIsNone(packet["context_budget_chars"])
+        self.assertIn("Known ordering failure", packet["prompt"])
+        self.assertFalse(task["payload"]["snapshot"].get("excerpts_reduced", False))
+
+    def test_review_keeps_complete_goal_scope_and_previous_strategy(self):
+        goal = "Preserve descriptor completion across reset. " * 80 + "GOAL TAIL: retain outstanding work."
+        scope = "Inspect accepted transaction ordering. " * 60 + "SCOPE TAIL: do not discard retries."
+        title = "Implement descriptor ownership " * 30 + "TITLE TAIL"
+        strategy = "Trace completion acknowledgements to the specification before editing. " * 40 + "STRATEGY TAIL"
+        self.project = DVProject(self.root / "complete-semantics")
+        self.project.import_spec(self.root / "spec.json", scope=goal)
+        host_work.initialize(self.project)
+        self.task = self.project.store.add_task("rtl", title, {"scope": scope})
+        self.failures()
+        first = watchdog.tick(self.project)["review_task_ids"][0]
+        snapshot = self.project.store.get_task(first)["payload"]["snapshot"]
+        self.assertEqual(goal, snapshot["goal_excerpt"])
+        self.assertEqual(scope, snapshot["scope_excerpt"])
+        self.assertEqual(title, snapshot["title"])
+        self.review(review_id=first, strategy=strategy)
+        self.assertEqual("resumed", watchdog.apply(self.project, first)["status"])
+        self.failures()
+        second = watchdog.tick(self.project)["review_task_ids"][0]
+        task = self.project.store.get_task(second)
+        self.assertEqual([strategy], task["payload"]["snapshot"]["previous_strategy_excerpts"])
+        prompt, _, _ = watchdog.task_context(self.project, task)
+        for value in (goal, scope, title, strategy):
+            self.assertIn(value, prompt)
 
     def test_new_target_revision_supersedes_open_review_and_releases_old_hold(self):
         self.failures()

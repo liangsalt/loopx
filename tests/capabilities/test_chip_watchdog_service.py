@@ -95,7 +95,8 @@ assert request['protocol'] == 'loopx_chip_watchdog_review_v1'
 assert request['session_id'].startswith('watchdog-')
 assert request['context']['kind'] == 'watchdog-review'
 snapshot = json.loads(request['context']['prompt'].split('\\n')[-1])
-assert len(request['context']['prompt']) < request['context']['context_budget_chars']
+assert request['context']['context_budget_chars'] is None
+assert request['context']['context_chars'] >= len(request['context']['prompt'])
 print(json.dumps({'diagnosis':'Repeated failures require an independent constraint inspection.',
   'evidence_refs':[snapshot['evidence_refs'][0]],
   'strategy':'Inspect the unresolved constraint before allowing another retry.',
@@ -153,7 +154,8 @@ def test_bridge_timeout_stops_owned_process_without_acceptance(project):
     assert not project.store.list_artifacts(task_id=review)
 
 
-@pytest.mark.parametrize("pid,expected", [(None, "dispatch_uncertain"), (os.getpid(), "bridge_alive")])
+@pytest.mark.parametrize("pid,expected", [(None, "dispatch_uncertain"), (os.getpid(), "bridge_alive")],
+                         ids=["missing-process", "live-process"])
 def test_interrupted_launch_is_not_blindly_dispatched_again(project, pid, expected):
     _, review = repeated_failure(project)
     command = bridge_file(project, "raise AssertionError('must not execute')\n")

@@ -119,3 +119,15 @@ def test_format_and_workspace_work_on_each_side_of_action() -> None:
     assert first.workspace == "one"
     assert second.workspace == "two"
     assert output_format(first, "chip_verification_format") == output_format(second, "chip_verification_format") == "json"
+
+
+def test_import_has_no_character_defaults_and_hides_legacy_options(capsys) -> None:
+    args = parse(["chip-verification", "import", "--spec", "spec.json"])
+    assert args.chunk_chars is None and args.context_chars is None
+    with pytest.raises(SystemExit) as result:
+        parse(["chip-verification", "import", "--help"])
+    assert result.value.code == 0
+    help_text = capsys.readouterr().out
+    assert "--chunk-chars" not in help_text and "--context-chars" not in help_text
+    legacy = parse(["chip-verification", "import", "--spec", "spec.json", "--chunk-chars", "32", "--context-chars", "1"])
+    assert (legacy.chunk_chars, legacy.context_chars) == (32, 1)

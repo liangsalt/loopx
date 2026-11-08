@@ -93,19 +93,19 @@ def _terminate(process: subprocess.Popen) -> None:
 
 
 class CodexRuntime:
-    """Start a fresh Codex session with a bounded prompt and optional output schema."""
+    """Start a fresh Codex session for a complete task and optional output schema."""
 
     def __init__(self, executable: str = "codex", timeout: float = 600,
-                 max_prompt_chars: int = 64000):
+                 max_prompt_chars: int | None = None):
         self.executable = executable
         self.timeout = timeout
-        self.max_prompt_chars = max_prompt_chars
+        # Legacy caller parameter. A runtime receives the complete semantic task;
+        # model/provider capacity failures remain real execution failures.
+        self.max_prompt_chars = None
 
     def run(self, prompt: str, *, cwd: str | Path, run_dir: str | Path,
             schema: dict | None = None, allow_writes: bool = False,
             attempt_id: str | None = None) -> AgentResult:
-        if len(prompt) > self.max_prompt_chars:
-            raise AgentError(f"Prompt exceeds hard budget: {len(prompt)} > {self.max_prompt_chars}")
         cwd = Path(cwd).resolve()
         target = Path(run_dir).resolve()
         target.mkdir(parents=True, exist_ok=True)
@@ -179,16 +179,14 @@ class PiRuntime:
     """Independent Pi RPC worker; the interactive parent remains the user's UI."""
 
     def __init__(self, executable: str = "pi", timeout: float = 600,
-                 max_prompt_chars: int = 64000):
-        self.executable, self.timeout, self.max_prompt_chars = executable, timeout, max_prompt_chars
+                 max_prompt_chars: int | None = None):
+        self.executable, self.timeout, self.max_prompt_chars = executable, timeout, None
 
     def run(self, prompt: str, *, cwd: str | Path, run_dir: str | Path,
             schema: dict | None = None, allow_writes: bool = False,
             attempt_id: str | None = None) -> AgentResult:
         if schema:
             prompt += "\nReturn only JSON conforming to this schema:\n" + json.dumps(schema)
-        if len(prompt) > self.max_prompt_chars:
-            raise AgentError("Pi prompt exceeds hard budget")
         target = Path(run_dir).resolve()
         target.mkdir(parents=True, exist_ok=True)
         if (target / "events.jsonl").exists() or (target / "response.json").exists():

@@ -39,7 +39,7 @@ test("submit accepts a single response source and never reflects generated mater
   assert.throws(() => admit({...request, arguments: {attempt_id: "a1", response: []}}), /response must be an object/);
 });
 
-test("malformed execute, unknown action, paths and context budgets fail closed", () => {
+test("malformed execute, unknown action, paths and legacy hint types fail closed", () => {
   assert.throws(() => admit({action: "import", workspace: ".", execute: "false", arguments: {spec: "spec.json"}}), /boolean/);
   assert.throws(() => admit({action: "finish-goal", workspace: ".", execute: true}), /unknown/);
   assert.throws(() => admit({action: "status", workspace: "\0"}), /NUL/);
@@ -55,7 +55,7 @@ test("EDA launch still needs provider readiness after request admission", () => 
   assert.match(result.reason, /provider must validate/);
 });
 
-test("execution budgets reject coercion, nonfinite values and unbounded contexts", () => {
+test("execution timeouts remain enforced and legacy character hints have no upper bound", () => {
   const request = {action: "build-uvm", workspace: ".", execute: true};
   for (const timeout of [true, null, NaN, Infinity, 0, -1, 1.5, 86401]) {
     assert.throws(() => admit({...request, arguments: {manifest: "manifest.json", timeout}}), /timeout/);
@@ -65,9 +65,11 @@ test("execution budgets reject coercion, nonfinite values and unbounded contexts
   }
   assert.equal(admit({...request, arguments: {manifest: "manifest.json", timeout: 86400, run_smoke: false}}).allowed, true);
   for (const key of ["context_chars", "chunk_chars"]) {
-    for (const value of [true, NaN, 1000001]) {
+    for (const value of [true, NaN, Infinity, 0, -1, 1.5]) {
       assert.throws(() => admit({action: "import", workspace: ".", arguments: {spec: "spec.json", [key]: value}}), new RegExp(key));
     }
+    assert.equal(admit({action: "import", workspace: ".", execute: true,
+      arguments: {spec: "spec.json", [key]: 1000001}}).allowed, true);
   }
 });
 

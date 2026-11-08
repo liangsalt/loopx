@@ -25,8 +25,8 @@ RESOURCES = {
 }
 HOST_STEPS = [
     "在 TRAE 中国版打开该工作区；设置 > MCP 中启用项目级 MCP，并确认 loopx-dv 可用。",
-    "开启新对话，调用 loopx-dv Skill；Agent 领取一个有界任务并提交，确认服务返回回执。",
-    "上下文接近预算时开启新会话并从状态恢复；也可选择启用 Subagents 使用可选 worker。",
+    "开启新对话，调用 loopx-dv Skill；Agent 按模块、功能、关系或工程步骤领取任务并提交，确认服务返回回执。",
+    "完成当前任务后按需开启新会话并从状态恢复；也可选择启用 Subagents 使用可选 worker。",
 ]
 
 

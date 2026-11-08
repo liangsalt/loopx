@@ -159,7 +159,8 @@ def test_mcp_schemas_fail_closed_and_writes_are_explicit(tmp_path):
         assert {"dv_prepare_design", "dv_engineering_status", "dv_check_design", "dv_join_design"} <= tools.keys()
         assert tools["dv_import"].inputSchema["properties"]["flow"]["default"] == "design-dv"
         assert "rtl_files" not in tools["dv_generate_uvm"].inputSchema.get("required", [])
-        assert tools["dv_import"].inputSchema["properties"]["context_chars"]["default"] == 24000
+        assert "context_chars" not in tools["dv_import"].inputSchema["properties"]
+        assert "context_chars" not in tools["dv_generate_uvm"].inputSchema["properties"]
         assert tools["dv_build_uvm"].inputSchema["properties"]["run_smoke"]["default"] is True
         await server.call_tool("dv_status", {})
         await server.call_tool("dv_claim", {"session_id": "trae-worker-one", "task_id": "task-one"})
@@ -178,6 +179,27 @@ def test_mcp_schemas_fail_closed_and_writes_are_explicit(tmp_path):
     assert [action for action, _ in calls] == ["status", "claim", "context", "submit"]
     assert [kwargs["execute"] for _, kwargs in calls] == [False, True, False, True]
     assert all(kwargs["workspace"] == tmp_path.resolve() for _, kwargs in calls)
+
+
+def test_cached_mcp_character_arguments_are_ignored_without_advertising_them(tmp_path):
+    calls = []
+
+    def invoke(action, **kwargs):
+        calls.append((action, kwargs["arguments"]))
+        return {"ok": True}
+
+    server = create_server(tmp_path, invoker=invoke)
+
+    async def exercise():
+        await server.call_tool("dv_import", {"spec": "spec.json"})
+        await server.call_tool("dv_import", {"spec": "spec.json", "context_chars": 1})
+        await server.call_tool("dv_generate_uvm", {"top": "dut", "contract_task_id": "c1", "context_chars": 1500000})
+        with pytest.raises(Exception, match="positive integer"):
+            await server.call_tool("dv_import", {"spec": "spec.json", "context_chars": False})
+
+    asyncio.run(exercise())
+    assert calls[0] == calls[1] == ("import", {"spec": "spec.json", "flow": "design-dv"})
+    assert calls[2] == ("generate-uvm", {"top": "dut", "rtl_files": [], "contract_task_id": "c1"})
 
 
 def test_real_installed_stdio_reconnect_validation_and_idempotent_submit(tmp_path):
@@ -217,7 +239,7 @@ def test_real_installed_stdio_reconnect_validation_and_idempotent_submit(tmp_pat
             claim = await call(session, "dv_claim", {"session_id": "trae-protocol-worker-one"})
             attempt = claim["attempt_id"]
             context = await call(session, "dv_context", {"attempt_id": attempt})
-            assert context["context_chars"] <= context["context_budget_chars"] == 24000
+            assert context["context_chars"] > 0 and context["context_budget_chars"] is None
             assert "prompt" not in claim
             rejected = await session.call_tool("dv_submit", {"attempt_id": attempt, "response": {}})
             assert rejected.isError

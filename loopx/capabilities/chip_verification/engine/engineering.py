@@ -15,6 +15,7 @@ import jsonschema
 from .contracts import PLAN_INSTRUCTION, PLAN_SCHEMA, TEXT, TEXTS, arr, obj
 from .models import ConflictError, ValidationError
 from .state import file_hash
+from .partitioning import partition_requirements, requirement_scope_key
 from .workflow import save_json
 
 
@@ -177,31 +178,21 @@ def _context_raw(project, task):
     raise ValueError("Unsupported shared engineering task kind: " + task["kind"])
 
 
-def _budget(project):
-    return project.config.get("host_context_chars", project.config["context_chars"])
-
-
 def _size(instruction, schema, pack):
     # Include output schema and transport framing, not just source prose.
     return len(json.dumps({"prompt": instruction + "\n" + json.dumps(pack, ensure_ascii=False),
                            "output_schema": schema}, ensure_ascii=False)) + 1000
 
 
-def _budget_task(project, task):
-    instruction, schema, pack = _context_raw(project, task)
-    count, budget = _size(instruction, schema, pack), _budget(project)
-    if count > budget:
-        reason = f"Shared contract context exceeds budget: {count}/{budget} characters. Refine this module scope or explicitly increase the budget; no required content was truncated."
-        if task["status"] in {"pending", "failed", "blocked"}:
-            if task["status"] != "blocked" or task["reason"] != reason:
-                project.store.block(task["id"], reason)
-            project.store.add_issue("context_blocker", reason, task_id=task["id"])
-        return False
+def _recover_length_hold(project, task):
+    """Release only a retired length hold; semantic blockers keep authority."""
     if task["status"] == "blocked" and (task["reason"] or "").startswith("Shared contract context exceeds budget:"):
         project.store.requeue(task["id"])
-        for issue in project.store.list_issues():
-            if issue["task_id"] == task["id"] and issue["category"] == "context_blocker" and issue["status"] == "open":
-                project.store.resolve_issue(issue["id"], "The complete current contract context fits the explicit budget.")
+    for issue in project.store.list_issues():
+        if (issue["task_id"] == task["id"] and issue["category"] == "context_blocker"
+                and issue["description"].startswith("Shared contract context exceeds budget:")
+                and issue["status"] == "open"):
+            project.store.resolve_issue(issue["id"], "Length-based admission was retired; the complete semantic scope is retained.")
     return True
 
 
@@ -233,51 +224,36 @@ def reconcile(project):
     created = 0
     for name, local in sorted(groups.items()):
         environment = [item for item in context if not item.get("modules") or "$project" in item["modules"] or name in item["modules"]]
-        complete = sorted([*local, *environment], key=lambda item: item["id"])
-        complete_by_id = {item["id"]: item for item in complete}
-        context_ids = {item["id"] for item in environment}
-        mandatory = _scope_payload(project, name, environment, 0, 1)
-        floor = _size(CONTRACT_INSTRUCTION, CONTRACT_SCHEMA, {"task_id": "contract_" + "0" * 24, **mandatory})
-        impossible_context = floor > _budget(project)
-        if impossible_context:
-            # Every local partition would repeat this already oversized input.
-            # Retain the complete module once, explicitly blocked for refinement.
-            scopes = [complete]
-        else:
-            # Reserve room for interface bindings learned from other scopes. Complete
-            # requirements are atomic; a single oversized clause remains a blocker.
-            scopes, batch = [], []
-            for requirement in sorted(local, key=lambda value: (tuple(value.get("features", [])), value["id"])):
-                trial = batch + [requirement]
-                payload = _scope_payload(project, name, sorted([*trial, *environment], key=lambda item: item["id"]), 999999, 1000000)
-                size = _size(CONTRACT_INSTRUCTION, CONTRACT_SCHEMA, {"task_id": "contract_" + "0" * 24, **payload})
-                if batch and size > _budget(project) * 0.75:
-                    scopes.append(batch)
-                    batch = []
-                batch.append(requirement)
-            if batch:
-                scopes.append(batch)
-            scopes = [sorted([*scope, *environment], key=lambda item: item["id"]) for scope in scopes]
-        # Preserve established task boundaries across an execution-budget change.
+        complete_by_id = {item["id"]: item for item in [*local, *environment]}
+        scopes = [sorted([*scope, *environment], key=lambda item: item["id"])
+                  for scope in partition_requirements(local)]
         existing = [task for task in project.store.list_tasks(kind="spec-contract")
                     if task["payload"]["module_id"] == module_id(name)
                     and task["status"] not in {"stale", "cancelled"}]
-        if existing:
-            preserve = True
-            if impossible_context:
-                with project.store._db() as db:
-                    attempted = {row[0] for row in db.execute("SELECT DISTINCT task_id FROM attempts WHERE baseline_id=?",
-                                                             (project.store.baseline()["id"],))}
-                preserve = any(task["status"] not in {"pending", "blocked"} or task["id"] in attempted for task in existing)
-            groups_of_ids = [{req["id"] for req in task["payload"]["requirements"]} for task in existing]
-            if (preserve and set().union(*groups_of_ids) == complete_by_id.keys()
-                    and all(context_ids <= ids for ids in groups_of_ids)
-                    and sum(len(ids - context_ids) for ids in groups_of_ids) == len(local)
-                    and all(req == complete_by_id.get(req["id"]) for task in existing for req in task["payload"]["requirements"])):
-                scopes = [task["payload"]["requirements"] for task in sorted(existing, key=lambda value: value["payload"]["scope_index"])]
+        # An active session owns its original scope and contract. Defer a
+        # boundary migration until it finishes; never supersede its live lease.
+        affected = {task["id"] for task in existing}
+        all_tasks = project.store.list_tasks()
+        while True:
+            descendants = {task["id"] for task in all_tasks if affected.intersection(task["depends_on"])}
+            if descendants <= affected:
+                break
+            affected.update(descendants)
+        same_inputs = {item["id"]: item for task in existing for item in task["payload"]["requirements"]} == complete_by_id
+        if same_inputs and any(task["status"] == "running" and task["id"] in affected for task in all_tasks):
+            continue
         prepared = []
         for index, scoped in enumerate(scopes):
             payload = _scope_payload(project, name, scoped, index, len(scopes))
+            # Resume an identical established semantic scope without changing
+            # accepted payloads merely to rename the partitioning algorithm.
+            matching = next((task for task in existing
+                             if task["payload"]["requirements"] == scoped
+                             and task["payload"]["scope_count"] == len(scopes)
+                             and task["payload"]["known_questions"] == payload["known_questions"]), None)
+            if matching:
+                prepared.append(matching)
+                continue
             task_id = "contract_" + digest([project.store.baseline()["id"], payload])[:24]
             task = project.store.add_task("spec-contract", "Reconcile shared specification for " + name + f" ({index + 1}/{len(scopes)})",
                                           payload, depends_on=sorted({item["extraction_task"] for item in scoped}),
@@ -298,14 +274,11 @@ def reconcile(project):
             if task["status"] == "done":
                 _materialize_children(project, task)
             elif task["status"] not in {"stale", "cancelled", "running"}:
-                if impossible_context:
-                    _budget_task(project, task)
-                elif payload["known_questions"]:
+                _recover_length_hold(project, task)
+                if payload["known_questions"]:
                     reason = "Source clarification required: " + "; ".join(q["question"] for q in payload["known_questions"])
                     if task["status"] != "blocked" or task["reason"] != reason:
                         project.store.block(task_id, reason)
-                else:
-                    _budget_task(project, task)
     return created
 
 
@@ -345,8 +318,11 @@ def _scope_payload(project, name, requirements, index, count):
         neighboring_names.update(label for label in requirement.get("modules", [])
                                  if label != "$project" or name == "$project")
     partial = count > 1
+    local = [item for item in requirements if item.get("applicability") != "context"]
+    semantic_key = requirement_scope_key(local[0]) if local else {"modules": [name], "features": [], "interfaces": []}
     return {"module_id": module_id(name), "module_name": name, "module_scope_id": module_id(name),
-            "scope_id": module_id(name) + ("_scope_" + f"{index:06d}" if partial else ""),
+            "scope_id": module_id(name) + ("_scope_" + digest(semantic_key)[:16] if partial else ""),
+            "semantic_scope": semantic_key,
             "scope_index": index, "scope_count": count, "partial_module": partial, "composition_required": partial,
             "scope": project.config["scope"], "spec_sha256": project.config["spec_sha256"],
             "requirements": requirements, "source_ids": sorted({sid for item in requirements for sid in item["source_ids"]}),
@@ -450,7 +426,7 @@ def _materialize_children(project, task):
         child = project.store.add_task(kind, title + task["payload"]["module_name"], payload,
                                        depends_on=[task["id"]], task_id=kind + "_" + digest([task["id"], bound["hash"]])[:24])
         if kind == "contract-plan" and child["status"] in {"pending", "failed", "blocked"}:
-            _budget_task(project, child)
+            _recover_length_hold(project, child)
 
 
 def task_context(project, task):
@@ -458,8 +434,6 @@ def task_context(project, task):
     if task["baseline_id"] != project.store.baseline()["id"]:
         raise ConflictError("Engineering task belongs to a different baseline")
     instruction, schema, pack = _context_raw(project, task)
-    if _size(instruction, schema, pack) > _budget(project):
-        raise ValidationError("Shared contract context exceeds budget; required input cannot be truncated")
     return instruction + "\n" + json.dumps(pack, ensure_ascii=False), schema, pack
 
 
@@ -636,9 +610,8 @@ def status(project):
                                 "distinct_source_questions": len({(q["category"], q["question"])
                                                                   for task in items for q in task["payload"]["known_questions"]}),
                                 "context_floor_chars": floor, "context_chars": _size(instruction, schema, pack),
-                                "context_budget_chars": _budget(project),
-                                "context_blocked": floor > _budget(project) or any(
-                                    (task.get("reason") or "").startswith("Shared contract context exceeds budget:") for task in items),
+                                "context_budget_chars": None,
+                                "context_blocked": False,
                                 "reason": reason[:480], "reason_omitted_chars": max(0, len(reason) - 480)})
     return {"enabled": bool(project.config.get("engineering_enabled")), "entry_views": dict(views),
             "entry_readiness": _entry_readiness(project),

@@ -44,7 +44,7 @@ independent correctness check remains a concrete blocker.
 
 Source interpretation initially finishes before module contracts are materialized,
 so the first module identity map uses the complete source inventory. The runtime
-still reads only one bounded source batch at a time. Module names retain exact
+still reads one structural source task at a time. Module names retain exact
 identities; aliases and relationships are not guessed from co-occurrence.
 
 A system/functional entry with no supplied partition starts from a scope root.
@@ -89,12 +89,14 @@ never promoted into a verification oracle. Sibling scopes must agree on shared
 interfaces and relation identities. A structurally accepted contract may retain
 blocking questions, but it cannot release downstream work in that condition.
 
-Requirements within a large module are partitioned into bounded scopes without
-dropping or duplicating clauses. Their canonical module identity is unchanged;
-scope identity, index/count, `partial_module` and `composition_required` preserve
-the remaining integration obligation. Sibling interface bindings are supplied
-when available. A single atomic requirement or a mandatory binding that still
-cannot fit becomes an explicit context blocker rather than truncated input.
+Requirements are organized by declared modules, functions, interfaces and
+relationships. Source objects and document sections remain complete, and each
+engineering stage works on its own artifact or component. Character or token
+counts neither select boundaries nor reject a task; an unstructured paragraph
+remains whole. Canonical module identity is unchanged; scope identity,
+index/count, `partial_module` and `composition_required` preserve the remaining
+integration obligation. Sibling interface bindings and mandatory policy sources
+are supplied without truncation.
 Automatic integration of partial module candidates is not implemented yet:
 engineering status reports this obligation and the simulation join refuses a
 partial candidate. Local scope completion does not establish whole-module closure.
@@ -174,18 +176,25 @@ choices such as clock period or stimulus distribution.
 The architecture validator requires stimulus/checker/coverage mappings for each
 testpoint, an acyclic dependency graph and exclusive output ownership. Components
 receive required shared types and ancestor files; those dependencies are never
-silently truncated. Oversized contracts become explicit blockers. This is
+silently truncated. Their size does not create a context blocker. This is
 structural validation: compiling and testing the candidate remains necessary.
 
 ## Host and EDA lifetimes
 
 One selected Agent runtime reads compact status/next summaries, claims one task,
-reads its bounded context and submits. It may use a fresh session or an optional
-native child session to keep earlier task context out of subsequent work. The
-24,000-character default includes the serialized host contract and schema; it is
-not a guarantee of a tokenizer-specific count. The host owns actual session
+reads the complete context of that module, function, relationship or stage and
+submits. It may use a fresh session or an optional native child session to keep
+earlier task context out of subsequent work. Context size is measured for
+observation only; there is no fixed character or token ceiling. The host owns actual session
 creation and context management. Two workflow tracks do not require two agents,
 and the capability does not claim an unverified Trae session API.
+
+Legacy `chunk_chars` and `context_chars` arguments remain compatibility inputs
+and do not influence decomposition or admission. Existing workspaces retain
+historical inventories and receipts. The normal import entrypoint migrates an
+old character-based decomposition to the structural strategy, invalidating its
+derived work without rewriting earlier evidence; read-only status identifies
+when that migration is needed. Actual runtime/tool failures remain visible.
 
 An EDA invocation returns a background job ID immediately. Its process, input
 snapshot, logs and result outlive the MCP connection. A new connection polls it.
@@ -204,7 +213,7 @@ input hashes and raw report/log hashes for revalidation.
 ## Public actions and owners
 
 Ordinary use remains conversational. `dv_import`, `dv_claim`, `dv_context` and
-`dv_submit` drive bounded work; `dv_engineering_status` exposes the shared state.
+`dv_submit` drive task-scoped work; `dv_engineering_status` exposes the shared state.
 `dv_generate_uvm` accepts `contract_task_id` for contract-first generation.
 `dv_check_design` and `dv_build_uvm` return durable background job receipts;
 `dv_job_status` reads them across reconnects. `dv_join_design` binds the accepted
@@ -214,8 +223,8 @@ admission boundary; no alternate state machine lives in the host instructions.
 
 | Owner | Responsibility |
 |---|---|
-| `engine/spec.py`, `engine/workflow.py` | Lossless import, bounded extraction, requirement traceability and recovery |
-| `engine/engineering.py` | Entry views, shared module contracts, bounded scope partitioning and both-track dependencies |
+| `engine/spec.py`, `engine/workflow.py` | Lossless structural import, source task extraction, requirement traceability and recovery |
+| `engine/engineering.py` | Entry views, shared module/function contracts, relationship scopes and both-track dependencies |
 | `engine/design.py` | Microarchitecture adoption/refinement, RTL ownership and pinned IP candidates |
 | `engine/generation.py` | UVM architecture/components; rejects DUT redefinition in TB output |
 | `engine/design_checks.py` | Tool-backed static evidence and current-input validation |

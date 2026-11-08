@@ -286,17 +286,44 @@ def _reuse_campaign(project, task, previous, benchmark, protected, schema):
     return proposal, paths["campaign.json"]
 
 
+def _related_testplan(project, manifest, missing_bins):
+    """Select whole testpoints using explicit coverage/requirement relationships.
+
+    Older manifests may not bind bins to testpoints. If any gap has no known
+    relationship, keep the complete accepted plan so ordering cannot hide a
+    relevant testpoint. Length never changes membership or testpoint content.
+    """
+    def strings(value):
+        return {value} if isinstance(value, str) else {item for item in (value or []) if isinstance(item, str)}
+
+    points = []
+    for kind in ("plan", "contract-plan"):
+        for plan in project.store.list_tasks(status="done", kind=kind):
+            points.extend({**point, "plan_task_id": plan["id"]} for point in plan["result"].get("testpoints", []))
+    requirements = {item["id"]: item for item in project.store.list_requirements()}
+    features = {item["name"]: item for item in manifest.get("features", [])}
+    selected = set()
+    for name in missing_bins:
+        feature = features.get(name, {})
+        linked_points = strings(feature.get("testpoint_ids"))
+        linked_requirements = strings(feature.get("requirement_ids"))
+        matches = set()
+        for index, point in enumerate(points):
+            identifiers = {point.get("id"), point.get("name"), point["plan_task_id"] + ":" + str(point.get("id", ""))}
+            requirement_ids = strings(point.get("requirement_ids"))
+            requirement_features = {tag for identifier in requirement_ids
+                                    for tag in strings(requirements.get(identifier, {}).get("metadata", {}).get("features"))}
+            if (identifiers & linked_points or requirement_ids & linked_requirements or
+                    name in strings(point.get("coverage")) or name in requirement_features):
+                matches.add(index)
+        if not matches:
+            return points
+        selected.update(matches)
+    return [point for index, point in enumerate(points) if index in selected] if missing_bins else points
+
+
 def _request_campaign(project, task, previous, manifest, protected, schema, agent, timeout):
-    # Read selected plan fragments only. The full tp.json is never a prompt.
-    related_points = []
-    for plan in project.store.list_tasks(status="done", kind="plan"):
-        for point in plan["result"]["testpoints"]:
-            sample = {key: point[key] for key in ("name", "stimulus", "checkers", "coverage")}
-            if len(json.dumps(related_points + [sample])) > 6000:
-                break
-            related_points.append(sample)
-        if len(json.dumps(related_points)) > 5000:
-            break
+    related_points = _related_testplan(project, manifest, previous["coverage"]["missing_bins"])
     context = {"scope": manifest["scope"], "fixed_bin_model_sha256": task["payload"]["coverage_manifest_sha256"],
                "previous_coverage": previous["coverage"], "related_testplan": related_points,
                "generator_contract": "Instructions enable directed instruction programs. operand_classes selects source-register operand corner values. both_branch_outcomes enables both paths; all_memory_offsets enables each legal offset; division_exceptions adds divide-zero and signed overflow cases; x0_discard tests ignored x0 writes. Bus responder supplies varying waitstates independently. Select enough stimulus to cover the listed missing bins. Do not change DUT/checker/coverage model."}
@@ -307,7 +334,7 @@ def _request_campaign(project, task, previous, manifest, protected, schema, agen
     attempt = project.store.claim(task["id"], agent + "-coverage-worker", lease_seconds=timeout + 180)
     directory = project.root / ".loopx" / "chip-verification" / "attempts" / attempt["id"]
     try:
-        agent_result = runtime(agent, timeout=timeout, max_prompt_chars=project.config["context_chars"]).run(
+        agent_result = runtime(agent, timeout=timeout, max_prompt_chars=None).run(
             prompt, cwd=project.root, run_dir=directory, schema=schema, attempt_id=attempt["id"])
         proposal = agent_result.response
         jsonschema.validate(proposal, schema)

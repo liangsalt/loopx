@@ -200,7 +200,7 @@ class StateStore:
         return result
 
     def initialize(self, name: str, spec_path: str | Path, spec_hash: str,
-                   spec_bytes: int) -> dict:
+                   spec_bytes: int, *, partitioning: str | None = None) -> dict:
         if not name or not spec_hash or spec_bytes < 0:
             raise ValueError("name, spec_hash and nonnegative spec_bytes are required")
         with self._db(write=True) as db:
@@ -208,8 +208,11 @@ class StateStore:
             old_id = old_setting[0] if old_setting else None
             if old_id:
                 old = db.execute("SELECT * FROM baselines WHERE id=?", (old_id,)).fetchone()
-                if old["spec_hash"] == spec_hash and old["spec_bytes"] == spec_bytes:
+                strategy = db.execute("SELECT value FROM settings WHERE key='source_partitioning'").fetchone()
+                same_strategy = partitioning is None or (strategy is not None and strategy[0] == partitioning)
+                if old["spec_hash"] == spec_hash and old["spec_bytes"] == spec_bytes and same_strategy:
                     return dict(old)
+            reason = "Specification source partitioning changed" if old_id and old["spec_hash"] == spec_hash else "Specification baseline changed"
             revision = db.execute("SELECT COALESCE(MAX(revision),0)+1 FROM baselines").fetchone()[0]
             baseline_id = f"baseline-{revision}-{spec_hash[:12]}"
             now = time.time()
@@ -218,17 +221,23 @@ class StateStore:
                         spec_bytes, now))
             db.execute("INSERT INTO settings(key,value) VALUES('baseline_id',?) "
                        "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (baseline_id,))
+            if partitioning is not None:
+                db.execute("INSERT INTO settings(key,value) VALUES('source_partitioning',?) "
+                           "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (partitioning,))
+            else:
+                db.execute("DELETE FROM settings WHERE key='source_partitioning'")
             if old_id:
                 db.execute("UPDATE attempts SET status='superseded',ended=?,reason=? "
-                           "WHERE status='running'", (now, "Specification baseline changed"))
+                           "WHERE status='running'", (now, reason))
                 db.execute("UPDATE tasks SET status='stale',attempt_id=NULL,revision=revision+1,"
                            "reason=?,updated=? WHERE status<>'cancelled'",
-                           ("Specification baseline changed", now))
+                           (reason, now))
                 db.execute("UPDATE artifacts SET validity='stale' WHERE validity='current'")
                 db.execute("UPDATE evidence SET validity='stale' WHERE validity='current'")
                 db.execute("UPDATE runs SET validity='stale' WHERE validity='current'")
             self._event(db, "baseline_initialized", {"baseline_id": baseline_id, "previous": old_id,
-                                                     "spec_hash": spec_hash, "spec_bytes": spec_bytes})
+                                                     "spec_hash": spec_hash, "spec_bytes": spec_bytes,
+                                                     "partitioning": partitioning, "reason": reason})
             return dict(db.execute("SELECT * FROM baselines WHERE id=?", (baseline_id,)).fetchone())
 
     def baseline(self) -> dict:
@@ -619,26 +628,33 @@ class StateStore:
             if current["status"] not in {"blocked", "pending"}:
                 return current, False
             requeue = current["status"] == "blocked"
+            planning_prefix = "Planning context exceeds budget:"
+            planning = (current["kind"] == "plan" and all(
+                issue.get("category") == "context_blocker" and
+                (issue.get("description") or "").startswith(planning_prefix) for issue in issues))
             allowed_revision = expected["revision"] + (1 if expected["status"] == "blocked" and not requeue else 0)
             if current["revision"] != allowed_revision:
                 return current, False
             if requeue and (current["reason"] != expected["reason"] or
-                            not (current["reason"] or "").startswith("uvm_context_blocker:")):
+                            not (current["reason"] or "").startswith(planning_prefix if planning else "uvm_context_blocker:")):
+                return current, False
+            if requeue and planning and not any(issue.get("description") == current["reason"] for issue in issues):
                 return current, False
             unresolved = []
             for issue in issues:
                 row = db.execute("SELECT * FROM issues WHERE id=?", (issue["id"],)).fetchone()
-                if (not row or row["category"] != "uvm_context_blocker" or row["task_id"] != current["id"]
+                if (not row or row["category"] != ("context_blocker" if planning else "uvm_context_blocker") or row["task_id"] != current["id"]
                         or row["baseline_id"] != current["baseline_id"]
                         or any(row[key] != issue[key] for key in ("baseline_id", "task_id", "category", "description"))
                         or row["status"] not in ({"open"} if requeue else {"open", "resolved"})):
                     return current, False
-                try:
-                    details = json.loads(row["description"])
-                except (ValueError, TypeError):
-                    return current, False
-                if not isinstance(details, dict) or details.get("input_fingerprint") != current["payload"].get("input_fingerprint"):
-                    return current, False
+                if not planning:
+                    try:
+                        details = json.loads(row["description"])
+                    except (ValueError, TypeError):
+                        return current, False
+                    if not isinstance(details, dict) or details.get("input_fingerprint") != current["payload"].get("input_fingerprint"):
+                        return current, False
                 if row["status"] == "open":
                     unresolved.append(issue["id"])
             now = time.time()

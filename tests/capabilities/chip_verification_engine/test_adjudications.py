@@ -8,7 +8,7 @@ import unittest
 
 from loopx.capabilities.chip_verification.engine import engineering
 from loopx.capabilities.chip_verification.engine.bundles import validate_bundle
-from loopx.capabilities.chip_verification.engine.context import ContextBudgetExceeded, build_context
+from loopx.capabilities.chip_verification.engine.context import build_context
 from loopx.capabilities.chip_verification.engine.models import ValidationError
 from loopx.capabilities.chip_verification.engine.spec import SpecError, SpecIntegrityError, audit_manifest, ingest_spec, iter_sources
 from loopx.capabilities.chip_verification.engine.workflow import DVProject, save_json
@@ -31,11 +31,11 @@ def adjudication(identifier, content, target, start=1, end=1):
 
 
 def fixture():
-    original = document("upstream", "Ambiguous ready/idle event wording. " + "original " * 10 + "\n" +
-                        "Unrelated transfer field. " * 5 + "\n" + "Unaffected FIFO field. " * 5 + "\n")
+    original = document("upstream", "# Events\nAmbiguous ready/idle event wording. " + "original " * 10 + "\n" +
+                        "# Transfers\n" + "Unrelated transfer field. " * 5 + "\n" + "# FIFO\n" + "Unaffected FIFO field. " * 5 + "\n")
     other = document("usb", "USB-only behavior must remain in the USB task.\n", module="usb")
     ruling = adjudication("ruling", "Case rule: ready is READY rising; idle is ACTIVE falling. "
-                          "Sampling latency remains unspecified.\n", original)
+                          "Sampling latency remains unspecified.\n", original, 1, 2)
     return {"schema": "dvflow.spec_bundle", "schema_version": 1, "title": "Adjudication fixture",
             "documents": [original, other, ruling], "relations": []}
 
@@ -221,19 +221,19 @@ class AdjudicationTests(unittest.TestCase):
             with self.subTest(document=document_id, field=key), self.assertRaisesRegex(SpecIntegrityError, "metadata disagrees with specification snapshot"):
                 audit_manifest(tampered)
 
-    def test_context_budget_counts_all_policy_fragments_without_truncation(self):
+    def test_context_preserves_complete_policy_without_length_refusal(self):
         self.value["documents"][2]["content"] += "Mandatory scoped obligation. " * 100
         self.value["documents"][2]["origin"]["sha256"] = sha(self.value["documents"][2]["content"])
         manifest = self.ingest()
         task = next(task for task in manifest["extraction_tasks"] if task["payload"].get("dependency_source_ids"))
-        with self.assertRaises(ContextBudgetExceeded) as raised:
-            build_context(manifest, task, max_chars=2000)
-        self.assertEqual(set(task["source_ids"] + task["payload"]["dependency_source_ids"]), set(raised.exception.source_ids))
-        pack = build_context(manifest, task, max_chars=50000)
+        pack = build_context(manifest, task, max_chars=1, max_tokens=1)
+        self.assertEqual(pack, build_context(manifest, task, max_chars=50000))
+        self.assertEqual(set(task["source_ids"] + task["payload"]["dependency_source_ids"]),
+                         {source["source_id"] for source in pack["sources"]})
         policies = [source["text"] for source in pack["sources"] if source["metadata"]["document_id"] == "ruling"]
         # Source IDs are sorted dependencies; reconstruct by declared source offsets.
         bodies = sorted((source for source in pack["sources"] if source["metadata"]["document_id"] == "ruling"), key=lambda source: source["start_char"])
-        self.assertGreater(len(policies), 1)
+        self.assertEqual(len(policies), 1)
         self.assertEqual(self.value["documents"][2]["content"], "".join(source["text"] for source in bodies))
 
     def test_requirements_and_unresolved_need_owned_and_applicable_policy_citations(self):
@@ -275,6 +275,23 @@ class AdjudicationTests(unittest.TestCase):
         stored = project.store.get_task(task["id"])
         self.assertEqual("done", stored["status"])
         self.assertEqual(result, stored["result"])
+
+    def test_parent_source_citation_requires_its_own_adjudication(self):
+        original = self.value["documents"][0]
+        original["content"] = "# Parent\nShared event interpretation.\n## Child\nThe child observes status.\n"
+        original["origin"]["sha256"] = sha(original["content"])
+        self.value["documents"][2]["origin"]["targets"][0].update(sha256=sha(original["content"]), line_start=1, line_end=2)
+        project = self.project()
+        task = next(t for t in project.store.list_tasks(kind="model")
+                    if t["payload"].get("semantic_scope", {}).get("section_path") == ["Parent", "Child"])
+        result = self.response(task)
+        self.assertTrue(project._validate_model(task, result, [])["passed"])
+        mapping = task["payload"]["acceptance"]["source_adjudication_sources"]
+        self.assertFalse(set(task["payload"]["source_ids"]).intersection(mapping))
+        required = {sid for dependencies in mapping.values() for sid in dependencies}
+        result["requirements"][0]["source_ids"] = [sid for sid in result["requirements"][0]["source_ids"] if sid not in required]
+        with self.assertRaisesRegex(ValidationError, "applicable source adjudication"):
+            project._validate_model(task, result, [])
 
     def test_shared_design_and_dv_inputs_preserve_both_citation_sets(self):
         project = self.project()

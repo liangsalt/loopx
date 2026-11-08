@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from loopx.capabilities.chip_verification.engine.context import ContextBudgetExceeded, build_context, render_context
+from loopx.capabilities.chip_verification.engine.context import build_context, render_context
 from loopx.capabilities.chip_verification.engine.spec import SpecError, SpecIntegrityError, audit_manifest, ingest_spec, iter_sources, load_source
 
 
@@ -22,7 +22,7 @@ class SpecInventoryTests(unittest.TestCase):
         self.path.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
         return ingest_spec(self.path, self.root / "store", max_chunk_chars=chunk)
 
-    def test_large_document_fully_inventoried_with_bounded_contexts(self):
+    def test_large_document_fully_inventoried_by_complete_objects(self):
         sections = [{"title": f"Register group {index}", "description":
                      f"Group {index} defines reset and write behavior. " +
                      "A read returns the value accepted on the preceding completed bus transaction.\n" * 40}
@@ -33,25 +33,27 @@ class SpecInventoryTests(unittest.TestCase):
         self.assertEqual(audit["leaf_count"], 180)
         self.assertFalse(audit["semantic_review_complete"])
         sources = list(iter_sources(manifest))
-        self.assertTrue(all(len(source["text"]) <= 3000 for source in sources))
+        self.assertTrue(any(len(source["text"]) > 3000 for source in sources))
+        self.assertEqual(90, len(manifest["extraction_tasks"]))
         assigned = [source_id for task in manifest["extraction_tasks"] for source_id in task["source_ids"]]
         self.assertEqual(len(assigned), len(sources))
         self.assertEqual(set(assigned), {source["source_id"] for source in sources})
         for task in manifest["extraction_tasks"]:
             pack = build_context(manifest, task, max_chars=7000)
-            self.assertLessEqual(len(render_context(pack)), 7000)
+            self.assertEqual(2, len(pack["sources"]))
+            self.assertEqual(1, len({source["structure"]["unit"] for source in pack["sources"]}))
 
     def test_giant_string_reconstructs_exactly_and_is_not_summarized(self):
         original = "  标题\n\n条件：必须保持字段。\n" + "a" * 10000 + "\n\n Exception: preserve spaces.  "
         manifest = self.ingest({"behavior": original}, chunk=512)
         sources = list(iter_sources(manifest))
         self.assertEqual("".join(source["text"] for source in sources), original)
-        self.assertGreater(len(sources), 10)
+        self.assertEqual(len(sources), 1)
         self.assertTrue(all(source["semantic_status"] == "unreviewed" for source in sources))
         self.assertEqual(sources[0]["start_char"], 0)
         self.assertEqual(sources[-1]["end_char"], len(original))
         self.assertIsNone(sources[0]["previous_source_id"])
-        self.assertEqual(sources[0]["next_source_id"], sources[1]["source_id"])
+        self.assertIsNone(sources[0]["next_source_id"])
         self.assertIsNone(sources[-1]["next_source_id"])
 
     def test_json_pointer_escaping_and_explicit_requirement_metadata(self):
@@ -81,22 +83,21 @@ class SpecInventoryTests(unittest.TestCase):
         task = {"id": "work", "source_ids": [sources[0]["source_id"]], "dependency_source_ids": [sources[1]["source_id"]]}
         pack = build_context(manifest, task, max_chars=5000)
         self.assertEqual(len(pack["sources"]), 2)
-        with self.assertRaises(ContextBudgetExceeded) as raised:
-            build_context(manifest, task, max_chars=1000)
-        self.assertEqual(len(raised.exception.source_ids), 2)
+        small_legacy_limit = build_context(manifest, task, max_chars=1, max_tokens=1)
+        self.assertEqual(pack, small_legacy_limit)
         with self.assertRaises(KeyError):
             build_context(manifest, {"source_ids": ["missing"]})
 
-    def test_context_budget_includes_instruction_and_utf8_bytes(self):
+    def test_context_measurements_do_not_limit_instruction_or_utf8_source(self):
         manifest = self.ingest({"text": "中文" * 100}, chunk=1000)
         task = manifest["extraction_tasks"][0]
         pack = build_context(manifest, task, max_chars=10000)
         rendered = render_context(pack)
         self.assertGreater(len(rendered.encode("utf-8")), len(rendered))
-        with self.assertRaises(ContextBudgetExceeded):
-            build_context(manifest, task, max_chars=10000, max_tokens=100)
-        with self.assertRaises(ContextBudgetExceeded):
-            build_context(manifest, {"source_ids": [], "instruction": "x" * 5000}, max_chars=1000)
+        self.assertEqual(pack, build_context(manifest, task, max_chars=1, max_tokens=1))
+        self.assertGreater(pack["measurements"]["source_utf8_bytes"], pack["measurements"]["source_chars"])
+        complete = build_context(manifest, {"source_ids": [], "instruction": "x" * 5000}, max_chars=1)
+        self.assertEqual(complete["contract"]["instruction"], "x" * 5000)
 
     def test_snapshot_is_independent_of_original_and_detects_tampering(self):
         manifest = self.ingest({"description": "Original required behavior"})
@@ -113,7 +114,7 @@ class SpecInventoryTests(unittest.TestCase):
 
     def test_reingestion_idempotency_and_stale_task_rejection(self):
         first = self.ingest({"description": "Behavior one"})
-        repeated = ingest_spec(self.path, self.root / "store", max_chunk_chars=1000)
+        repeated = ingest_spec(self.path, self.root / "store", max_chunk_chars=1)
         self.assertEqual(first["manifest_path"], repeated["manifest_path"])
         second = self.ingest({"description": "Behavior two"})
         with self.assertRaises(ValueError):

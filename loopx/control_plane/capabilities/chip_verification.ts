@@ -87,7 +87,8 @@ export function admitChipVerification(input: unknown) {
     if (value !== undefined && (value !== null || key === "timeout") && (!Number.isSafeInteger(value) || (value as number) < 1)) {
       throw new EffectRuntimeRequestError(`${key} must be a positive safe integer`);
     }
-    const maximum = key === "timeout" ? 86400 : key === "chunk_chars" || key === "context_chars" ? 1000000 : undefined;
+    // Legacy character options are accepted, but do not bound domain work.
+    const maximum = key === "timeout" ? 86400 : undefined;
     if (maximum !== undefined && typeof value === "number" && value > maximum) {
       throw new EffectRuntimeRequestError(`${key} must not exceed ${maximum}`);
     }

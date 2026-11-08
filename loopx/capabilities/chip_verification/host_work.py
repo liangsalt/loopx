@@ -1,4 +1,4 @@
-"""Durable, bounded domain work exchanged with an IDE's native model worker.
+"""Durable task-scoped domain work exchanged with an IDE's native model worker.
 
 The IDE owns its conversations. These tickets fence candidate artifact acceptance;
 they neither create LoopX Goals nor prescribe a generic agent scheduler.
@@ -13,7 +13,7 @@ from .engine.models import ConflictError, ValidationError
 from .engine.workflow import save_json
 
 LEASE_SECONDS = 1800
-HOST_INSTRUCTION = "Use only the supplied bounded task material. Restrictions on tools inside the task prompt do not prohibit LoopX MCP heartbeat/submit/abandon. Submit through dv_submit and retain the receipt. One runtime may process tasks in successive sessions; an isolated child session is optional. Do not accumulate completed task contexts in a long conversation."
+HOST_INSTRUCTION = "Use the material for this module, function, relationship or engineering-stage task. Restrictions on tools inside the task prompt do not prohibit LoopX MCP heartbeat/submit/abandon. Submit through dv_submit and retain the receipt. One runtime may process tasks in successive sessions; an isolated child session is optional. Do not accumulate completed task contexts in a long conversation."
 
 
 def encoded(value):
@@ -120,24 +120,24 @@ def summary(project, item):
             "attempt_id": item["attempt_id"], "context_chars": contract["context_chars"],
             "context_budget_chars": contract["context_budget_chars"],
             "lease_seconds": LEASE_SECONDS, "next_action": "context",
-            "instruction": "Read this attempt's bounded context in the active runtime session. Use a fresh session or optional child session when context pressure grows; durable state survives either choice."}
+            "instruction": "Read this attempt's task-scoped context in the active runtime session. Use a fresh session or optional child session when context pressure grows; durable state survives either choice."}
 
 
 def prepare(project, task, prompt, schema, session_id, request=None, budget=None):
     if task["kind"] == "watchdog-review":
         from .engine.watchdog import assert_review_session
         assert_review_session(project, task, session_id)
-    budget = budget or project.config.get("host_context_chars", project.config["context_chars"])
+    # The optional budget argument is retained for old dispatchers. Character
+    # counts are observations, never domain partition or admission criteria.
     contract = {"task_id": task["id"], "kind": task["kind"], "prompt": prompt,
-                "host_instruction": HOST_INSTRUCTION, "output_schema": schema, "context_budget_chars": budget}
-    # Count the actual serialized payload delivered to the worker, including schema.
-    required = len(encoded(contract)) + 300
-    if required > budget:
-        if task["status"] in {"pending", "failed"}:
-            project.store.block(task["id"], f"Complete host context needs {required} characters; budget is {budget}")
-            project.store.add_issue("context_blocker", "Complete required task context exceeds the host budget; split the scope or increase its budget.", task_id=task["id"])
-        raise ValidationError(f"Complete host context needs {required} characters; budget is {budget}. Split the scope or explicitly increase its budget; no dependency was truncated.")
-    contract["context_chars"] = required
+                "host_instruction": HOST_INSTRUCTION, "output_schema": schema, "context_budget_chars": None,
+                "context_chars": 0}
+    # Include the fixed-length digest field and the counter's own digits.
+    while True:
+        measured = len(encoded({**contract, "contract_sha256": "0" * 64}))
+        if measured == contract["context_chars"]:
+            break
+        contract["context_chars"] = measured
     contract["contract_sha256"] = digest(contract)
     attempt = project.store.claim(task["id"], session_id, lease_seconds=LEASE_SECONDS)
     try:
@@ -237,8 +237,7 @@ class GenerationDispatcher:
 def _remember_generation(project, request):
     with project.store._db(write=True) as db:
         baseline = project.store._current(db)
-        # Refresh request order even when an explicitly selected budget was used
-        # before. Claims replay the most recently requested matching contract.
+        # Claims replay the most recently requested matching domain contract.
         db.execute("INSERT OR REPLACE INTO host_generations VALUES(?,?,?)",
                    (digest([baseline, request]), baseline, encoded(request)))
 
@@ -249,8 +248,7 @@ def generate(project, arguments, *, item=None, response=None, expected_task_id=N
     request = dict(arguments)
     session = request.pop("session_id", None) or "host-request-" + uuid.uuid4().hex
     # Pin the complete generation request so a later host can reconstruct validators.
-    request["context_chars"] = request.get("context_chars") or project.config.get("host_context_chars", 24000)
-    allowed = {"rtl_files", "top", "profile_path", "scope_id", "context_chars", "contract_task_id"}
+    allowed = {"rtl_files", "top", "profile_path", "scope_id", "contract_task_id"}
     request = {key: value for key, value in request.items() if key in allowed and value is not None}
     if item is None and not replay:
         _remember_generation(project, request)
@@ -400,7 +398,7 @@ def claim(project, arguments):
                                             "scope_id": task["payload"].get("generation_scope_id")}, expected_task_id=task["id"], replay=True)
                 if result.get("status") == "awaiting_host":
                     return result
-                # The newest exact request owns this scope's execution budget.
-                # A durable blocker must not fall through to an older budget.
+                # The newest exact request owns this scope's execution inputs.
+                # A durable blocker must not fall through to an older request.
                 break
     return {"status": "no_ready_work", "next_action": "status"}

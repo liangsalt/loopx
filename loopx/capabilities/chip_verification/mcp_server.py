@@ -28,6 +28,15 @@ def create_server(workspace: str | Path, *, invoker: Callable[..., dict] | None 
 
     class StrictServer(FastMCP):
         async def call_tool(self, name: str, arguments: dict[str, Any]):
+            arguments = dict(arguments)
+            # Old hosts may resend these optional arguments from a cached tool
+            # schema. Accept their former types, without advertising or using a
+            # character budget to shape the task.
+            legacy = {"dv_import": ("context_chars",), "dv_generate_uvm": ("context_chars",)}
+            for key in legacy.get(name, ()):
+                value = arguments.pop(key, None)
+                if value is not None and (type(value) is not int or value < 1):
+                    raise ToolError(f"Deprecated {key} must be a positive integer when supplied")
             unknown = set(arguments) - parameters.get(name, set(arguments))
             if unknown:
                 raise ToolError(f"Unsupported {name} arguments: {', '.join(sorted(unknown))}")
@@ -37,7 +46,7 @@ def create_server(workspace: str | Path, *, invoker: Callable[..., dict] | None 
         "loopx-dv",
         instructions=(
             "LoopX chip-verification state is independent of this MCP connection. "
-            "One selected Agent runtime reads dv_status/dv_next, claims a bounded task, "
+            "One selected Agent runtime reads dv_status/dv_next, claims a module/function/stage task, "
             "reads dv_context and submits its result. Fresh sessions or optional child "
             "sessions relieve context pressure; neither workflow requires two agents. "
             "A session_id is a caller-supplied execution label, not verified TRAE identity. "
@@ -75,7 +84,7 @@ def create_server(workspace: str | Path, *, invoker: Callable[..., dict] | None 
 
     @tool
     def dv_context(attempt_id: str) -> dict:
-        """Read bounded inputs and the output schema for one active attempt."""
+        """Read complete task-scoped inputs and the output schema for one active attempt."""
         return call("context", {"attempt_id": attempt_id})
 
     @tool
@@ -93,13 +102,13 @@ def create_server(workspace: str | Path, *, invoker: Callable[..., dict] | None 
 
     @tool
     def dv_heartbeat(attempt_id: str) -> dict:
-        """Worker: renew an active attempt lease while doing bounded work."""
+        """Worker: renew an active attempt lease while processing its domain task."""
         return call("heartbeat", {"attempt_id": attempt_id}, execute=True)
 
     @tool
-    def dv_import(spec: str, context_chars: int = 24000, flow: str = "design-dv") -> dict:
+    def dv_import(spec: str, flow: str = "design-dv") -> dict:
         """Import a spec file by path; do not paste the full spec into chat."""
-        return call("import", {"spec": spec, "context_chars": context_chars, "flow": flow}, execute=True)
+        return call("import", {"spec": spec, "flow": flow}, execute=True)
 
     @tool
     def dv_prepare_design() -> dict:
@@ -128,17 +137,17 @@ def create_server(workspace: str | Path, *, invoker: Callable[..., dict] | None 
 
     @tool
     def dv_generation_scopes() -> dict:
-        """Read available UVM generation scopes before preparing bounded generation work."""
+        """Read available UVM function/interface scopes before preparing generation work."""
         return call("generation-scopes")
 
     @tool
     def dv_generate_uvm(top: str, rtl_files: list[str] | None = None, profile_path: str | None = None,
-                        scope_id: str | None = None, context_chars: int | None = None,
+                        scope_id: str | None = None,
                         session_id: str | None = None, contract_task_id: str | None = None) -> dict:
         """Prepare UVM from shared interfaces or existing RTL; expected behavior comes from spec."""
         return call("generate-uvm", {"rtl_files": rtl_files or [], "top": top,
                                     "profile_path": profile_path, "scope_id": scope_id,
-                                    "context_chars": context_chars, "session_id": session_id,
+                                    "session_id": session_id,
                                     "contract_task_id": contract_task_id}, execute=True)
 
     @tool

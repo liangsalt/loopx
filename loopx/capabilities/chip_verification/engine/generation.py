@@ -101,12 +101,6 @@ identify that missing fact precisely rather than requiring downstream steps to f
 """
 
 
-class GenerationBudgetError(ValidationError):
-    def __init__(self, message, required_chars=None, context_chars=None):
-        super().__init__(message)
-        self.required_chars = required_chars
-        self.context_chars = context_chars
-
 
 class GenerationBlocked(ValidationError):
     """A candidate reports missing design/interface contracts, not a transient error."""
@@ -374,7 +368,7 @@ def _plans(project, contract_task_id=None):
 
 
 def _scope_entries(project, points):
-    """Partition by requirement semantics, then bounded deterministic batches.
+    """Partition by complete module/function/interface and contract identities.
 
     These are independently generated bench scopes, not proof of correct
     whole-chip composition. Cross-module testpoints stay intact in one group.
@@ -392,9 +386,6 @@ def _scope_entries(project, points):
         binding = point.get("contract_task_id")
         key = _encoded([normalized, binding])
         grouped.setdefault(key, {"tags": normalized, "contract_task_id": binding, "points": []})["points"].append((reference, point))
-    # Reserve space for the DUT declaration, UVM contracts and dependency
-    # artifacts. Count complete testpoint text, not only catalog headlines.
-    point_budget = max(1, project.config["context_chars"] * 3 // 10)
     scopes = []
 
     def semantics(batch):
@@ -412,19 +403,10 @@ def _scope_entries(project, points):
                        "plan_task_ids": sorted({point["plan_task_id"] for _, point in batch}),
                        "testpoint_count": len(refs), "testpoint_characters": chars,
                        "semantic_context_characters": semantic_chars,
-                       "testpoint_budget": point_budget, "ready": semantic_chars <= point_budget,
-                       "reason": None if semantic_chars <= point_budget else
-                       "One accepted testpoint and its complete requirements exceed the reserved context budget; refine it into independently checkable scenarios."})
+                       "testpoint_budget": None, "ready": True, "reason": None})
 
     for _, group in sorted(grouped.items()):
-        batch = []
-        for item in group["points"]:
-            if batch and len(_encoded(semantics(batch + [item]))) > point_budget:
-                add(group, batch)
-                batch = []
-            batch.append(item)
-        if batch:
-            add(group, batch)
+        add(group, group["points"])
     return scopes
 
 
@@ -446,8 +428,17 @@ def generation_scopes(project, *, refresh=True) -> dict:
                                     "components_done": sum(task["status"] == "done" for task in items)}
                                    for identifier, items in sorted(sets.items())]
     return {"schema_version": 1, "testpoint_count": len(points), "scope_count": len(scopes),
-            "context_chars": project.config["context_chars"], "scopes": scopes,
+            "context_chars": None, "scopes": scopes,
             "composition_status": "Independent generation scopes; cross-scope integration is a separate verification obligation."}
+
+
+def _semantic_basis(basis):
+    """Measurements and a retired admission budget do not identify design work."""
+    result = dict(basis)
+    result["generation_scope"] = {key: value for key, value in basis["generation_scope"].items()
+                                  if key not in {"testpoint_budget", "ready", "reason", "testpoint_characters",
+                                                 "semantic_context_characters"}}
+    return result
 
 
 def _snapshot(project, rtl_files, top, scope_id=None, profile_path=None, contract_task_id=None):
@@ -495,6 +486,16 @@ def _snapshot(project, rtl_files, top, scope_id=None, profile_path=None, contrac
         if shared:
             basis["shared_specification"] = {"task_id": shared["task_id"], "hash": shared["hash"],
                                               "contract": shared["contract"]}
+        # Existing accepted/running generations retain their immutable identity
+        # only when every semantic source, scope and binding is identical. Old
+        # length-created scopes with different testpoint membership never match.
+        comparable = _semantic_basis(basis)
+        for task in project.store.list_tasks(kind="architecture"):
+            previous = task["payload"].get("basis")
+            if (previous and task["status"] not in {"stale", "cancelled"}
+                    and _semantic_basis(previous) == comparable):
+                basis = previous
+                break
         return basis, selected_plans, selected_points, declaration, scopes, selected_requirements, profile
 
     if scope_id is not None:
@@ -511,24 +512,18 @@ def _snapshot(project, rtl_files, top, scope_id=None, profile_path=None, contrac
             if not relevant or any(task["status"] != "done" for task in relevant):
                 selected = scope
                 break
-    if not selected["ready"]:
-        raise GenerationBudgetError(selected["reason"] + " No required input was truncated.")
     return select(selected)
 
 
 def _schema_characters(agent, schema):
-    # Pi's adapter appends the output schema to its message. Reserve that exact
-    # extra material before dispatch rather than exceeding the declared budget.
+    # Pi's adapter appends the output schema to its message. Include those exact
+    # characters in the observation; this is not a dispatch limit.
     return len("\nReturn only JSON conforming to this schema:\n" + json.dumps(schema)) if agent in {"pi", "host"} else 0
 
 
-def _bounded(instruction, context, budget, agent, schema):
-    prompt = instruction + "\n" + _encoded(context)
-    required = len(prompt) + _schema_characters(agent, schema)
-    if required > budget:
-        raise GenerationBudgetError(f"UVM task requires {required} characters but the context budget is {budget}. Split the generation scope/component or establish a smaller explicit dependency contract; no required input was truncated.",
-                                    required_chars=required, context_chars=budget)
-    return prompt
+def _component_prompt(instruction, context):
+    """Build the complete selected component context without cutting dependencies."""
+    return instruction + "\n" + _encoded(context)
 
 
 def _context_issues(project, task):
@@ -549,49 +544,21 @@ def _context_issues(project, task):
     return records
 
 
-def _block_context(project, task, instruction, context, budget, agent, schema, error):
-    """Persist an unsent full context and a typed blocker; never drop dependencies."""
-    prompt = instruction + "\n" + _encoded(context)
-    identity = _hash({"prompt": prompt, "schema": schema, "agent": agent, "context_chars": budget})
-    path = project.root / ".loopx" / "chip-verification" / "context-blockers" / task["id"] / (identity + ".json")
-    details = {"task_id": task["id"], "input_fingerprint": task["payload"]["input_fingerprint"],
-               "required_chars": error.required_chars, "context_chars": budget,
-               "prompt_chars": len(prompt), "schema_chars": _schema_characters(agent, schema),
-               "agent": agent, "context_sha256": identity, "evidence_path": str(path), "reason": str(error)}
-    for issue, previous in _context_issues(project, task):
-        if previous == details and task["status"] == "blocked":
-            return task, {"status": "blocked", "issue_id": issue["id"], **details}
-    save_json(path, {"schema_version": 1, **details, "prompt": prompt, "output_schema": schema})
-    current = project.store.get_task(task["id"])
-    if current["status"] not in {"pending", "blocked"} or current["revision"] != task["revision"]:
-        raise ConflictError("Task changed while preparing its context budget blocker")
-    blocked, issue = project.store.block_context(
-        task["id"], task["revision"], "uvm_context_blocker: " + str(error) + " Evidence: " + str(path), _encoded(details))
-    return blocked, {"status": "blocked", "issue_id": issue["id"], **details}
-
-
 def _prepare_dispatch_context(project, task, instruction, context, budget, agent, schema,
                               explicit_budget, validate, dispatcher=None):
-    """Apply identical durable budget admission to architecture and components."""
+    """Resume selected semantic work and retire old length-only holds atomically."""
     selected = getattr(dispatcher, "expected_task_id", None)
     if selected and task["id"] != selected:
         return task, None, None
     budget_issues = _context_issues(project, task)
     if task["status"] != "pending" and not budget_issues and not (dispatcher and dispatcher.owns(task)):
         return task, None, None
-    try:
-        prompt = _bounded(instruction, context, budget, agent, schema)
-    except GenerationBudgetError as error:
-        validate()
-        blocked, receipt = _block_context(project, task, instruction, context, budget, agent, schema, error)
-        return blocked, None, receipt
+    prompt = _component_prompt(instruction, context)
     if budget_issues:
-        if explicit_budget is None or budget <= max(details["context_chars"] for _, details in budget_issues):
-            return task, None, None
         validate()
-        resolution = _encoded({"reason": "Complete required context was rebuilt and fits the explicitly increased execution budget; no input was truncated.",
+        resolution = _encoded({"reason": "Length-based admission was retired; the complete selected semantic context is preserved.",
                                "required_chars": len(prompt) + _schema_characters(agent, schema),
-                               "context_chars": budget, "input_fingerprint": task["payload"]["input_fingerprint"]})
+                               "context_chars": None, "input_fingerprint": task["payload"]["input_fingerprint"]})
         task, recovered = project.store.recover_context(task, [issue for issue, _ in budget_issues], resolution)
         if not recovered:
             return task, None, None
@@ -753,17 +720,17 @@ def run_generation(project, rtl_files: list, top: str, agent: str = "codex", tim
     ``project`` is a DVProject. Each component is a fresh model session. Completed
     tasks are reused. By default the next unfinished automatically partitioned
     module/function scope is selected; scope_id pins a particular scope.
-    context_chars overrides only this invocation's prompt budget. It does not
-    change scope partitioning, project configuration or semantic input identity.
+    context_chars is a deprecated compatibility argument. It cannot change
+    scope partitioning, dispatch eligibility or semantic input identity.
     """
     if (agent not in {"codex", "pi", "host"} or (agent == "host" and dispatcher is None)
             or timeout <= 0 or (max_components is not None and max_components < 0)):
         raise ValueError("Invalid generation runtime, timeout or component limit")
     if not rtl_files and not contract_task_id:
         raise ValidationError("Provide the actual RTL source files; specification prose is not RTL")
-    budget = project.config["context_chars"] if context_chars is None else context_chars
-    if not isinstance(budget, int) or isinstance(budget, bool) or budget <= 0:
-        raise ValueError("context_chars must be a positive integer")
+    if context_chars is not None and (not isinstance(context_chars, int) or isinstance(context_chars, bool) or context_chars <= 0):
+        raise ValueError("Deprecated context_chars must be a positive integer or None")
+    budget = None
     paths = sorted({(Path(path) if Path(path).is_absolute() else project.root / path).resolve() for path in rtl_files}, key=str)
     if any(not path.is_file() for path in paths):
         raise ValidationError("An explicitly supplied RTL file does not exist")
@@ -918,8 +885,6 @@ def run_generation(project, rtl_files: list, top: str, agent: str = "codex", tim
             actual = [file["path"] for file in response["files"]]
             if len(set(name.casefold() for name in actual)) != len(actual) or set(actual) != set(component["output_paths"]):
                 raise ValidationError("Component must return exactly its exclusively owned output paths")
-            if sum(len(file["content"]) for file in response["files"]) > 100000:
-                raise ValidationError("Generated component is too large; split its contract")
             for file in response["files"]:
                 _safe_path(file["path"])
                 if not file["content"].strip() or re.search(r"\b(?:TODO|FIXME|IMPLEMENT_ME)\b", file["content"]):

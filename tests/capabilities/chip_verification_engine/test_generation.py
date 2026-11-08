@@ -13,7 +13,7 @@ import unittest
 from unittest.mock import patch
 
 from loopx.capabilities.chip_verification.engine import generation
-from loopx.capabilities.chip_verification.engine.generation import GenerationBudgetError, generation_scopes, run_generation
+from loopx.capabilities.chip_verification.engine.generation import generation_scopes, run_generation
 from loopx.capabilities.chip_verification.engine.models import ConflictError, ValidationError
 from loopx.capabilities.chip_verification.engine.workflow import DVProject, save_json
 
@@ -238,41 +238,31 @@ class GenerationTests(unittest.TestCase):
         self.assertEqual([], self.project.store.list_tasks(status="done", kind="architecture"))
         self.assertEqual([], list((self.root / "generated_uvm").rglob("architecture.json")))
 
-    def test_required_dependency_overflow_is_explicit_and_never_truncated(self):
+    def test_large_required_dependency_is_preserved_and_does_not_split_component(self):
         def huge_shared(kind, context, response):
             if kind == "component" and context["component"]["id"] == "shared":
-                response["files"][0]["content"] += "// exact shared content " + "x" * 14000 + "\n"
+                response["files"][0]["content"] += "// exact shared content " + "x" * 120000 + "\n"
             return response
         adapter = CandidateRuntime(mutate=huge_shared)
-        result = self.generate(adapter)
-        self.assertEqual("partial", result["status"])
-        self.assertEqual(2, len(adapter.calls))
-        self.assertEqual(1, len(self.project.store.list_tasks(status="done", kind="implement")))
-        blocked = self.project.store.list_tasks(status="blocked", kind="implement")
-        self.assertEqual(1, len(blocked))
-        self.assertIn("no required input was truncated", blocked[0]["reason"])
-        issues = self.project.store.list_issues()
-        self.assertEqual(["uvm_context_blocker"], [issue["category"] for issue in issues])
-        details = json.loads(issues[0]["description"])
-        self.assertGreater(details["required_chars"], details["context_chars"])
-        evidence = json.loads(Path(details["evidence_path"]).read_text(encoding="utf-8"))
-        self.assertIn("x" * 14000, evidence["prompt"])
-        # A new session reaches the same explicit boundary, without repeating
-        # or silently shortening the already accepted shared contract.
+        result = self.generate(adapter, context_chars=1)
+        self.assertEqual("candidate_generated", result["status"])
+        self.assertEqual(5, len(adapter.calls))
+        self.assertEqual(4, len(self.project.store.list_tasks(status="done", kind="implement")))
+        self.assertEqual([], self.project.store.list_issues())
+        self.assertIn("x" * 120000, adapter.calls[2]["prompt"])
+        self.assertEqual([], self.project.store.list_tasks(status="blocked"))
         second = CandidateRuntime()
-        self.generate(second)
+        resumed = self.generate(second, context_chars=64000)
         self.assertEqual([], second.calls)
-        self.assertEqual(blocked[0]["revision"], self.project.store.get_task(blocked[0]["id"])["revision"])
-        self.assertEqual(1, len(self.project.store.list_issues()))
+        self.assertEqual(result["generation_id"], resumed["generation_id"])
 
-    def test_full_catalog_overflow_occurs_before_architecture_dispatch(self):
-        config = self.project.config
-        config["context_chars"] = 1000
-        save_json(self.project.config_path, config)
-        with patch("loopx.capabilities.chip_verification.engine.generation.runtime") as adapter:
-            with self.assertRaises(GenerationBudgetError):
-                run_generation(self.project, [self.rtl], "dut")
-            adapter.assert_not_called()
+    def test_legacy_small_context_setting_does_not_block_architecture(self):
+        save_json(self.project.config_path, {**self.project.config, "context_chars": 1})
+        adapter = CandidateRuntime()
+        result = self.generate(adapter)
+        self.assertEqual("candidate_generated", result["status"])
+        self.assertEqual(5, len(adapter.calls))
+        self.assertIsNone(result["context_chars"])
 
     def test_changed_dependency_artifact_invalidates_downstream_readiness(self):
         result = self.generate(CandidateRuntime())
@@ -307,14 +297,14 @@ class GenerationTests(unittest.TestCase):
         self.project.store.finish(task["id"], attempt["id"], {"testpoints": points, "unresolved": []}, [artifact],
                                   validator=lambda *args: {"passed": True, "checks": ["unit_fixture_only"]})
         inventory = generation_scopes(self.project)
-        self.assertGreater(inventory["scope_count"], 4)
+        self.assertEqual(4, inventory["scope_count"])
         references = [identifier for scope in inventory["scopes"] for identifier in scope["testpoint_ids"]]
         self.assertEqual(61, len(references))
         self.assertEqual(len(references), len(set(references)))
         self.assertNotIn("TP_DETAIL_ONLY", json.dumps(inventory))
         for scope in inventory["scopes"]:
             self.assertTrue(scope["ready"])
-            self.assertLessEqual(scope["testpoint_characters"], scope["testpoint_budget"])
+            self.assertIsNone(scope["testpoint_budget"])
             self.assertEqual(1, len(scope["tags"]["modules"]))
         first_runtime = CandidateRuntime()
         first = self.generate(first_runtime)
@@ -322,12 +312,26 @@ class GenerationTests(unittest.TestCase):
         second = self.generate(second_runtime)
         self.assertNotEqual(first["generation_scope"]["id"], second["generation_scope"]["id"])
         self.assertFalse(second["cross_scope_integration_verified"])
-        for call in first_runtime.calls + second_runtime.calls:
-            self.assertLessEqual(len(call["prompt"]), 14000)
         repeated_runtime = CandidateRuntime()
         repeated = self.generate(repeated_runtime, scope_id=first["generation_scope"]["id"])
         self.assertEqual([], repeated_runtime.calls)
         self.assertEqual(first["generation_id"], repeated["generation_id"])
+
+    def test_retired_budget_metadata_does_not_regenerate_identical_accepted_scope(self):
+        scopes = generation._scope_entries
+        def historical(project, points):
+            result = scopes(project, points)
+            for item in result:
+                item["testpoint_budget"] = 4200
+            return result
+        with patch.object(generation, "_scope_entries", side_effect=historical):
+            first = self.generate(CandidateRuntime())
+        tasks = self.project.store.list_tasks(kind="architecture")
+        resumed = CandidateRuntime()
+        second = self.generate(resumed, context_chars=1)
+        self.assertEqual([], resumed.calls)
+        self.assertEqual(first["generation_id"], second["generation_id"])
+        self.assertEqual(tasks, self.project.store.list_tasks(kind="architecture"))
 
     def test_unknown_scope_is_rejected_before_dispatch(self):
         with patch("loopx.capabilities.chip_verification.engine.generation.runtime") as adapter:
@@ -445,31 +449,21 @@ class GenerationTests(unittest.TestCase):
         self.generate(second, context_chars=32000)
         self.assertEqual([], second.calls)
 
-    def test_profile_overflow_never_truncates_documented_facts_or_dispatches(self):
+    def test_large_profile_keeps_complete_facts_and_dispatches_normally(self):
         path, profile, _ = self.make_profile()
-        profile["documented_design_facts"][0]["statement"] += "a" * 14000
+        profile["documented_design_facts"][0]["statement"] += "a" * 40000
         save_json(path, profile)
-        with patch("loopx.capabilities.chip_verification.engine.generation.runtime") as adapter:
-            result = run_generation(self.project, [self.rtl], "dut", profile_path=path, max_components=0)
-            adapter.assert_not_called()
-        self.assertEqual("blocked", result["status"])
-        task = self.project.store.get_task(result["task_id"])
-        self.assertEqual("architecture", task["kind"])
-        self.assertTrue(task["reason"].startswith("uvm_context_blocker:"))
-        issue = self.project.store.list_issues()[0]
-        details = json.loads(issue["description"])
-        evidence = json.loads(Path(details["evidence_path"]).read_text(encoding="utf-8"))
-        self.assertIn("a" * 14000, evidence["prompt"])
+        adapter = CandidateRuntime()
+        result = self.generate(adapter, profile_path=path, context_chars=1, max_components=0)
+        self.assertEqual("partial", result["status"])
+        self.assertEqual(1, len(adapter.calls))
+        self.assertIn("a" * 40000, adapter.calls[0]["prompt"])
+        self.assertEqual(1, len(self.project.store.list_tasks(kind="architecture", status="done")))
         repeated = CandidateRuntime()
-        self.generate(repeated, profile_path=path, max_components=0)
+        resumed = self.generate(repeated, profile_path=path, context_chars=32000, max_components=0)
         self.assertEqual([], repeated.calls)
-        self.assertEqual(task["revision"], self.project.store.get_task(task["id"])["revision"])
-        resumed = CandidateRuntime()
-        self.generate(resumed, profile_path=path, context_chars=32000, max_components=0)
-        self.assertEqual(1, len(resumed.calls))
-        self.assertEqual("done", self.project.store.get_task(task["id"])["status"])
+        self.assertEqual(result["generation_id"], resumed["generation_id"])
         self.assertEqual([], self.project.store.list_issues())
-        self.assertEqual(1, len(self.project.store.list_issues(status="resolved")))
 
     def test_component_dispatch_limit_counts_contract_blockers_not_only_successes(self):
         independent = blueprint()
@@ -496,71 +490,62 @@ class GenerationTests(unittest.TestCase):
         self.assertEqual([], third_adapter.calls)
         self.assertEqual(0, third["components_dispatched_this_call"])
 
-    def test_unsent_overflow_does_not_consume_dispatch_allowance_for_independent_component(self):
+    def test_component_work_order_uses_dependencies_not_prose_length(self):
         independent = blueprint()
-        independent["components"][0]["contract"] += "b" * 14000
+        independent["components"][0]["contract"] += "b" * 40000
         independent["components"][1]["depends_on"] = []
         independent["components"][1]["dependency_files"] = []
         adapter = CandidateRuntime(independent)
         result = self.generate(adapter, max_components=1)
         self.assertEqual(["architecture", "component"], [call["kind"] for call in adapter.calls])
-        self.assertEqual("uvc", adapter.calls[1]["context"]["component"]["id"])
+        self.assertEqual("shared", adapter.calls[1]["context"]["component"]["id"])
+        self.assertIn("b" * 40000, adapter.calls[1]["prompt"])
         self.assertEqual(1, result["components_dispatched_this_call"])
         self.assertEqual(1, result["components_generated_this_call"])
-        self.assertEqual(1, len(self.project.store.list_tasks(kind="implement", status="blocked")))
+        self.assertEqual([], self.project.store.list_tasks(kind="implement", status="blocked"))
 
-    def test_explicit_larger_budget_unblocks_only_context_and_preserves_blueprint_identity(self):
-        large_contract = blueprint()
-        large_contract["shared_contracts"][0]["description"] += "k" * 14000
-        first_runtime = CandidateRuntime(large_contract)
-        original_config = self.project.config_path.read_bytes()
-        first = self.generate(first_runtime, max_components=1)
-        self.assertEqual(1, len(first_runtime.calls))
-        self.assertEqual(0, first["components_done"])
+    def test_legacy_context_hold_recovers_without_budget_change_or_blueprint_rewrite(self):
+        blocked, _ = self._context_blocked_component()
         architecture = self.project.store.list_tasks(status="done", kind="architecture")[0]
+        original_config = self.project.config_path.read_bytes()
         architecture_path = next((self.root / "generated_uvm").rglob("architecture.json"))
         architecture_snapshot = architecture_path.read_bytes(), architecture_path.stat().st_mtime_ns
-        blocked = self.project.store.list_tasks(status="blocked", kind="implement")[0]
-        second_runtime = CandidateRuntime()
-        with patch("loopx.capabilities.chip_verification.engine.generation.runtime", return_value=second_runtime) as factory:
-            second = run_generation(self.project, [self.rtl], "dut", context_chars=32000, max_components=1)
-        self.assertEqual(first["generation_id"], second["generation_id"])
+        adapter = CandidateRuntime()
+        self.generate(adapter, max_components=1)
         self.assertEqual(architecture, self.project.store.get_task(architecture["id"]))
         self.assertEqual(architecture_snapshot, (architecture_path.read_bytes(), architecture_path.stat().st_mtime_ns))
         self.assertEqual(original_config, self.project.config_path.read_bytes())
-        self.assertEqual(1, len(second_runtime.calls))
-        self.assertEqual("component", second_runtime.calls[0]["kind"])
-        self.assertEqual(32000, factory.call_args.kwargs["max_prompt_chars"])
+        self.assertEqual(1, len(adapter.calls))
         self.assertEqual("done", self.project.store.get_task(blocked["id"])["status"])
         self.assertEqual([], self.project.store.list_issues())
         resolved = self.project.store.list_issues(status="resolved")
         self.assertEqual(1, len(resolved))
         resolution = json.loads(resolved[0]["resolution"])
-        self.assertEqual(32000, resolution["context_chars"])
-        self.assertLessEqual(resolution["required_chars"], 32000)
-        context_path = self.root / ".loopx" / "chip-verification" / "attempts" / second_runtime.calls[0]["attempt_id"] / "generation-context.json"
-        context = json.loads(context_path.read_text(encoding="utf-8"))
-        self.assertEqual(32000, context["context_chars"])
-        self.assertEqual(len(second_runtime.calls[0]["prompt"]), context["required_chars"])
+        self.assertIsNone(resolution["context_chars"])
+        path = self.root / ".loopx/chip-verification/attempts" / adapter.calls[0]["attempt_id"] / "generation-context.json"
+        context = json.loads(path.read_text(encoding="utf-8"))
+        self.assertIsNone(context["context_chars"])
         self.assertIn("k" * 14000, context["prompt"])
 
-    def test_increased_budget_still_too_small_does_not_dispatch_or_resolve(self):
+    def test_positive_legacy_budget_does_not_limit_complete_component(self):
         large_contract = blueprint()
         large_contract["shared_contracts"][0]["description"] += "k" * 14000
-        self.generate(CandidateRuntime(large_contract), max_components=1)
-        adapter = CandidateRuntime()
-        result = self.generate(adapter, context_chars=14500, max_components=1)
-        self.assertEqual([], adapter.calls)
-        self.assertEqual(0, result["components_done"])
-        self.assertEqual(2, len(self.project.store.list_issues()))
-        self.assertEqual([], self.project.store.list_issues(status="resolved"))
+        adapter = CandidateRuntime(large_contract)
+        result = self.generate(adapter, context_chars=1, max_components=1)
+        self.assertEqual(2, len(adapter.calls))
+        self.assertEqual(1, result["components_done"])
+        self.assertIn("k" * 14000, adapter.calls[1]["prompt"])
+        self.assertEqual([], self.project.store.list_issues())
 
     def test_targeted_budget_recovery_leaves_sibling_blocker_unchanged(self):
         independent = blueprint()
         independent["shared_contracts"][0]["description"] += "k" * 14000
         independent["components"][1]["depends_on"] = []
         independent["components"][1]["dependency_files"] = []
-        self.generate(CandidateRuntime(independent))
+        self.generate(CandidateRuntime(independent), max_components=0)
+        for task in self.project.store.ready_tasks(100):
+            if task["kind"] == "implement":
+                self.record_legacy_context_hold(task)
         blocked = self.project.store.list_tasks(kind="implement", status="blocked")
         self.assertEqual(2, len(blocked))
         by_component = {task["payload"]["component"]["id"]: task for task in blocked}
@@ -585,15 +570,21 @@ class GenerationTests(unittest.TestCase):
         self.assertEqual(sibling_issues, self.project.store.list_issues())
         self.assertEqual("running", self.project.store.get_task(target["id"])["status"])
 
+    def record_legacy_context_hold(self, task):
+        path = self.root / (task["id"] + "-old-context.json")
+        details = {"input_fingerprint": task["payload"]["input_fingerprint"], "context_chars": 14000,
+                   "required_chars": 24000, "evidence_path": str(path), "agent": "codex"}
+        save_json(path, {**details, "prompt": "Historical complete input", "output_schema": {}})
+        blocked, _ = self.project.store.block_context(task["id"], task["revision"],
+            "uvm_context_blocker: old fixed character limit", json.dumps(details))
+        return blocked, json.loads(path.read_text(encoding="utf-8"))
+
     def _context_blocked_component(self):
         large_contract = blueprint()
         large_contract["shared_contracts"][0]["description"] += "k" * 14000
-        self.generate(CandidateRuntime(large_contract), max_components=1)
-        task = self.project.store.list_tasks(kind="implement", status="blocked")[0]
-        issue = self.project.store.list_issues()[0]
-        details = json.loads(issue["description"])
-        evidence = json.loads(Path(details["evidence_path"]).read_text(encoding="utf-8"))
-        return task, evidence
+        self.generate(CandidateRuntime(large_contract), max_components=0)
+        task = next(task for task in self.project.store.ready_tasks(100) if task["kind"] == "implement")
+        return self.record_legacy_context_hold(task)
 
     def test_two_connections_recover_same_snapshot_once_and_only_one_claims(self):
         task, evidence = self._context_blocked_component()
@@ -674,55 +665,50 @@ class GenerationTests(unittest.TestCase):
         self.assertEqual([], self.project.store.list_issues())
         resolved = self.project.store.list_issues(status="resolved")
         self.assertEqual(1, len(resolved))
-        self.assertEqual(64000, json.loads(resolved[0]["resolution"])["context_chars"])
+        self.assertIsNone(json.loads(resolved[0]["resolution"])["context_chars"])
         requeued = [event for event in self.project.store.events(limit=1000)
                     if event["type"] == "task_requeued" and event["task_id"] == task["id"]]
         self.assertEqual(1, len(requeued), "Budget admission must not requeue an already pending retry")
         self.assertGreater(self.project.store.get_task(task["id"])["revision"], pending["revision"])
 
-    def test_context_blocking_cannot_stop_a_concurrently_claimed_attempt(self):
+    def test_context_preparation_does_not_change_another_sessions_lease(self):
         self.generate(CandidateRuntime(), max_components=0)
         task = next(task for task in self.project.store.ready_tasks(100) if task["kind"] == "implement")
-        other = DVProject(self.root)
-        block_context = self.project.store.block_context
-        running = []
-
-        def claim_before_block(*args, **kwargs):
-            other.store.claim(task["id"], "concurrent-connection")
-            running.append(other.store.get_task(task["id"]))
-            return block_context(*args, **kwargs)
-
-        with patch.object(self.project.store, "block_context", side_effect=claim_before_block):
-            with self.assertRaises(ConflictError):
-                generation._prepare_dispatch_context(self.project, task, "Complete context", {}, 1,
-                    "host", {}, None, lambda: None)
-        self.assertEqual(running[0], other.store.get_task(task["id"]))
-        self.assertEqual([], other.store.list_issues())
-
-    def test_context_blocker_and_issue_rollback_together_on_persistence_failure(self):
-        self.generate(CandidateRuntime(), max_components=0)
-        task = next(task for task in self.project.store.ready_tasks(100) if task["kind"] == "implement")
-        with patch.object(self.project.store, "_add_issue_current", side_effect=OSError("write interrupted")):
-            with self.assertRaisesRegex(OSError, "write interrupted"):
-                generation._prepare_dispatch_context(self.project, task, "Complete context", {}, 1,
-                    "host", {}, None, lambda: None)
-        self.assertEqual(task, self.project.store.get_task(task["id"]))
+        attempt = self.project.store.claim(task["id"], "concurrent-connection")
+        running = self.project.store.get_task(task["id"])
+        current, prompt, receipt = generation._prepare_dispatch_context(self.project, running,
+            "Complete context " * 10000, {}, None, "host", {}, None, lambda: None)
+        self.assertEqual(running, current)
+        self.assertIsNone(prompt)
+        self.assertIsNone(receipt)
+        self.assertEqual(attempt["id"], self.project.store.get_task(task["id"])["attempt_id"])
         self.assertEqual([], self.project.store.list_issues())
 
-    def test_pi_schema_and_runtime_share_the_execution_budget(self):
+    def test_context_preparation_never_creates_a_length_hold(self):
+        self.generate(CandidateRuntime(), max_components=0)
+        task = next(task for task in self.project.store.ready_tasks(100) if task["kind"] == "implement")
+        with patch.object(self.project.store, "block_context", side_effect=AssertionError("No new length hold")):
+            current, prompt, receipt = generation._prepare_dispatch_context(self.project, task,
+                "Complete context " * 10000, {}, 1, "host", {}, None, lambda: None)
+        self.assertEqual(task, current)
+        self.assertIn("Complete context " * 10000, prompt)
+        self.assertIsNone(receipt)
+        self.assertEqual([], self.project.store.list_issues())
+
+    def test_pi_schema_is_measured_without_a_runtime_limit(self):
         adapter = CandidateRuntime()
         with patch("loopx.capabilities.chip_verification.engine.generation.runtime", return_value=adapter) as factory:
             result = run_generation(self.project, [self.rtl], "dut", agent="pi", context_chars=18000, max_components=1)
-        self.assertEqual(18000, result["context_chars"])
+        self.assertIsNone(result["context_chars"])
         self.assertEqual(2, len(adapter.calls))
         for invocation, call in zip(factory.call_args_list, adapter.calls):
-            self.assertEqual(18000, invocation.kwargs["max_prompt_chars"])
+            self.assertIsNone(invocation.kwargs["max_prompt_chars"])
             extra = len("\nReturn only JSON conforming to this schema:\n" + json.dumps(call["schema"]))
             path = self.root / ".loopx" / "chip-verification" / "attempts" / call["attempt_id"] / "generation-context.json"
             recorded = json.loads(path.read_text(encoding="utf-8"))
             self.assertEqual(extra, recorded["schema_chars"])
             self.assertEqual(len(call["prompt"]) + extra, recorded["required_chars"])
-            self.assertLessEqual(recorded["required_chars"], 18000)
+            self.assertIsNone(recorded["context_chars"])
 
     def test_invalid_execution_budget_is_rejected_without_mutating_project(self):
         original = self.project.config_path.read_bytes()

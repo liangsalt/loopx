@@ -32,7 +32,8 @@ class CandidateRuntime:
                                     "configurations": ["depth=4"], "priority": "critical"}
                                    for index, requirement in enumerate(context["requirements"])
                                    if requirement["applicability"] == "in_scope"], "unresolved": []}
-        sources = context["sources"]
+        owned = context.get("contract", {}).get("acceptance", {}).get("owned_source_ids")
+        sources = [source for source in context["sources"] if owned is None or source["source_id"] in owned]
         return {
             "requirements": [{"local_id": f"R-{index}", "statement": source["text"],
                               "source_ids": [source["source_id"]], "modules": ["fifo"],
@@ -77,7 +78,8 @@ class BundledModelTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         self.spec = self.root / "spec.json"
-        self.spec.write_text(json.dumps({"requirements": "The FIFO shall preserve accepted input order.\n" * 250}), encoding="utf-8")
+        self.spec.write_text(json.dumps({"modules": [{"name": f"fifo_{index}",
+            "requirements": "The FIFO shall preserve accepted input order.\n"} for index in range(8)]}), encoding="utf-8")
         self.project = DVProject(self.root)
         self.project.import_spec(self.spec, name="Bundle test fixture", scope="FIFO order",
                                   chunk_chars=800, context_chars=14000)
@@ -95,7 +97,6 @@ class BundledModelTests(unittest.TestCase):
         results = self.work(adapter, max_tasks=3)
         self.assertEqual(["done"] * 3, [result["status"] for result in results])
         self.assertEqual(1, len(adapter.calls))
-        self.assertLessEqual(len(adapter.calls[0]["prompt"]), 14000)
         self.assertEqual(3, len({result["receipt"]["attempt_id"] for result in results}))
         self.assertEqual(1, len({result["session_id"] for result in results}))
         self.assertEqual(3, len(self.project.store.list_tasks(status="done", kind="model")))
@@ -128,6 +129,28 @@ class BundledModelTests(unittest.TestCase):
                 self.assertEqual(self.project.store.get_source(source_id)["text"], source["text"])
             self.assertFalse(observed & sources.keys())
             observed.update(sources)
+
+    def test_structural_parents_remain_context_without_duplicate_dispositions(self):
+        self.spec.write_text(json.dumps({"description": "Reset applies to every module.",
+            "modules": [{"name": f"fifo_{index}", "requirements": "Preserve accepted order."}
+                        for index in range(3)]}), encoding="utf-8")
+        self.project.import_spec(self.spec, name="Bundle test fixture", scope="FIFO order")
+        ready = self.project.store.ready_tasks(10000)
+        members = [task for task in ready if task["payload"].get("dependency_source_ids")]
+        self.assertEqual(3, len(members))
+        for task in ready:
+            if task not in members:
+                self.project.store.block(task["id"], "Fixture selects child module tasks")
+        adapter = CandidateRuntime()
+        results = self.work(adapter, max_tasks=3)
+        self.assertEqual(["done"] * 3, [result["status"] for result in results])
+        self.assertIn("Dependency sources supply shared context", adapter.calls[0]["prompt"])
+        for member in adapter.calls[0]["context"]["members"]:
+            owned = set(member["contract"]["acceptance"]["owned_source_ids"])
+            self.assertLess(owned, {source["source_id"] for source in member["sources"]})
+            candidate = next(entry["candidate"] for entry in adapter.calls[0]["response"]["results"]
+                             if entry["task_id"] == member["task_id"])
+            self.assertEqual(owned, {entry["source_id"] for entry in candidate["dispositions"]})
 
     def test_missing_duplicate_and_unknown_results_reject_every_owned_member(self):
         mutations = [lambda value: {"results": value["results"][:-1]},
@@ -188,11 +211,9 @@ class BundledModelTests(unittest.TestCase):
         self.assertEqual(accepted, self.project.store.get_task(accepted["id"]))
         self.assertNotIn(accepted["id"], [member["task_id"] for member in next_adapter.calls[0]["context"]["members"]])
 
-    def test_exact_budget_falls_back_to_single_worker_without_truncation(self):
-        first = self.project.store.ready_tasks()[0]
-        single = self.project.task_context(first)[0]
+    def test_single_semantic_task_ignores_legacy_budget_without_truncation(self):
         config = self.project.config
-        config["context_chars"] = len(single) + 40
+        config["context_chars"] = 1
         save_json(self.project.config_path, config)
         adapter = CandidateRuntime()
         with patch.object(self.project, "execute", wraps=self.project.execute) as execute:
@@ -200,28 +221,27 @@ class BundledModelTests(unittest.TestCase):
         execute.assert_called_once()
         self.assertEqual("done", results[0]["status"])
         self.assertNotIn("members", adapter.calls[0]["context"])
-        self.assertLessEqual(len(adapter.calls[0]["prompt"]), config["context_chars"])
+        self.assertGreater(len(adapter.calls[0]["prompt"]), config["context_chars"])
+        self.assertEqual(len(self.project.store.get_task(results[0]["task_id"])["payload"]["source_ids"]),
+                         len(adapter.calls[0]["context"]["sources"]))
 
-    def test_pi_schema_is_counted_in_exact_budget(self):
+    def test_pi_schema_and_semantic_members_are_kept_despite_legacy_budget(self):
         ready = self.project.store.ready_tasks(10000)
         tasks = ready[:3]
         for task in ready[3:]:
             self.project.store.block(task["id"], "Unit fixture reserves exactly three eligible members")
         members = [{"task": task, "context": self.project.task_context(task)[2]} for task in tasks]
-        # A dispatch fitting without Pi's appended schema must be split when
-        # that actual schema would put the full message over the hard limit.
         prompt, _ = _bundle_prompt(self.project, members, "bundle_" + "0" * 32)
         schema = _schema([task["id"] for task in tasks])
         config = self.project.config
-        # Leave room for the few characters changed when the numeric budget
-        # itself is embedded in each source context.
         config["context_chars"] = len(_effective_prompt(prompt, schema, "pi")) - 20
         save_json(self.project.config_path, config)
         adapter = CandidateRuntime(agent="pi")
         results = self.work(adapter, agent="pi", max_tasks=3)
         self.assertTrue(all(result["status"] == "done" for result in results))
-        self.assertEqual(2, len(adapter.calls))
-        self.assertTrue(all(len(call["prompt"]) <= config["context_chars"] for call in adapter.calls))
+        self.assertEqual(1, len(adapter.calls))
+        self.assertGreater(len(adapter.calls[0]["prompt"]), config["context_chars"])
+        self.assertEqual(3, len(adapter.calls[0]["context"]["members"]))
 
     def test_input_change_during_shared_invocation_rejects_all_members(self):
         def change(_):
