@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "case_id": "coralnpu-fence-tso-ordering",
+  "oracle": "ISA-derived behavioral checks plus upstream reference lineage; never derive expected data solely from candidate RTL.",
+  "criteria": [
+    {
+      "id": "decode_legality",
+      "acceptance": "0x8330000f reaches legal fence dispatch and retires without mcause=2; compare 0x0330000f and distinguish FENCE.I.",
+      "required_evidence": [
+        "original scoped ISA/document citation",
+        "test/sequence identity and seed",
+        "architectural or transaction observation",
+        "pass/fail and tool/revision provenance"
+      ]
+    },
+    {
+      "id": "ordering",
+      "acceptance": "The scoreboard checks required order edges, not cycle count or forced reorder occurrence. Full RW,RW serialization is a permitted stronger implementation.",
+      "required_evidence": [
+        "original scoped ISA/document citation",
+        "test/sequence identity and seed",
+        "architectural or transaction observation",
+        "pass/fail and tool/revision provenance"
+      ]
+    },
+    {
+      "id": "bus_pressure",
+      "acceptance": "Exercise independent AXI channel delays, outstanding responses and aligned scalar/vector memory workloads, fence placement and repeated fences. Vector pressure must first pass baseline qualification with legal integer operations, 0<vl<=VLMAX and vstart=0. Zero-element or unrelated defects are separate findings, not extra FENCE repair obligations.",
+      "required_evidence": [
+        "original scoped ISA/document citation",
+        "test/sequence identity and seed",
+        "architectural or transaction observation",
+        "pass/fail and tool/revision provenance"
+      ]
+    },
+    {
+      "id": "trap_observation",
+      "acceptance": "Keep program result, halted/fault status, trap cause/PC/value and cycle deadline separate. Unexpected trap or incomplete execution fails even if the simulator exits zero.",
+      "required_evidence": [
+        "original scoped ISA/document citation",
+        "test/sequence identity and seed",
+        "architectural or transaction observation",
+        "pass/fail and tool/revision provenance"
+      ]
+    },
+    {
+      "id": "baseline_differential",
+      "acceptance": "Run the same ELF/test sequence, profile and schedule against the candidate baseline and repaired design; a parser-only or reference-model-only run is not RTL reproduction.",
+      "required_evidence": [
+        "original scoped ISA/document citation",
+        "test/sequence identity and seed",
+        "architectural or transaction observation",
+        "pass/fail and tool/revision provenance"
+      ]
+    }
+  ],
+  "scope_policy": "case-scope-policy",
+  "coverage_percent": null,
+  "uvm_components": [
+    "AXI master/slave agents and control agent",
+    "Virtual sequencer and directed/constrained-random sequences",
+    "Passive retirement/trap and memory monitors",
+    "Independent scoreboard and assertions",
+    "Requirement-linked covergroups and reviewed exclusion ledger"
+  ]
+}

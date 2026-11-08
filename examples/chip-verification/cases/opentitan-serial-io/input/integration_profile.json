@@ -100,5 +100,46 @@
     }
   ],
   "context_size_credit": 0,
-  "source_precedence": "Record normative source contradictions explicitly. Do not use candidate or golden RTL to silently supply missing requirements."
+  "source_precedence": "Benchmark-author policy: explicit declared field names, bit ranges, access types and selected integration configuration govern over obsolete narrative references. This is an authored exercise policy, not an attributed user instruction or a universal upstream priority rule. Conflicts inside HJSON and behavioral ambiguities use the individually named adjudications; no blanket HJSON-wins rule resolves them. Authored decisions supersede only their stated scope. Preserve original source bytes and provenance. Local open obligations gate only affected acceptance claims. Candidate/golden RTL and UVM are not specification authority. No correction is simulation or coverage evidence.",
+  "source_adjudications": {
+    "revision": "opentitan-adjudications-v1",
+    "authority": "benchmark_author",
+    "issue_ids": [
+      "SH-01",
+      "SH-02",
+      "SH-03",
+      "SH-04",
+      "SH-05",
+      "SH-06",
+      "SH-07",
+      "SH-08",
+      "SD-01",
+      "SD-02",
+      "SD-03",
+      "SD-04",
+      "SD-05",
+      "CT-01",
+      "CT-02",
+      "CT-03",
+      "CT-04",
+      "CT-05",
+      "Q-01",
+      "Q-02",
+      "Q-03",
+      "Q-04",
+      "Q-05",
+      "Q-06",
+      "D-02",
+      "N-02",
+      "N-03"
+    ],
+    "scope_policy": "adjudications/SCOPE.md",
+    "open_local_obligations": [
+      "CT-01",
+      "Q-03",
+      "Q-04",
+      "D-02"
+    ],
+    "no_simulation_claim": true
+  }
 }

@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "case_id": "coralnpu-vector-zero-retirement",
+  "root_module": "CoralNPU",
+  "nodes": [
+    {
+      "id": "CoralNPU",
+      "kind": "integration_boundary"
+    },
+    {
+      "id": "dispatch",
+      "kind": "integration_boundary"
+    },
+    {
+      "id": "configuration",
+      "kind": "integration_boundary"
+    },
+    {
+      "id": "vector_backend",
+      "kind": "integration_boundary"
+    },
+    {
+      "id": "lsu",
+      "kind": "integration_boundary"
+    },
+    {
+      "id": "memory",
+      "kind": "integration_boundary"
+    },
+    {
+      "id": "retirement",
+      "kind": "integration_boundary"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-0",
+      "from": "CoralNPU",
+      "to": "dispatch",
+      "source_id": "google-coral-coralnpu--doc--microarch--dispatch-md",
+      "anchor_exact": "CoralNPU is an in-order core.",
+      "interpretation": "Authored functional partition grounded in cited interface prose; verify exact instance/wiring in the candidate baseline."
+    },
+    {
+      "id": "edge-1",
+      "from": "dispatch",
+      "to": "lsu",
+      "source_id": "google-coral-coralnpu--doc--microarch--lsu-md",
+      "anchor_exact": "The LSU has a command interface",
+      "interpretation": "Authored functional partition grounded in cited interface prose; verify exact instance/wiring in the candidate baseline."
+    },
+    {
+      "id": "edge-2",
+      "from": "vector_backend",
+      "to": "lsu",
+      "source_id": "google-coral-coralnpu--doc--microarch--lsu-md",
+      "anchor_exact": "RvvCore",
+      "interpretation": "Authored functional partition grounded in cited interface prose; verify exact instance/wiring in the candidate baseline."
+    },
+    {
+      "id": "edge-3",
+      "from": "lsu",
+      "to": "memory",
+      "source_id": "google-coral-coralnpu--doc--microarch--lsu-md",
+      "anchor_exact": "memory transactions",
+      "interpretation": "Authored functional partition grounded in cited interface prose; verify exact instance/wiring in the candidate baseline."
+    },
+    {
+      "id": "edge-4",
+      "from": "configuration",
+      "to": "vector_backend",
+      "source_id": "riscv-riscv-isa-manual--src--v-st-ext-adoc",
+      "anchor_exact": "vtype",
+      "interpretation": "Authored functional partition grounded in cited interface prose; verify exact instance/wiring in the candidate baseline."
+    },
+    {
+      "id": "edge-5",
+      "from": "lsu",
+      "to": "retirement",
+      "source_id": "google-coral-coralnpu--doc--microarch--lsu-md",
+      "anchor_exact": "Writeback",
+      "interpretation": "Authored functional partition grounded in cited interface prose; verify exact instance/wiring in the candidate baseline."
+    }
+  ],
+  "classification": "Shared functional decomposition; not an extracted netlist."
+}

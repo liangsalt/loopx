@@ -1,0 +1,7 @@
+# SCOPE: opentitan-aon-control exercise contract
+
+Benchmark-author authority (opentitan-adjudications-v1). DUT module types are exactly pwrmgr, rstmgr, clkmgr, sysrst_ctrl, pinmux, alert_handler; the wrapper is aon_control_subsystem. Preserve the selected instance/configuration identities in integration_profile.json and the shared module_graph.json. Whole-chip chapters, UART, ROM, CPU, pads/technology and other external consumers are context or boundaries unless explicitly listed as DUTs. Do not create new RTL modules/coverage obligations or global blockers from unrelated background discrepancies.
+
+Source-adjudication documents supersede only their named statements/scopes; cite them with the original source. Literal field/access/bit declarations and selected configuration govern over obsolete names. Intra-source behavioral conflicts need the individual author decision, not a universal HJSON-wins rule. Do not infer a different source variant to excuse contradictions.
+
+Both RTL and UVM use this same accepted contract. A precise missing interface/technology/timing definition gates only its dependent binding/checker; independent work continues. Unknown, unrun and reference-divergent behavior cannot count as passed or covered. Candidate/golden RTL never supplies silent requirements; author conventions are exercise choices, not claims of upstream bugs. Corrections and file size are not simulation evidence.

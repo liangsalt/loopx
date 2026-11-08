@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "case_id": "coralnpu-vector-zero-retirement",
+  "oracle": "ISA-derived behavioral checks plus upstream reference lineage; never derive expected data solely from candidate RTL.",
+  "criteria": [
+    {
+      "id": "legal_zero_progress",
+      "acceptance": "Ordinary supported zero-element instructions eventually produce the required architectural completion; a silent decode drop, host timeout or forced reset fails.",
+      "required_evidence": [
+        "original scoped ISA/document citation",
+        "test/sequence identity and seed",
+        "architectural or transaction observation",
+        "pass/fail and tool/revision provenance"
+      ]
+    },
+    {
+      "id": "no_active_effects",
+      "acceptance": "Initialize memory, destination registers and v0 independently; compare state and accepted memory element transactions for zero-VL operations. Check defined CSR effects such as vstart reset separately.",
+      "required_evidence": [
+        "original scoped ISA/document citation",
+        "test/sequence identity and seed",
+        "architectural or transaction observation",
+        "pass/fail and tool/revision provenance"
+      ]
+    },
+    {
+      "id": "boundaries",
+      "acceptance": "Cross legal SEW8/16/32, integer/fractional LMUL, vl=0/1/short/VLMAX, supported vstart, masks, operation classes and backpressure. Whole-register transfers and scalar moves have separate expectations.",
+      "required_evidence": [
+        "original scoped ISA/document citation",
+        "test/sequence identity and seed",
+        "architectural or transaction observation",
+        "pass/fail and tool/revision provenance"
+      ]
+    },
+    {
+      "id": "illegal_and_recovery",
+      "acceptance": "Illegal encodings stay subject to the ISA exception rule at vl=0. A valid nonzero operation after zero-element traffic must retire with correct data.",
+      "required_evidence": [
+        "original scoped ISA/document citation",
+        "test/sequence identity and seed",
+        "architectural or transaction observation",
+        "pass/fail and tool/revision provenance"
+      ]
+    },
+    {
+      "id": "watchdog",
+      "acceptance": "Detect repeated issued-PC/no retirement and command/retirement imbalance. Retry only infrastructure failures; retain the failing seed/trace and do not turn an RTL deadlock into a pass.",
+      "required_evidence": [
+        "original scoped ISA/document citation",
+        "test/sequence identity and seed",
+        "architectural or transaction observation",
+        "pass/fail and tool/revision provenance"
+      ]
+    }
+  ],
+  "scope_policy": "case-scope-policy",
+  "coverage_percent": null,
+  "uvm_components": [
+    "AXI master/slave agents and control agent",
+    "Virtual sequencer and directed/constrained-random sequences",
+    "Passive retirement/trap and memory monitors",
+    "Independent scoreboard and assertions",
+    "Requirement-linked covergroups and reviewed exclusion ledger"
+  ]
+}

@@ -427,9 +427,9 @@
         "authored": true,
         "kind": "benchmark_scope_and_integration_contract",
         "path": "problem.md",
-        "sha256": "420ed5ea574b37ea668033e56b4cfaa7498e90e97a25e1f489a8e9184763f290"
+        "sha256": "23ac533b027326ea650963b873c23a5808e5683a1908d0ea3263458c96279b9c"
       },
-      "content": "# OpenTitan serial I/O subsystem design and UVM verification problem\n\nBuild a specification-driven design and DV result for the selected serial I/O subsystem. The in-scope IP identities are `spi_host`, `spi_device`, `usbdev`. This is a bounded subsystem exercise using one pinned OpenTitan revision, not a request to implement all of Earlgrey or a claim that this subset is a standalone upstream top-level.\n\n## Input authority and hierarchy\n\n`spec.json` contains unchanged public system/architecture/module/behavior/register documents, normative register configuration, and an explicitly authored integration profile and module graph. The source manifest records which original prose bodies qualify the >512 KiB size floor. System background and whole-top context do not expand the implementation scope. Register HJSON and selected integration context do not count toward that floor. Upstream RTL, existing testplans, UVM code and answer obligations are not part of the exported input.\n\nUse `integration_profile.json` to distinguish normative requirements, selected configuration, external environment assumptions, and proposed design choices. Use `module_graph.json` as an initial shared relationship map; source-check and refine it without silently converting a proposal to a proven contract. TL-UL/comportability documents constrain applicable interfaces; they do not by themselves require redesigning an entire SoC fabric. Retain concrete contradictions, missing dependencies and ambiguity with source anchors. Where prose and HJSON conflict, record the disagreement and block affected decisions instead of guessing precedence.\n\n## Required design and verification outputs\n\n1. Import the specification by path through LoopX. Persist every requirement and its provenance; work in bounded contexts and recover from durable state in fresh host sessions.\n2. Create one shared module/interface/configuration graph for both tracks. Preserve boundary assumptions, clock/reset domains, address/register contracts, cross-module handshake and error behavior, and any unresolved ownership or composition obligations.\n3. Design track: adopt or refine the available microarchitecture, propose explicit choices where the source permits them, and produce reviewable synthesizable RTL or a declared fixed-version IP binding. Produce real elaboration/lint/CDC evidence where tools and complete constraints permit it.\n4. DV track: derive TP directly from the same specification and shared contract. Generate UVM transactions, sequencers/sequences, drivers, passive monitors, independent scoreboards, functional coverage, environment, test classes and top-level binding. Cover normal operations, boundaries, backpressure, reset/error paths, and the cross-module scenarios justified by the sources.\n5. Join the two tracks only at the same accepted contract/configuration revision. Preserve all required composition work; a fragment is not a completed module. Run simulation only when a complete build and checker contract exists.\n6. Report passed, failed, blocked and untested stages separately. Requirement extraction, test counts, generated files and smoke success are not coverage. Declare any percentage only from real simulator evidence using a frozen bin denominator; functional coverage and RTL code coverage are separate metrics.\n\n## Execution and evaluation boundary\n\nStart an installed LoopX capability in this input-only workspace with the selected Codex or TRAE host. Use public `dv_import`, `dv_next`, `dv_claim`, `dv_context`, `dv_submit` and relevant design/DV tools; do not manufacture state acceptance or direct database edits. The fixture is inert and does not automatically invoke models or EDA tools. Raw sessions, candidates, private state and logs belong in the execution workspace, never back in this public corpus.\n\nAn evaluator may compare outputs against a separately held pinned upstream reference implementation and verification material. Multiple correct RTL architectures and UVM organizations are acceptable; textual similarity is not the correctness criterion. File-only staging is not a claim of network/filesystem isolation from public upstream answers. Simulator/dependency qualification and any 90% target remain separate execution gates.\n"
+      "content": "# OpenTitan serial I/O subsystem design and UVM verification problem\n\nBuild a specification-driven design and DV result for the selected serial I/O subsystem. The in-scope IP identities are `spi_host`, `spi_device`, `usbdev`. This is a bounded subsystem exercise using one pinned OpenTitan revision, not a request to implement all of Earlgrey or a claim that this subset is a standalone upstream top-level.\n\n## Input authority and hierarchy\n\n`spec.json` contains unchanged public system/architecture/module/behavior/register documents, normative register configuration, and an explicitly authored integration profile and module graph. The source manifest records which original prose bodies qualify the >512 KiB size floor. System background and whole-top context do not expand the implementation scope. Register HJSON and selected integration context do not count toward that floor. Upstream RTL, existing testplans, UVM code and answer obligations are not part of the exported input.\n\nUse `integration_profile.json` to distinguish normative requirements, selected configuration, external environment assumptions, and proposed design choices. Use `module_graph.json` as an initial shared relationship map; source-check and refine it without silently converting a proposal to a proven contract. TL-UL/comportability documents constrain applicable interfaces; they do not by themselves require redesigning an entire SoC fabric. Retain concrete contradictions, missing dependencies and ambiguity with source anchors. Use the revised benchmark-author contract below for named issues. New gaps require precise local obligations, not blanket source-conflict blockers.\n\n## Required design and verification outputs\n\n1. Import the specification by path through LoopX. Persist every requirement and its provenance; work in bounded contexts and recover from durable state in fresh host sessions.\n2. Create one shared module/interface/configuration graph for both tracks. Preserve boundary assumptions, clock/reset domains, address/register contracts, cross-module handshake and error behavior, and any unresolved ownership or composition obligations.\n3. Design track: adopt or refine the available microarchitecture, propose explicit choices where the source permits them, and produce reviewable synthesizable RTL or a declared fixed-version IP binding. Produce real elaboration/lint/CDC evidence where tools and complete constraints permit it.\n4. DV track: derive TP directly from the same specification and shared contract. Generate UVM transactions, sequencers/sequences, drivers, passive monitors, independent scoreboards, functional coverage, environment, test classes and top-level binding. Cover normal operations, boundaries, backpressure, reset/error paths, and the cross-module scenarios justified by the sources.\n5. Join the two tracks only at the same accepted contract/configuration revision. Preserve all required composition work; a fragment is not a completed module. Run simulation only when a complete build and checker contract exists.\n6. Report passed, failed, blocked and untested stages separately. Requirement extraction, test counts, generated files and smoke success are not coverage. Declare any percentage only from real simulator evidence using a frozen bin denominator; functional coverage and RTL code coverage are separate metrics.\n\n## Execution and evaluation boundary\n\nStart an installed LoopX capability in this input-only workspace with the selected Codex or TRAE host. Use public `dv_import`, `dv_next`, `dv_claim`, `dv_context`, `dv_submit` and relevant design/DV tools; do not manufacture state acceptance or direct database edits. The fixture is inert and does not automatically invoke models or EDA tools. Raw sessions, candidates, private state and logs belong in the execution workspace, never back in this public corpus.\n\nAn evaluator may compare outputs against a separately held pinned upstream reference implementation and verification material. Multiple correct RTL architectures and UVM organizations are acceptable; textual similarity is not the correctness criterion. File-only staging is not a claim of network/filesystem isolation from public upstream answers. Simulator/dependency qualification and any 90% target remain separate execution gates.\n\n<!-- BEGIN SOURCE-ADJUDICATIONS -->\n## Revised normative exercise contract\n\nBenchmark-author policy: explicit declared field names, bit ranges, access types and selected integration configuration govern over obsolete narrative references. This is an authored exercise policy, not an attributed user instruction or a universal upstream priority rule. Conflicts inside HJSON and behavioral ambiguities use the individually named adjudications; no blanket HJSON-wins rule resolves them. Authored decisions supersede only their stated scope. Preserve original source bytes and provenance. Local open obligations gate only affected acceptance claims. Candidate/golden RTL and UVM are not specification authority. No correction is simulation or coverage evidence.\n\nThe following rules are part of the question. Both RTL and TP/UVM generation must consume the same revision. Each linked correction is also embedded in spec.json with exact source-span targets so bounded contexts receive it alongside affected prose.\n\n- **[SH-01](adjudications/SH-01.md)** (corrected): IDLE uses STATUS.ACTIVE becoming low; READY uses STATUS.READY becoming high. They are distinct event predicates and EVENT_ENABLE fields.\n- **[SH-02](adjudications/SH-02.md)** (exercise_convention): For this exercise RXWM is true exactly when rx_depth_words > RX_WATERMARK. Use this strict comparison for STATUS.RXWM and the RXWM event predicate. The author selects the explicit greater-than event definition to adjudicate the conflicting reaches wording inside HJSON; this is not blanket HJSON precedence.\n- **[SH-03](adjudications/SH-03.md)** (corrected): During unstalled clock generation T_SCK = 2*(CLKDIV+1)*T_core and T_half_SCK = (CLKDIV+1)*T_core. Interpret waveform time units using this half-period.\n- **[SH-04](adjudications/SH-04.md)** (corrected): A running divider timeslice spans CLKDIV+1 core cycles: T_timeslice=(CLKDIV+1)*T_core. FSM updates remain subject to the documented enable/stall conditions.\n- **[SH-05](adjudications/SH-05.md)** (corrected): COMMAND.LEN is bits [8:0], range 0..511. A data segment transfers LEN+1 bytes; a dummy segment uses LEN+1 dummy cycles as defined by the field.\n- **[SH-06](adjudications/SH-06.md)** (corrected): Quad transfer emits the upper nibble [7:4], followed by [3:0], with the source-defined SD lane ordering.\n- **[SH-07](adjudications/SH-07.md)** (corrected): Dual output consumes [7:6], [5:4], [3:2], [1:0] in order for each byte. Each shift consumes exactly two bits.\n- **[SH-08](adjudications/SH-08.md)** (corrected): TXSTALL/RXSTALL are diagnostic states and do not directly create an event IRQ. Independently evaluate the declared FIFO and other event-enable predicates.\n- **[SD-01](adjudications/SD-01.md)** (exercise_convention): The author adopts the coherent four-byte PAYLOAD_SWAP_MASK/PAYLOAD_SWAP_DATA contract: payload_swap_en enables masked substitution in the first four eligible payload bytes. Unselected bits and later bytes pass through unchanged; shorter payloads only transform bytes actually present. Preserve the documented byte ordering.\n- **[SD-02](adjudications/SD-02.md)** (corrected): CMD_INFO.addr_mode refers to ADDR_MODE.addr_4b_en for the configured address-width choice. Bind the actual declared enum values and ADDR_MODE CSR.\n- **[SD-03](adjudications/SD-03.md)** (corrected): The declared field is CMD_INFO.read_pipeline_mode[23:22]. Preserve its multi-value enumeration and per-mode timing contract.\n- **[SD-04](adjudications/SD-04.md)** (corrected): Upload address presence and width follow the current CMD_INFO.addr_mode enum and ADDR_MODE.addr_4b_en where that enum selects the global width. Upload only the address bytes present in the decoded command.\n- **[SD-05](adjudications/SD-05.md)** (corrected): Ingress is 112 32-bit words (448 bytes): payload offset/depth 0/64, command 64/16, address 80/16, TPM-write 96/16, all in words. Egress is 848 words: read buffer 0/512, mailbox 512/256, SFDP 768/64, TPM-read 832/16. Banks have independent address spaces.\n- **[CT-01](adjudications/CT-01.md)** (scoped_gap): Use the current logical sidebands a_user={instr_type,cmd_intg,data_intg} and d_user={rsp_intg,data_intg}. The old reserved/parity typedef and TL_DUW=4 example are not a fixed-version ABI. D-02 owns the remaining public type/encoding contract; logical request/response planning can continue. **Local gate:** Only TL-UL packed interface binding and integrity-oracle acceptance await the D-02 normative type/encoding addendum.\n- **[CT-02](adjudications/CT-02.md)** (background_scope): The selected top configuration instantiates uart0..uart3 (four UARTs). UART is whole-chip background and is outside both reduced subsystem DUTs.\n- **[CT-03](adjudications/CT-03.md)** (scope_interpretation): The base pinout has 47 muxed pads: IOA=9, IOB=13, IOC=13, IOR=12; direct IOR8/IOR9 are excluded. A 32-bit GPIO vector is not a count of all MIO pads. This constrains AON PINMUX geometry; it is external context in serial-I/O.\n- **[CT-04](adjudications/CT-04.md)** (background_scope): The local ROM-key table enumerates seven slots, 0..6. Treat the earlier three-slot count as obsolete background; ROM/key provisioning is outside these exercises.\n- **[CT-05](adjudications/CT-05.md)** (scope_interpretation): In serial-I/O use the selected SPI_DEVICE CONTROL modes disabled/flashmode/passthrough with TPM controlled separately. Do not add a legacy Firmware mode without a declared interface. In AON this SPI paragraph is out-of-scope background only.\n- **[Q-01](adjudications/Q-01.md)** (exercise_convention): Author convention: CPHA determines the output launch edge (0 trailing, 1 leading); FULLCYC modifies receive sampling latency only, from half a SCK cycle to one full cycle after the corresponding launch. Preserve CPOL edge polarity. This chooses the field's sampling-only description; it is not a proven upstream implementation property.\n- **[Q-02](adjudications/Q-02.md)** (exercise_convention): Chip selects are zero-indexed. For this exercise valid CSID satisfies 0 <= CSID < NumCS; CSID=NumCS is invalid and follows the declared CSIDINVAL error handling.\n- **[Q-03](adjudications/Q-03.md)** (scoped_gap): Require conservation/order of accepted one-byte segments and correct READY/backpressure behavior. Six-versus-seven pipeline examples do not define a universal first-stall cycle: record initial queue/FSM/divider conditions and accepted commands when evaluating that observation. **Local gate:** Only a cycle-exact first-stall latency bin requires a versioned initial-state/acceptance/pipeline-depth contract.\n- **[Q-04](adjudications/Q-04.md)** (exercise_convention): For this exercise use the detailed staged/committed contract: SW requests cross via the asynchronous queue; serial Read Status emits atomic bytes from the latest committed state and can observe BUSY changes during one transaction at eight-SPI-clock commit boundaries. Passthrough gating changes only at CSb release using committed BUSY. Do not invent a fixed SW-to-SPI CDC latency. **Local gate:** Only simultaneous HW/SW updates to the same status bit await an explicit arbitration rule; serialized updates and byte-boundary polling are specified.\n- **[Q-05](adjudications/Q-05.md)** (scope_interpretation): Apply the control-endpoint post-SETUP special case separately from ordinary OUT flow control: after SETUP clears protocol stall, the guide's set_nak_out/rxenable_out conditions hold subsequent IN/OUT requests in NAK until software prepares the control transfer. Do not extend that special condition to every endpoint/transaction.\n- **[Q-06](adjudications/Q-06.md)** (scope_interpretation): Model synchronous accesses at each SRAM port. For this exercise the functional bus/USB clocks share the documented 48 MHz input; preserve their port/domain identities and the separate wake clock. Clock gating and wake handoff still require explicit CDC/reset analysis. The phrase asynchronous dual-port does not require asynchronous read data or unrelated functional frequencies.\n- **[D-02](adjudications/D-02.md)** (definition_gap): The current input does not supply a complete normative packed TL-UL type and integrity-code algorithm. Before compatible interface/encoding acceptance, supply a pinned public interface package or explicit reviewed specification addendum covering widths, ordering, encoding and error policy. Keep the logical protocol requirements; CT-01 rejects obsolete ABI examples. **Local gate:** TL-UL ABI and integrity encoding/fault bins remain unverified until a normative interface/algorithm addendum is accepted.\n- **[N-02](adjudications/N-02.md)** (not_a_conflict): Partition USB transfer expectations by subtype. Apply the declared OUT_ISO behavior to isochronous endpoints and ordinary ACK/NAK rules to the ordinary transaction types for which they are specified.\n- **[N-03](adjudications/N-03.md)** (naming_correction): Program the declared PHY_CONFIG.tx_use_d_se0 field. The theory name use_tx_d_se0 is an alias in prose for the same transmit encoding selection, not a second field.\n\nAn authored convention defines this exercise, not a new claim about the held-out upstream implementation. If that implementation differs, report reference divergence; do not change the oracle to fit it. An open local obligation is not a passed or covered requirement and must not be silently removed from a frozen coverage denominator. Unrelated specified work proceeds; full acceptance waits only on the applicable, precisely identified dependencies.\n<!-- END SOURCE-ADJUDICATIONS -->\n"
     },
     {
       "id": "case-integration_profile-json",
@@ -441,9 +441,9 @@
         "authored": true,
         "kind": "benchmark_scope_and_integration_contract",
         "path": "integration_profile.json",
-        "sha256": "0e2bfa12094c1dd6eb3808457c2334a5c67690c98b21cf8c174b337f8e2db34a"
+        "sha256": "e25217b4976df54153e313864f811f2e4c5988c2b179ea4f00b3925ee4932898"
       },
-      "content": "{\r\n  \"schema_version\": 1,\r\n  \"case_id\": \"opentitan-serial-io\",\r\n  \"root_module\": \"serial_io_subsystem\",\r\n  \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n  \"classification\": \"author_defined_reduced_integration_profile\",\r\n  \"scope\": \"Selected EarlGrey subsystem; the reduced wrapper is a benchmark design choice, not an upstream native top-level. External boundaries do not become DUT RTL targets.\",\r\n  \"modules\": [\r\n    {\r\n      \"instance\": \"spi_device\",\r\n      \"type\": \"spi_device\"\r\n    },\r\n    {\r\n      \"instance\": \"spi_host0\",\r\n      \"type\": \"spi_host\"\r\n    },\r\n    {\r\n      \"instance\": \"usbdev\",\r\n      \"type\": \"usbdev\"\r\n    }\r\n  ],\r\n  \"external_boundaries\": [\r\n    {\r\n      \"id\": \"tlul_boundary\",\r\n      \"description\": \"TL-UL host/interconnect model\"\r\n    },\r\n    {\r\n      \"id\": \"clock_reset_alert_boundary\",\r\n      \"description\": \"clock/reset/alert infrastructure\"\r\n    },\r\n    {\r\n      \"id\": \"external_spi_host\",\r\n      \"description\": \"external SPI host\"\r\n    },\r\n    {\r\n      \"id\": \"external_spi_flash\",\r\n      \"description\": \"external SPI flash\"\r\n    },\r\n    {\r\n      \"id\": \"usb_host_phy\",\r\n      \"description\": \"USB host/PHY digital model\"\r\n    },\r\n    {\r\n      \"id\": \"pinmux_aon_boundary\",\r\n      \"description\": \"pinmux/AON wake monitor\"\r\n    },\r\n    {\r\n      \"id\": \"memory_cfg_boundary\",\r\n      \"description\": \"memory configuration boundary\"\r\n    }\r\n  ],\r\n  \"design_choices\": [\r\n    \"Implement one SPI_DEVICE, SPI_HOST0 and USBDEV subsystem. SPI_HOST1 is outside the case.\",\r\n    \"Preserve source-defined parameters, clocks/resets and CSR semantics in a versioned configuration. Reduced counts/widths form a distinct profile and cannot inherit full-profile coverage.\",\r\n    \"Boundary models expose controllable latency, withheld acknowledgement, errors and stopped clocks. Permanently-ready tieoffs cannot substantiate startup/low-power scenarios.\",\r\n    \"Use one shared interface/module graph for RTL and DV planning; runtime sessions receive relevant source shards and durable state handles.\",\r\n    \"RTL microarchitecture choices may vary; observable specified behavior and declared integration relationships form the acceptance contract.\"\r\n  ],\r\n  \"top_configuration_evidence\": [\r\n    {\r\n      \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n      \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n      \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n      \"line_start\": 327,\r\n      \"line_end\": 349,\r\n      \"excerpt\": \"    { name: \\\"spi_host0\\\",\\n      type: \\\"spi_host\\\",\\n      clock_srcs: {clk_i: \\\"io\\\"},\\n      clock_group: \\\"peri\\\",\\n      reset_connections: {rst_ni: \\\"spi_host0\\\"},\\n      base_addr: \\\"0x40300000\\\",\\n    },\\n    { name: \\\"spi_host1\\\",\\n      type: \\\"spi_host\\\",\\n      clock_srcs: {clk_i: \\\"io_div2\\\"},\\n      clock_group: \\\"peri\\\",\\n      reset_connections: {rst_ni: \\\"spi_host1\\\"},\\n      base_addr: \\\"0x40310000\\\",\\n    },\\n    { name: \\\"usbdev\\\",\\n      type: \\\"usbdev\\\",\\n      clock_srcs: {clk_i: \\\"usb\\\", clk_aon_i: \\\"aon\\\"},\\n      clock_group: \\\"peri\\\",\\n      reset_connections: {rst_ni: \\\"usb\\\", rst_aon_ni: \\\"usb_aon\\\"},\\n      base_addr: \\\"0x40320000\\\",\\n      param_decl: {\\n        RcvrWakeTimeUs: \\\"100\\\"\\n      },\",\r\n      \"count_toward_specification_body_bytes\": false\r\n    }\r\n  ],\r\n  \"relationship_evidence\": [\r\n    {\r\n      \"from\": \"spi_device\",\r\n      \"to\": \"spi_host0\",\r\n      \"relationship\": \"passthrough\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 1054,\r\n        \"line_end\": 1055,\r\n        \"excerpt\": \"      // spi passthrough connection\\n      'spi_device.passthrough'     : ['spi_host0.passthrough'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"usbdev\",\r\n      \"to\": \"pinmux_aon_boundary\",\r\n      \"relationship\": \"USB suspend/wake and pullup handoff\",\r\n      \"classification\": \"real_upstream_boundary\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 947,\r\n        \"line_end\": 955,\r\n        \"excerpt\": \"      // usbdev connection to pinmux\\n      'usbdev.usb_dp_pullup'        : ['pinmux_aon.usbdev_dppullup_en'],\\n      'usbdev.usb_dn_pullup'        : ['pinmux_aon.usbdev_dnpullup_en'],\\n      'usbdev.usb_aon_suspend_req'  : ['pinmux_aon.usbdev_suspend_req'],\\n      'usbdev.usb_aon_wake_ack'     : ['pinmux_aon.usbdev_wake_ack'],\\n      'usbdev.usb_aon_bus_not_idle' : ['pinmux_aon.usbdev_bus_not_idle'],\\n      'usbdev.usb_aon_bus_reset'    : ['pinmux_aon.usbdev_bus_reset'],\\n      'usbdev.usb_aon_sense_lost'   : ['pinmux_aon.usbdev_sense_lost'],\\n      'pinmux_aon.usbdev_wake_detect_active' : ['usbdev.usb_aon_wake_detect_active'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    }\r\n  ],\r\n  \"context_size_credit\": 0,\r\n  \"source_precedence\": \"Record normative source contradictions explicitly. Do not use candidate or golden RTL to silently supply missing requirements.\"\r\n}"
+      "content": "{\r\n  \"schema_version\": 1,\r\n  \"case_id\": \"opentitan-serial-io\",\r\n  \"root_module\": \"serial_io_subsystem\",\r\n  \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n  \"classification\": \"author_defined_reduced_integration_profile\",\r\n  \"scope\": \"Selected EarlGrey subsystem; the reduced wrapper is a benchmark design choice, not an upstream native top-level. External boundaries do not become DUT RTL targets.\",\r\n  \"modules\": [\r\n    {\r\n      \"instance\": \"spi_device\",\r\n      \"type\": \"spi_device\"\r\n    },\r\n    {\r\n      \"instance\": \"spi_host0\",\r\n      \"type\": \"spi_host\"\r\n    },\r\n    {\r\n      \"instance\": \"usbdev\",\r\n      \"type\": \"usbdev\"\r\n    }\r\n  ],\r\n  \"external_boundaries\": [\r\n    {\r\n      \"id\": \"tlul_boundary\",\r\n      \"description\": \"TL-UL host/interconnect model\"\r\n    },\r\n    {\r\n      \"id\": \"clock_reset_alert_boundary\",\r\n      \"description\": \"clock/reset/alert infrastructure\"\r\n    },\r\n    {\r\n      \"id\": \"external_spi_host\",\r\n      \"description\": \"external SPI host\"\r\n    },\r\n    {\r\n      \"id\": \"external_spi_flash\",\r\n      \"description\": \"external SPI flash\"\r\n    },\r\n    {\r\n      \"id\": \"usb_host_phy\",\r\n      \"description\": \"USB host/PHY digital model\"\r\n    },\r\n    {\r\n      \"id\": \"pinmux_aon_boundary\",\r\n      \"description\": \"pinmux/AON wake monitor\"\r\n    },\r\n    {\r\n      \"id\": \"memory_cfg_boundary\",\r\n      \"description\": \"memory configuration boundary\"\r\n    }\r\n  ],\r\n  \"design_choices\": [\r\n    \"Implement one SPI_DEVICE, SPI_HOST0 and USBDEV subsystem. SPI_HOST1 is outside the case.\",\r\n    \"Preserve source-defined parameters, clocks/resets and CSR semantics in a versioned configuration. Reduced counts/widths form a distinct profile and cannot inherit full-profile coverage.\",\r\n    \"Boundary models expose controllable latency, withheld acknowledgement, errors and stopped clocks. Permanently-ready tieoffs cannot substantiate startup/low-power scenarios.\",\r\n    \"Use one shared interface/module graph for RTL and DV planning; runtime sessions receive relevant source shards and durable state handles.\",\r\n    \"RTL microarchitecture choices may vary; observable specified behavior and declared integration relationships form the acceptance contract.\"\r\n  ],\r\n  \"top_configuration_evidence\": [\r\n    {\r\n      \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n      \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n      \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n      \"line_start\": 327,\r\n      \"line_end\": 349,\r\n      \"excerpt\": \"    { name: \\\"spi_host0\\\",\\n      type: \\\"spi_host\\\",\\n      clock_srcs: {clk_i: \\\"io\\\"},\\n      clock_group: \\\"peri\\\",\\n      reset_connections: {rst_ni: \\\"spi_host0\\\"},\\n      base_addr: \\\"0x40300000\\\",\\n    },\\n    { name: \\\"spi_host1\\\",\\n      type: \\\"spi_host\\\",\\n      clock_srcs: {clk_i: \\\"io_div2\\\"},\\n      clock_group: \\\"peri\\\",\\n      reset_connections: {rst_ni: \\\"spi_host1\\\"},\\n      base_addr: \\\"0x40310000\\\",\\n    },\\n    { name: \\\"usbdev\\\",\\n      type: \\\"usbdev\\\",\\n      clock_srcs: {clk_i: \\\"usb\\\", clk_aon_i: \\\"aon\\\"},\\n      clock_group: \\\"peri\\\",\\n      reset_connections: {rst_ni: \\\"usb\\\", rst_aon_ni: \\\"usb_aon\\\"},\\n      base_addr: \\\"0x40320000\\\",\\n      param_decl: {\\n        RcvrWakeTimeUs: \\\"100\\\"\\n      },\",\r\n      \"count_toward_specification_body_bytes\": false\r\n    }\r\n  ],\r\n  \"relationship_evidence\": [\r\n    {\r\n      \"from\": \"spi_device\",\r\n      \"to\": \"spi_host0\",\r\n      \"relationship\": \"passthrough\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 1054,\r\n        \"line_end\": 1055,\r\n        \"excerpt\": \"      // spi passthrough connection\\n      'spi_device.passthrough'     : ['spi_host0.passthrough'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"usbdev\",\r\n      \"to\": \"pinmux_aon_boundary\",\r\n      \"relationship\": \"USB suspend/wake and pullup handoff\",\r\n      \"classification\": \"real_upstream_boundary\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 947,\r\n        \"line_end\": 955,\r\n        \"excerpt\": \"      // usbdev connection to pinmux\\n      'usbdev.usb_dp_pullup'        : ['pinmux_aon.usbdev_dppullup_en'],\\n      'usbdev.usb_dn_pullup'        : ['pinmux_aon.usbdev_dnpullup_en'],\\n      'usbdev.usb_aon_suspend_req'  : ['pinmux_aon.usbdev_suspend_req'],\\n      'usbdev.usb_aon_wake_ack'     : ['pinmux_aon.usbdev_wake_ack'],\\n      'usbdev.usb_aon_bus_not_idle' : ['pinmux_aon.usbdev_bus_not_idle'],\\n      'usbdev.usb_aon_bus_reset'    : ['pinmux_aon.usbdev_bus_reset'],\\n      'usbdev.usb_aon_sense_lost'   : ['pinmux_aon.usbdev_sense_lost'],\\n      'pinmux_aon.usbdev_wake_detect_active' : ['usbdev.usb_aon_wake_detect_active'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    }\r\n  ],\r\n  \"context_size_credit\": 0,\r\n  \"source_precedence\": \"Benchmark-author policy: explicit declared field names, bit ranges, access types and selected integration configuration govern over obsolete narrative references. This is an authored exercise policy, not an attributed user instruction or a universal upstream priority rule. Conflicts inside HJSON and behavioral ambiguities use the individually named adjudications; no blanket HJSON-wins rule resolves them. Authored decisions supersede only their stated scope. Preserve original source bytes and provenance. Local open obligations gate only affected acceptance claims. Candidate/golden RTL and UVM are not specification authority. No correction is simulation or coverage evidence.\",\r\n  \"source_adjudications\": {\r\n    \"revision\": \"opentitan-adjudications-v1\",\r\n    \"authority\": \"benchmark_author\",\r\n    \"issue_ids\": [\r\n      \"SH-01\",\r\n      \"SH-02\",\r\n      \"SH-03\",\r\n      \"SH-04\",\r\n      \"SH-05\",\r\n      \"SH-06\",\r\n      \"SH-07\",\r\n      \"SH-08\",\r\n      \"SD-01\",\r\n      \"SD-02\",\r\n      \"SD-03\",\r\n      \"SD-04\",\r\n      \"SD-05\",\r\n      \"CT-01\",\r\n      \"CT-02\",\r\n      \"CT-03\",\r\n      \"CT-04\",\r\n      \"CT-05\",\r\n      \"Q-01\",\r\n      \"Q-02\",\r\n      \"Q-03\",\r\n      \"Q-04\",\r\n      \"Q-05\",\r\n      \"Q-06\",\r\n      \"D-02\",\r\n      \"N-02\",\r\n      \"N-03\"\r\n    ],\r\n    \"scope_policy\": \"adjudications/SCOPE.md\",\r\n    \"open_local_obligations\": [\r\n      \"CT-01\",\r\n      \"Q-03\",\r\n      \"Q-04\",\r\n      \"D-02\"\r\n    ],\r\n    \"no_simulation_claim\": true\r\n  }\r\n}\r\n"
     },
     {
       "id": "case-module_graph-json",
@@ -458,6 +458,924 @@
         "sha256": "48c6cd1ac7c2b43b0549034f78f83646b1ff9b82e79e3f9769c1ea57981ba908"
       },
       "content": "{\r\n  \"schema_version\": 1,\r\n  \"case_id\": \"opentitan-serial-io\",\r\n  \"root_module\": \"serial_io_subsystem\",\r\n  \"graph_role\": \"shared_input_contract_for_spec2rtl_and_spec2dv\",\r\n  \"nodes\": [\r\n    {\r\n      \"id\": \"serial_io_subsystem\",\r\n      \"kind\": \"authored_subsystem_root\"\r\n    },\r\n    {\r\n      \"id\": \"spi_device\",\r\n      \"module_type\": \"spi_device\",\r\n      \"kind\": \"design_module\"\r\n    },\r\n    {\r\n      \"id\": \"spi_host0\",\r\n      \"module_type\": \"spi_host\",\r\n      \"kind\": \"design_module\"\r\n    },\r\n    {\r\n      \"id\": \"usbdev\",\r\n      \"module_type\": \"usbdev\",\r\n      \"kind\": \"design_module\"\r\n    },\r\n    {\r\n      \"id\": \"tlul_boundary\",\r\n      \"kind\": \"environment_boundary\",\r\n      \"description\": \"TL-UL host/interconnect model\"\r\n    },\r\n    {\r\n      \"id\": \"clock_reset_alert_boundary\",\r\n      \"kind\": \"environment_boundary\",\r\n      \"description\": \"clock/reset/alert infrastructure\"\r\n    },\r\n    {\r\n      \"id\": \"external_spi_host\",\r\n      \"kind\": \"environment_boundary\",\r\n      \"description\": \"external SPI host\"\r\n    },\r\n    {\r\n      \"id\": \"external_spi_flash\",\r\n      \"kind\": \"environment_boundary\",\r\n      \"description\": \"external SPI flash\"\r\n    },\r\n    {\r\n      \"id\": \"usb_host_phy\",\r\n      \"kind\": \"environment_boundary\",\r\n      \"description\": \"USB host/PHY digital model\"\r\n    },\r\n    {\r\n      \"id\": \"pinmux_aon_boundary\",\r\n      \"kind\": \"environment_boundary\",\r\n      \"description\": \"pinmux/AON wake monitor\"\r\n    },\r\n    {\r\n      \"id\": \"memory_cfg_boundary\",\r\n      \"kind\": \"environment_boundary\",\r\n      \"description\": \"memory configuration boundary\"\r\n    },\r\n    {\r\n      \"id\": \"comportable\",\r\n      \"kind\": \"shared_contract\"\r\n    }\r\n  ],\r\n  \"edges\": [\r\n    {\r\n      \"from\": \"spi_device\",\r\n      \"to\": \"spi_host0\",\r\n      \"relationship\": \"passthrough\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 1054,\r\n        \"line_end\": 1055,\r\n        \"excerpt\": \"      // spi passthrough connection\\n      'spi_device.passthrough'     : ['spi_host0.passthrough'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"usbdev\",\r\n      \"to\": \"pinmux_aon_boundary\",\r\n      \"relationship\": \"USB suspend/wake and pullup handoff\",\r\n      \"classification\": \"real_upstream_boundary\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 947,\r\n        \"line_end\": 955,\r\n        \"excerpt\": \"      // usbdev connection to pinmux\\n      'usbdev.usb_dp_pullup'        : ['pinmux_aon.usbdev_dppullup_en'],\\n      'usbdev.usb_dn_pullup'        : ['pinmux_aon.usbdev_dnpullup_en'],\\n      'usbdev.usb_aon_suspend_req'  : ['pinmux_aon.usbdev_suspend_req'],\\n      'usbdev.usb_aon_wake_ack'     : ['pinmux_aon.usbdev_wake_ack'],\\n      'usbdev.usb_aon_bus_not_idle' : ['pinmux_aon.usbdev_bus_not_idle'],\\n      'usbdev.usb_aon_bus_reset'    : ['pinmux_aon.usbdev_bus_reset'],\\n      'usbdev.usb_aon_sense_lost'   : ['pinmux_aon.usbdev_sense_lost'],\\n      'pinmux_aon.usbdev_wake_detect_active' : ['usbdev.usb_aon_wake_detect_active'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    }\r\n  ],\r\n  \"containment\": [\r\n    {\r\n      \"parent\": \"serial_io_subsystem\",\r\n      \"child\": \"spi_device\"\r\n    },\r\n    {\r\n      \"parent\": \"serial_io_subsystem\",\r\n      \"child\": \"spi_host0\"\r\n    },\r\n    {\r\n      \"parent\": \"serial_io_subsystem\",\r\n      \"child\": \"usbdev\"\r\n    }\r\n  ],\r\n  \"common_relationships\": [\r\n    {\r\n      \"relationship\": \"TL-UL software access\",\r\n      \"members\": [\r\n        \"spi_device\",\r\n        \"spi_host0\",\r\n        \"usbdev\"\r\n      ],\r\n      \"boundary\": \"tlul_boundary\",\r\n      \"classification\": \"upstream interface obligation; reduced interconnect is authored\"\r\n    },\r\n    {\r\n      \"relationship\": \"clock/reset/alert connectivity\",\r\n      \"members\": [\r\n        \"spi_device\",\r\n        \"spi_host0\",\r\n        \"usbdev\"\r\n      ],\r\n      \"classification\": \"bind to selected top configuration and module interfaces\"\r\n    }\r\n  ],\r\n  \"non_edges\": [\r\n    \"USBDEV and SPI engines have no direct data-path connection; they share software access and clock/reset/alert infrastructure.\"\r\n  ],\r\n  \"source_body_bytes_credit\": 0\r\n}"
+    },
+    {
+      "id": "adjudication-SH-01",
+      "title": "Benchmark author contract: SH-01",
+      "layer": "module",
+      "module": "spi_host",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "47f4024528d93bdbe3896333e1d251b0e0ab0bcac4fce72bddca26920fd90b7f",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_host--doc--programmers_guide-md",
+            "sha256": "97cfb738633c7bd11cca17ae2608c3ac2ff4b250b21a067681acc020b77d872d",
+            "line_start": 141,
+            "line_end": 146
+          },
+          {
+            "document_id": "hw--ip--spi_host--data--spi_host-hjson",
+            "sha256": "a65e533e66bd836f9a32627161e60f98c41f17ce34649a709eddc3a746b5f00e",
+            "line_start": 602,
+            "line_end": 610
+          }
+        ]
+      },
+      "content": "# SH-01: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: IDLE uses STATUS.ACTIVE becoming low; READY uses STATUS.READY becoming high. They are distinct event predicates and EVENT_ENABLE fields.\n\nRejected reading: Enabling IDLE is not an alias for enabling READY.\n\nChecker obligations: Exercise a command-ready but active transfer, then idle; predict the two predicates separately. Temporal IRQ qualification is a separate contract.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_host/doc/programmers_guide.md` lines 141-146.\n- `hw/ip/spi_host/data/spi_host.hjson` lines 602-610.\n"
+    },
+    {
+      "id": "adjudication-SH-02",
+      "title": "Benchmark author contract: SH-02",
+      "layer": "module",
+      "module": "spi_host",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "f3800bed739bad5ec51ddc48bf436374b2f712a328e247c27c5146e7bb48fcb6",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_host--doc--programmers_guide-md",
+            "sha256": "97cfb738633c7bd11cca17ae2608c3ac2ff4b250b21a067681acc020b77d872d",
+            "line_start": 152,
+            "line_end": 154
+          },
+          {
+            "document_id": "hw--ip--spi_host--data--spi_host-hjson",
+            "sha256": "a65e533e66bd836f9a32627161e60f98c41f17ce34649a709eddc3a746b5f00e",
+            "line_start": 204,
+            "line_end": 208
+          },
+          {
+            "document_id": "hw--ip--spi_host--data--spi_host-hjson",
+            "sha256": "a65e533e66bd836f9a32627161e60f98c41f17ce34649a709eddc3a746b5f00e",
+            "line_start": 280,
+            "line_end": 282
+          },
+          {
+            "document_id": "hw--ip--spi_host--data--spi_host-hjson",
+            "sha256": "a65e533e66bd836f9a32627161e60f98c41f17ce34649a709eddc3a746b5f00e",
+            "line_start": 622,
+            "line_end": 626
+          }
+        ]
+      },
+      "content": "# SH-02: exercise_convention\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: For this exercise RXWM is true exactly when rx_depth_words > RX_WATERMARK. Use this strict comparison for STATUS.RXWM and the RXWM event predicate. The author selects the explicit greater-than event definition to adjudicate the conflicting reaches wording inside HJSON; this is not blanket HJSON precedence.\n\nRejected reading: Equality does not satisfy RXWM; do not use >= or compare a byte count to a word threshold.\n\nChecker obligations: Check threshold-1, threshold and threshold+1 in FIFO words, including threshold zero and masking. Freeze that oracle before running the DUT.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_host/doc/programmers_guide.md` lines 152-154.\n- `hw/ip/spi_host/data/spi_host.hjson` lines 204-208.\n- `hw/ip/spi_host/data/spi_host.hjson` lines 280-282.\n- `hw/ip/spi_host/data/spi_host.hjson` lines 622-626.\n"
+    },
+    {
+      "id": "adjudication-SH-03",
+      "title": "Benchmark author contract: SH-03",
+      "layer": "module",
+      "module": "spi_host",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "8b1d051bcd384f75536a361bc40933ce133e0554377fd138f4e7fb1d941befee",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+            "sha256": "3ea9d1b60617d50de5b08537cb6956cd538fffa1cf0f84033f4ac0ad91e9bff4",
+            "line_start": 236,
+            "line_end": 238
+          },
+          {
+            "document_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+            "sha256": "3ea9d1b60617d50de5b08537cb6956cd538fffa1cf0f84033f4ac0ad91e9bff4",
+            "line_start": 277,
+            "line_end": 282
+          },
+          {
+            "document_id": "hw--ip--spi_host--data--spi_host-hjson",
+            "sha256": "a65e533e66bd836f9a32627161e60f98c41f17ce34649a709eddc3a746b5f00e",
+            "line_start": 378,
+            "line_end": 381
+          }
+        ]
+      },
+      "content": "# SH-03: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: During unstalled clock generation T_SCK = 2*(CLKDIV+1)*T_core and T_half_SCK = (CLKDIV+1)*T_core. Interpret waveform time units using this half-period.\n\nRejected reading: Reject the inverse-period expression and the extra factor of one half in the waveform foot.\n\nChecker obligations: Measure complete and half periods for CLKDIV=0,1 and a larger value; distinguish intentional stalls from divider timing.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_host/doc/theory_of_operation.md` lines 236-238.\n- `hw/ip/spi_host/doc/theory_of_operation.md` lines 277-282.\n- `hw/ip/spi_host/data/spi_host.hjson` lines 378-381.\n"
+    },
+    {
+      "id": "adjudication-SH-04",
+      "title": "Benchmark author contract: SH-04",
+      "layer": "module",
+      "module": "spi_host",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "a4013d8a8a165ecd2b1183279546162f0c21e4c05f45ba0cb9804b8a4c57e00e",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+            "sha256": "3ea9d1b60617d50de5b08537cb6956cd538fffa1cf0f84033f4ac0ad91e9bff4",
+            "line_start": 854,
+            "line_end": 884
+          }
+        ]
+      },
+      "content": "# SH-04: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: A running divider timeslice spans CLKDIV+1 core cycles: T_timeslice=(CLKDIV+1)*T_core. FSM updates remain subject to the documented enable/stall conditions.\n\nRejected reading: Do not divide the core period by CLKDIV+1 or advance a frozen FSM merely because time elapsed.\n\nChecker obligations: Check divider reload/countdown and frozen state under a stall; relate unstalled slices to SH-03 half periods.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_host/doc/theory_of_operation.md` lines 854-884.\n"
+    },
+    {
+      "id": "adjudication-SH-05",
+      "title": "Benchmark author contract: SH-05",
+      "layer": "module",
+      "module": "spi_host",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "f04667eef05909af21a44443b9c87d1f7b4f56d1f2b27527543ffa038ada9fd6",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+            "sha256": "3ea9d1b60617d50de5b08537cb6956cd538fffa1cf0f84033f4ac0ad91e9bff4",
+            "line_start": 127,
+            "line_end": 132
+          },
+          {
+            "document_id": "hw--ip--spi_host--data--spi_host-hjson",
+            "sha256": "a65e533e66bd836f9a32627161e60f98c41f17ce34649a709eddc3a746b5f00e",
+            "line_start": 439,
+            "line_end": 450
+          }
+        ]
+      },
+      "content": "# SH-05: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: COMMAND.LEN is bits [8:0], range 0..511. A data segment transfers LEN+1 bytes; a dummy segment uses LEN+1 dummy cycles as defined by the field.\n\nRejected reading: Reject an 8-bit packer, a 255 maximum, and treating dummy cycles as data bytes.\n\nChecker obligations: Cover encoded LEN=0,255,256,511, pack all nine bits and check exactly 1..512 units for the applicable direction.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_host/doc/theory_of_operation.md` lines 127-132.\n- `hw/ip/spi_host/data/spi_host.hjson` lines 439-450.\n"
+    },
+    {
+      "id": "adjudication-SH-06",
+      "title": "Benchmark author contract: SH-06",
+      "layer": "module",
+      "module": "spi_host",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "53c91617e8e4424e1bfe45b55cad984ca5ba86d83dae05375c8bcf6fd8c31804",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+            "sha256": "3ea9d1b60617d50de5b08537cb6956cd538fffa1cf0f84033f4ac0ad91e9bff4",
+            "line_start": 402,
+            "line_end": 404
+          },
+          {
+            "document_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+            "sha256": "3ea9d1b60617d50de5b08537cb6956cd538fffa1cf0f84033f4ac0ad91e9bff4",
+            "line_start": 821,
+            "line_end": 824
+          }
+        ]
+      },
+      "content": "# SH-06: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Quad transfer emits the upper nibble [7:4], followed by [3:0], with the source-defined SD lane ordering.\n\nRejected reading: The phrase bits 7 through 3 is an erroneous five-bit range, not a fifth lane.\n\nChecker obligations: Use bytes whose nibbles and all bit positions differ; reconstruct exactly eight bits per byte.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_host/doc/theory_of_operation.md` lines 402-404.\n- `hw/ip/spi_host/doc/theory_of_operation.md` lines 821-824.\n"
+    },
+    {
+      "id": "adjudication-SH-07",
+      "title": "Benchmark author contract: SH-07",
+      "layer": "module",
+      "module": "spi_host",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "86f579182b10dac80561107d6e834e999c421e882306065c4cefe056c3dfd5aa",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+            "sha256": "3ea9d1b60617d50de5b08537cb6956cd538fffa1cf0f84033f4ac0ad91e9bff4",
+            "line_start": 821,
+            "line_end": 824
+          },
+          {
+            "document_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+            "sha256": "3ea9d1b60617d50de5b08537cb6956cd538fffa1cf0f84033f4ac0ad91e9bff4",
+            "line_start": 1079,
+            "line_end": 1098
+          },
+          {
+            "document_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+            "sha256": "3ea9d1b60617d50de5b08537cb6956cd538fffa1cf0f84033f4ac0ad91e9bff4",
+            "line_start": 1116,
+            "line_end": 1123
+          }
+        ]
+      },
+      "content": "# SH-07: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Dual output consumes [7:6], [5:4], [3:2], [1:0] in order for each byte. Each shift consumes exactly two bits.\n\nRejected reading: Reject waveform labels [6:5] and [4:3], which overlap or omit bits.\n\nChecker obligations: Reconstruct asymmetric walking-one byte patterns in dual mode and verify no bit duplication or omission.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_host/doc/theory_of_operation.md` lines 821-824.\n- `hw/ip/spi_host/doc/theory_of_operation.md` lines 1079-1098.\n- `hw/ip/spi_host/doc/theory_of_operation.md` lines 1116-1123.\n"
+    },
+    {
+      "id": "adjudication-SH-08",
+      "title": "Benchmark author contract: SH-08",
+      "layer": "module",
+      "module": "spi_host",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "820585b5e99273ad6ca941bc9066b4138a3d564425b110bce392aeb0ff0107cb",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+            "sha256": "3ea9d1b60617d50de5b08537cb6956cd538fffa1cf0f84033f4ac0ad91e9bff4",
+            "line_start": 569,
+            "line_end": 573
+          },
+          {
+            "document_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+            "sha256": "3ea9d1b60617d50de5b08537cb6956cd538fffa1cf0f84033f4ac0ad91e9bff4",
+            "line_start": 833,
+            "line_end": 835
+          }
+        ]
+      },
+      "content": "# SH-08: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: TXSTALL/RXSTALL are diagnostic states and do not directly create an event IRQ. Independently evaluate the declared FIFO and other event-enable predicates.\n\nRejected reading: Do not invent a stall-event interrupt field from the informal frequency-monitoring paragraph.\n\nChecker obligations: Induce TX and RX stalls with event enables cleared and enabled individually; separate associated FIFO events from the diagnostic flags.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_host/doc/theory_of_operation.md` lines 569-573.\n- `hw/ip/spi_host/doc/theory_of_operation.md` lines 833-835.\n"
+    },
+    {
+      "id": "adjudication-SD-01",
+      "title": "Benchmark author contract: SD-01",
+      "layer": "module",
+      "module": "spi_device",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "35948713f2a15150cdfb41b9e0e1e730b65d47e3764ea992d36ff8ecf0bfe54b",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_device--data--spi_device-hjson",
+            "sha256": "c4c81e6619addae169843324445470b9f77965c27a1dd7480d482f41786274f6",
+            "line_start": 421,
+            "line_end": 424
+          },
+          {
+            "document_id": "hw--ip--spi_device--data--spi_device-hjson",
+            "sha256": "c4c81e6619addae169843324445470b9f77965c27a1dd7480d482f41786274f6",
+            "line_start": 1103,
+            "line_end": 1108
+          },
+          {
+            "document_id": "hw--ip--spi_device--doc--theory_of_operation-md",
+            "sha256": "5b1e62ee87e513235c49ae86a2e650a461a96c44f8b7ab9dde9bf0c3d0db901d",
+            "line_start": 310,
+            "line_end": 326
+          }
+        ]
+      },
+      "content": "# SD-01: exercise_convention\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: The author adopts the coherent four-byte PAYLOAD_SWAP_MASK/PAYLOAD_SWAP_DATA contract: payload_swap_en enables masked substitution in the first four eligible payload bytes. Unselected bits and later bytes pass through unchanged; shorter payloads only transform bytes actually present. Preserve the documented byte ordering.\n\nRejected reading: Reject first-byte-only substitution and the obsolete DATA_SWAP CSR name; they conflict with the detailed four-byte algorithm.\n\nChecker obligations: Check payload lengths 0,1,3,4,5, distinct mask/data bytes, all-zero and all-one masks, and disabled swap.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_device/data/spi_device.hjson` lines 421-424.\n- `hw/ip/spi_device/data/spi_device.hjson` lines 1103-1108.\n- `hw/ip/spi_device/doc/theory_of_operation.md` lines 310-326.\n"
+    },
+    {
+      "id": "adjudication-SD-02",
+      "title": "Benchmark author contract: SD-02",
+      "layer": "module",
+      "module": "spi_device",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "12e579c8ed84a362f7a7595a1495b905aa788fa0d6f5396a5999c2c43aa490d0",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_device--data--spi_device-hjson",
+            "sha256": "c4c81e6619addae169843324445470b9f77965c27a1dd7480d482f41786274f6",
+            "line_start": 621,
+            "line_end": 640
+          },
+          {
+            "document_id": "hw--ip--spi_device--data--spi_device-hjson",
+            "sha256": "c4c81e6619addae169843324445470b9f77965c27a1dd7480d482f41786274f6",
+            "line_start": 1020,
+            "line_end": 1048
+          }
+        ]
+      },
+      "content": "# SD-02: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: CMD_INFO.addr_mode refers to ADDR_MODE.addr_4b_en for the configured address-width choice. Bind the actual declared enum values and ADDR_MODE CSR.\n\nRejected reading: CFG.addr_4b_en is an obsolete path, not a second control register.\n\nChecker obligations: Cover no-address, configured address and explicitly selected address-width modes using the declared encoding.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_device/data/spi_device.hjson` lines 621-640.\n- `hw/ip/spi_device/data/spi_device.hjson` lines 1020-1048.\n"
+    },
+    {
+      "id": "adjudication-SD-03",
+      "title": "Benchmark author contract: SD-03",
+      "layer": "module",
+      "module": "spi_device",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "838c1eba99ed20333d65dcd6a15bc2a093871d39948b22f161ed6040cb554d79",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_device--data--spi_device-hjson",
+            "sha256": "c4c81e6619addae169843324445470b9f77965c27a1dd7480d482f41786274f6",
+            "line_start": 1111,
+            "line_end": 1152
+          }
+        ]
+      },
+      "content": "# SD-03: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: The declared field is CMD_INFO.read_pipeline_mode[23:22]. Preserve its multi-value enumeration and per-mode timing contract.\n\nRejected reading: payload_pipeline_en in prose/comments does not declare a single-bit enable or an extra CSR.\n\nChecker obligations: Generate the register model from the two-bit field; exercise every declared mode and handle reserved values explicitly.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_device/data/spi_device.hjson` lines 1111-1152.\n"
+    },
+    {
+      "id": "adjudication-SD-04",
+      "title": "Benchmark author contract: SD-04",
+      "layer": "module",
+      "module": "spi_device",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "3bb8d05f8c46ba4047d8ef51b58dc21bc0226fb0d05627404c7ea874a0c34cc5",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_device--data--spi_device-hjson",
+            "sha256": "c4c81e6619addae169843324445470b9f77965c27a1dd7480d482f41786274f6",
+            "line_start": 1020,
+            "line_end": 1048
+          },
+          {
+            "document_id": "hw--ip--spi_device--data--spi_device-hjson",
+            "sha256": "c4c81e6619addae169843324445470b9f77965c27a1dd7480d482f41786274f6",
+            "line_start": 1153,
+            "line_end": 1162
+          },
+          {
+            "document_id": "hw--ip--spi_device--doc--registers-md",
+            "sha256": "0b1f1c396c41ec70c6a40b67844e3f8c00cc3f7f832de4234f3ca730c1c72725",
+            "line_start": 1123,
+            "line_end": 1127
+          }
+        ]
+      },
+      "content": "# SD-04: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Upload address presence and width follow the current CMD_INFO.addr_mode enum and ADDR_MODE.addr_4b_en where that enum selects the global width. Upload only the address bytes present in the decoded command.\n\nRejected reading: Do not create addr_en, addr_4B_affected or addr_4b_forced registers from obsolete upload prose.\n\nChecker obligations: For each address mode, independently compare uploaded opcode, address and payload boundaries, including address-free commands.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_device/data/spi_device.hjson` lines 1020-1048.\n- `hw/ip/spi_device/data/spi_device.hjson` lines 1153-1162.\n- `hw/ip/spi_device/doc/registers.md` lines 1123-1127.\n"
+    },
+    {
+      "id": "adjudication-SD-05",
+      "title": "Benchmark author contract: SD-05",
+      "layer": "module",
+      "module": "spi_device",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "e3d12bdb438263750c44a67cc5910ed3449543886a4e9afb8f7791bc388a86dc",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_device--doc--registers-md",
+            "sha256": "0b1f1c396c41ec70c6a40b67844e3f8c00cc3f7f832de4234f3ca730c1c72725",
+            "line_start": 1650,
+            "line_end": 1662
+          },
+          {
+            "document_id": "hw--ip--spi_device--data--spi_device-hjson",
+            "sha256": "c4c81e6619addae169843324445470b9f77965c27a1dd7480d482f41786274f6",
+            "line_start": 147,
+            "line_end": 252
+          }
+        ]
+      },
+      "content": "# SD-05: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Ingress is 112 32-bit words (448 bytes): payload offset/depth 0/64, command 64/16, address 80/16, TPM-write 96/16, all in words. Egress is 848 words: read buffer 0/512, mailbox 512/256, SFDP 768/64, TPM-read 832/16. Banks have independent address spaces.\n\nRejected reading: Reject the 640-byte ingress sum, 32-byte command/address regions and placing SFDP in ingress.\n\nChecker obligations: Convert words to bytes explicitly; check every first/last address, no intra-bank overlap and correct bank routing.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_device/doc/registers.md` lines 1650-1662.\n- `hw/ip/spi_device/data/spi_device.hjson` lines 147-252.\n"
+    },
+    {
+      "id": "adjudication-CT-01",
+      "title": "Benchmark author contract: CT-01",
+      "layer": "architecture",
+      "module": "serial_io_subsystem",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "af221751e6bee3c8ed4f5ac25b0153bd65e0a306d92b8b41c977a6a9bd49f702",
+        "targets": [
+          {
+            "document_id": "hw--ip--tlul--README-md",
+            "sha256": "eb7166756b7d260c23dcdb97793ae1aa039c7d7e64abcb49ab2276899417670a",
+            "line_start": 88,
+            "line_end": 111
+          },
+          {
+            "document_id": "hw--ip--tlul--README-md",
+            "sha256": "eb7166756b7d260c23dcdb97793ae1aa039c7d7e64abcb49ab2276899417670a",
+            "line_start": 148,
+            "line_end": 150
+          },
+          {
+            "document_id": "hw--ip--tlul--README-md",
+            "sha256": "eb7166756b7d260c23dcdb97793ae1aa039c7d7e64abcb49ab2276899417670a",
+            "line_start": 168,
+            "line_end": 172
+          },
+          {
+            "document_id": "hw--ip--tlul--README-md",
+            "sha256": "eb7166756b7d260c23dcdb97793ae1aa039c7d7e64abcb49ab2276899417670a",
+            "line_start": 190,
+            "line_end": 196
+          }
+        ]
+      },
+      "content": "# CT-01: scoped_gap\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Use the current logical sidebands a_user={instr_type,cmd_intg,data_intg} and d_user={rsp_intg,data_intg}. The old reserved/parity typedef and TL_DUW=4 example are not a fixed-version ABI. D-02 owns the remaining public type/encoding contract; logical request/response planning can continue.\n\nRejected reading: Do not synthesize a supposedly compatible packed ABI from the historical example or infer it from held-out RTL.\n\nChecker obligations: Check field identity in the shared interface contract; require D-02 evidence before byte/bit-level integrity acceptance.\n\nLocal acceptance gate: Only TL-UL packed interface binding and integrity-oracle acceptance await the D-02 normative type/encoding addendum.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/tlul/README.md` lines 88-111.\n- `hw/ip/tlul/README.md` lines 148-150.\n- `hw/ip/tlul/README.md` lines 168-172.\n- `hw/ip/tlul/README.md` lines 190-196.\n"
+    },
+    {
+      "id": "adjudication-CT-02",
+      "title": "Benchmark author contract: CT-02",
+      "layer": "architecture",
+      "module": "serial_io_subsystem",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "88ef055dbfb9912c33058066e08ed00e023c9dc643cc57ad6a63d146346281e5",
+        "targets": [
+          {
+            "document_id": "earlgrey-system-context",
+            "sha256": "27af006aada210cba0158cd12ac88e38bb74eed40aeb89d4a849afafc2f8700f",
+            "line_start": 207,
+            "line_end": 210
+          },
+          {
+            "document_id": "hw--top_earlgrey--data--top_earlgrey-hjson",
+            "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+            "line_start": 181,
+            "line_end": 226
+          }
+        ]
+      },
+      "content": "# CT-02: background_scope\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: The selected top configuration instantiates uart0..uart3 (four UARTs). UART is whole-chip background and is outside both reduced subsystem DUTs.\n\nRejected reading: One-UART prose neither overrides the configuration nor creates a new UART implementation task.\n\nChecker obligations: Check scope inventory; do not add UART RTL, UART coverage bins or a global execution blocker.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/doc/design/README.md` lines 207-210.\n- `hw/top_earlgrey/data/top_earlgrey.hjson` lines 181-226.\n"
+    },
+    {
+      "id": "adjudication-CT-03",
+      "title": "Benchmark author contract: CT-03",
+      "layer": "architecture",
+      "module": "serial_io_subsystem",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "285eccccf52a6ce0a75f8cc1b1d7114ec8e20ae0108a6d601fac969ce3dc23ca",
+        "targets": [
+          {
+            "document_id": "earlgrey-system-context",
+            "sha256": "27af006aada210cba0158cd12ac88e38bb74eed40aeb89d4a849afafc2f8700f",
+            "line_start": 216,
+            "line_end": 217
+          },
+          {
+            "document_id": "hw--top_earlgrey--data--top_earlgrey-hjson",
+            "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+            "line_start": 1235,
+            "line_end": 1287
+          }
+        ]
+      },
+      "content": "# CT-03: scope_interpretation\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: The base pinout has 47 muxed pads: IOA=9, IOB=13, IOC=13, IOR=12; direct IOR8/IOR9 are excluded. A 32-bit GPIO vector is not a count of all MIO pads. This constrains AON PINMUX geometry; it is external context in serial-I/O.\n\nRejected reading: Do not reduce the MIO geometry to 32 or count the two direct pads as muxed.\n\nChecker obligations: For in-scope PINMUX check enumeration, index bounds and direct/muxed classification; otherwise retain a boundary fact only.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/doc/design/README.md` lines 216-217.\n- `hw/top_earlgrey/data/top_earlgrey.hjson` lines 1235-1287.\n"
+    },
+    {
+      "id": "adjudication-CT-04",
+      "title": "Benchmark author contract: CT-04",
+      "layer": "architecture",
+      "module": "serial_io_subsystem",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "d394de9ab395f0e8df776aee189ed9f22794a205b98b0868444e167d272728c2",
+        "targets": [
+          {
+            "document_id": "earlgrey-system-context",
+            "sha256": "27af006aada210cba0158cd12ac88e38bb74eed40aeb89d4a849afafc2f8700f",
+            "line_start": 172,
+            "line_end": 185
+          }
+        ]
+      },
+      "content": "# CT-04: background_scope\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: The local ROM-key table enumerates seven slots, 0..6. Treat the earlier three-slot count as obsolete background; ROM/key provisioning is outside these exercises.\n\nRejected reading: Do not expand either subsystem into a ROM implementation or block unrelated design/DV tasks over this background inconsistency.\n\nChecker obligations: Retain the table/count correction in provenance; create no ROM DUT bins or global gate.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/doc/design/README.md` lines 172-185.\n"
+    },
+    {
+      "id": "adjudication-CT-05",
+      "title": "Benchmark author contract: CT-05",
+      "layer": "module",
+      "module": "spi_device",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "7c2dd653993f3447bccc9c67284eddc2e6bcba1e1d429059fc24f5c95da186c7",
+        "targets": [
+          {
+            "document_id": "earlgrey-system-context",
+            "sha256": "27af006aada210cba0158cd12ac88e38bb74eed40aeb89d4a849afafc2f8700f",
+            "line_start": 223,
+            "line_end": 231
+          },
+          {
+            "document_id": "hw--ip--spi_device--data--spi_device-hjson",
+            "sha256": "c4c81e6619addae169843324445470b9f77965c27a1dd7480d482f41786274f6",
+            "line_start": 5,
+            "line_end": 11
+          },
+          {
+            "document_id": "hw--ip--spi_device--doc--registers-md",
+            "sha256": "0b1f1c396c41ec70c6a40b67844e3f8c00cc3f7f832de4234f3ca730c1c72725",
+            "line_start": 197,
+            "line_end": 202
+          }
+        ]
+      },
+      "content": "# CT-05: scope_interpretation\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: In serial-I/O use the selected SPI_DEVICE CONTROL modes disabled/flashmode/passthrough with TPM controlled separately. Do not add a legacy Firmware mode without a declared interface. In AON this SPI paragraph is out-of-scope background only.\n\nRejected reading: A whole-chip overview is not authority to add an undeclared Firmware mode or a new SPI DUT to AON.\n\nChecker obligations: Check selected mode enumeration for serial-I/O; for AON check only that the scope remains the six control IPs.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/doc/design/README.md` lines 223-231.\n- `hw/ip/spi_device/data/spi_device.hjson` lines 5-11.\n- `hw/ip/spi_device/doc/registers.md` lines 197-202.\n"
+    },
+    {
+      "id": "adjudication-Q-01",
+      "title": "Benchmark author contract: Q-01",
+      "layer": "module",
+      "module": "spi_host",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "aaf588c43964cae68418a1c3e6a83f61575df0e970055232ce6f027d026f89d5",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_host--data--spi_host-hjson",
+            "sha256": "a65e533e66bd836f9a32627161e60f98c41f17ce34649a709eddc3a746b5f00e",
+            "line_start": 330,
+            "line_end": 350
+          }
+        ]
+      },
+      "content": "# Q-01: exercise_convention\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Author convention: CPHA determines the output launch edge (0 trailing, 1 leading); FULLCYC modifies receive sampling latency only, from half a SCK cycle to one full cycle after the corresponding launch. Preserve CPOL edge polarity. This chooses the field's sampling-only description; it is not a proven upstream implementation property.\n\nRejected reading: Do not silently let FULLCYC change the CPHA=1 launch edge solely because of the trailing-edge example.\n\nChecker obligations: Cross CPOL/CPHA/FULLCYC and divider values using an independent edge schedule; verify transmit and receive timing separately.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_host/data/spi_host.hjson` lines 330-350.\n"
+    },
+    {
+      "id": "adjudication-Q-02",
+      "title": "Benchmark author contract: Q-02",
+      "layer": "module",
+      "module": "spi_host",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "e955ea213d677f72d7bed88b732a0dbe95cbd70d1e5f1107d59b46315effce6e",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_host--data--spi_host-hjson",
+            "sha256": "a65e533e66bd836f9a32627161e60f98c41f17ce34649a709eddc3a746b5f00e",
+            "line_start": 57,
+            "line_end": 60
+          },
+          {
+            "document_id": "hw--ip--spi_host--data--spi_host-hjson",
+            "sha256": "a65e533e66bd836f9a32627161e60f98c41f17ce34649a709eddc3a746b5f00e",
+            "line_start": 513,
+            "line_end": 515
+          }
+        ]
+      },
+      "content": "# Q-02: exercise_convention\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Chip selects are zero-indexed. For this exercise valid CSID satisfies 0 <= CSID < NumCS; CSID=NumCS is invalid and follows the declared CSIDINVAL error handling.\n\nRejected reading: The word exceeds must not make equality a valid out-of-range chip select.\n\nChecker obligations: Test NumCS-1, NumCS and the largest encodable value; handle NumCS=1 and avoid creating an extra chip-select pin.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_host/data/spi_host.hjson` lines 57-60.\n- `hw/ip/spi_host/data/spi_host.hjson` lines 513-515.\n"
+    },
+    {
+      "id": "adjudication-Q-03",
+      "title": "Benchmark author contract: Q-03",
+      "layer": "module",
+      "module": "spi_host",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "114074714a47de1cfde2f8446e8486340c6ff5ab651bb91eed959f9fbf0604a2",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+            "sha256": "3ea9d1b60617d50de5b08537cb6956cd538fffa1cf0f84033f4ac0ad91e9bff4",
+            "line_start": 844,
+            "line_end": 847
+          },
+          {
+            "document_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+            "sha256": "3ea9d1b60617d50de5b08537cb6956cd538fffa1cf0f84033f4ac0ad91e9bff4",
+            "line_start": 1302,
+            "line_end": 1323
+          }
+        ]
+      },
+      "content": "# Q-03: scoped_gap\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Require conservation/order of accepted one-byte segments and correct READY/backpressure behavior. Six-versus-seven pipeline examples do not define a universal first-stall cycle: record initial queue/FSM/divider conditions and accepted commands when evaluating that observation.\n\nRejected reading: Do not assert that the sixth or seventh segment always stalls regardless of initial state or convert that timing ambiguity into a module-wide blocker.\n\nChecker obligations: Exercise bursts around six/seven segments; check no data loss and captured stalls. Keep an exact-first-stall timing claim pending a reviewed pipeline timing contract.\n\nLocal acceptance gate: Only a cycle-exact first-stall latency bin requires a versioned initial-state/acceptance/pipeline-depth contract.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_host/doc/theory_of_operation.md` lines 844-847.\n- `hw/ip/spi_host/doc/theory_of_operation.md` lines 1302-1323.\n"
+    },
+    {
+      "id": "adjudication-Q-04",
+      "title": "Benchmark author contract: Q-04",
+      "layer": "module",
+      "module": "spi_device",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "365dc6db99287315132e2ead241945f06e0562672e4205e6d15cbb69a53b67f5",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_device--doc--registers-md",
+            "sha256": "0b1f1c396c41ec70c6a40b67844e3f8c00cc3f7f832de4234f3ca730c1c72725",
+            "line_start": 350,
+            "line_end": 354
+          },
+          {
+            "document_id": "hw--ip--spi_device--doc--theory_of_operation-md",
+            "sha256": "5b1e62ee87e513235c49ae86a2e650a461a96c44f8b7ab9dde9bf0c3d0db901d",
+            "line_start": 74,
+            "line_end": 105
+          }
+        ]
+      },
+      "content": "# Q-04: exercise_convention\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: For this exercise use the detailed staged/committed contract: SW requests cross via the asynchronous queue; serial Read Status emits atomic bytes from the latest committed state and can observe BUSY changes during one transaction at eight-SPI-clock commit boundaries. Passthrough gating changes only at CSb release using committed BUSY. Do not invent a fixed SW-to-SPI CDC latency.\n\nRejected reading: The older transaction-start snapshot prose does not freeze all status bytes until transaction end.\n\nChecker obligations: Poll multiple status bytes while issuing a non-racing SW clear; check byte atomicity and delayed passthrough reopening. Keep simultaneous HW/SW same-bit priority separate.\n\nLocal acceptance gate: Only simultaneous HW/SW updates to the same status bit await an explicit arbitration rule; serialized updates and byte-boundary polling are specified.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/spi_device/doc/registers.md` lines 350-354.\n- `hw/ip/spi_device/doc/theory_of_operation.md` lines 74-105.\n"
+    },
+    {
+      "id": "adjudication-Q-05",
+      "title": "Benchmark author contract: Q-05",
+      "layer": "module",
+      "module": "usbdev",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "5c0f60c26cfa83e213ea311107ad06ae583d6341e65412ac9c8bd53b9ccf276e",
+        "targets": [
+          {
+            "document_id": "hw--ip--usbdev--doc--programmers_guide-md",
+            "sha256": "2d98ddce1dfcc6ed15a2016e81497a5a36868c3a1fe904edb9ffb5501502116a",
+            "line_start": 36,
+            "line_end": 38
+          },
+          {
+            "document_id": "hw--ip--usbdev--doc--programmers_guide-md",
+            "sha256": "2d98ddce1dfcc6ed15a2016e81497a5a36868c3a1fe904edb9ffb5501502116a",
+            "line_start": 82,
+            "line_end": 86
+          },
+          {
+            "document_id": "hw--ip--usbdev--data--usbdev-hjson",
+            "sha256": "7d80bb6852625b17c994647f06ef6b26f5cad8b4cdfd62f9295bd51a7b1ac28c",
+            "line_start": 719,
+            "line_end": 735
+          }
+        ]
+      },
+      "content": "# Q-05: scope_interpretation\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Apply the control-endpoint post-SETUP special case separately from ordinary OUT flow control: after SETUP clears protocol stall, the guide's set_nak_out/rxenable_out conditions hold subsequent IN/OUT requests in NAK until software prepares the control transfer. Do not extend that special condition to every endpoint/transaction.\n\nRejected reading: The rxenable_out name alone does not disprove the explicitly stated control-transfer IN behavior.\n\nChecker obligations: Separate ordinary OUT backpressure from post-SETUP control IN/OUT tests; check recovery after software configures the new request.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/usbdev/doc/programmers_guide.md` lines 36-38.\n- `hw/ip/usbdev/doc/programmers_guide.md` lines 82-86.\n- `hw/ip/usbdev/data/usbdev.hjson` lines 719-735.\n"
+    },
+    {
+      "id": "adjudication-Q-06",
+      "title": "Benchmark author contract: Q-06",
+      "layer": "module",
+      "module": "usbdev",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "b0bca34bb2334dac9973dc0a834331aa5df59c2ae6fc9a0ccb6ae8e32b31470b",
+        "targets": [
+          {
+            "document_id": "hw--ip--usbdev--doc--theory_of_operation-md",
+            "sha256": "aa2521869452ae52a65bbb92105e1a21a8527ec0cf1538da94739b9af1868cd2",
+            "line_start": 38,
+            "line_end": 42
+          },
+          {
+            "document_id": "hw--ip--usbdev--doc--theory_of_operation-md",
+            "sha256": "aa2521869452ae52a65bbb92105e1a21a8527ec0cf1538da94739b9af1868cd2",
+            "line_start": 157,
+            "line_end": 159
+          }
+        ]
+      },
+      "content": "# Q-06: scope_interpretation\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Model synchronous accesses at each SRAM port. For this exercise the functional bus/USB clocks share the documented 48 MHz input; preserve their port/domain identities and the separate wake clock. Clock gating and wake handoff still require explicit CDC/reset analysis. The phrase asynchronous dual-port does not require asynchronous read data or unrelated functional frequencies.\n\nRejected reading: Do not declare RAM impossible, merge the wake domain into the functional clock, or infer safety solely from equal nominal frequency.\n\nChecker obligations: Specify port edges, enables and reset/gating constraints in the shared contract; test buffer ownership and wake transfer when the functional clock stops.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/usbdev/doc/theory_of_operation.md` lines 38-42.\n- `hw/ip/usbdev/doc/theory_of_operation.md` lines 157-159.\n"
+    },
+    {
+      "id": "adjudication-D-02",
+      "title": "Benchmark author contract: D-02",
+      "layer": "architecture",
+      "module": "serial_io_subsystem",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "accbfe944b6ba2ca87ac74709042877783d4be0e341da0ba50630ff1f7ec834e",
+        "targets": [
+          {
+            "document_id": "hw--ip--tlul--README-md",
+            "sha256": "eb7166756b7d260c23dcdb97793ae1aa039c7d7e64abcb49ab2276899417670a",
+            "line_start": 88,
+            "line_end": 111
+          },
+          {
+            "document_id": "hw--ip--tlul--README-md",
+            "sha256": "eb7166756b7d260c23dcdb97793ae1aa039c7d7e64abcb49ab2276899417670a",
+            "line_start": 148,
+            "line_end": 196
+          }
+        ]
+      },
+      "content": "# D-02: definition_gap\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: The current input does not supply a complete normative packed TL-UL type and integrity-code algorithm. Before compatible interface/encoding acceptance, supply a pinned public interface package or explicit reviewed specification addendum covering widths, ordering, encoding and error policy. Keep the logical protocol requirements; CT-01 rejects obsolete ABI examples.\n\nRejected reading: Do not fabricate bit widths/parity, mine the answer RTL as implicit specification, equate this gap with an EDA installation failure, or call it a whole-project error.\n\nChecker obligations: Validate the supplied type/encoding contract on both RTL and UVM sides with known vectors and invalid-code tests before counting integrity bins.\n\nLocal acceptance gate: TL-UL ABI and integrity encoding/fault bins remain unverified until a normative interface/algorithm addendum is accepted.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/tlul/README.md` lines 88-111.\n- `hw/ip/tlul/README.md` lines 148-196.\n"
+    },
+    {
+      "id": "adjudication-N-02",
+      "title": "Benchmark author contract: N-02",
+      "layer": "module",
+      "module": "usbdev",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "88aa14853b07c0a59b46975798382a608c2fed3434bdd447670c3030fada89a5",
+        "targets": [
+          {
+            "document_id": "hw--ip--usbdev--data--usbdev-hjson",
+            "sha256": "7d80bb6852625b17c994647f06ef6b26f5cad8b4cdfd62f9295bd51a7b1ac28c",
+            "line_start": 899,
+            "line_end": 917
+          },
+          {
+            "document_id": "hw--ip--usbdev--doc--theory_of_operation-md",
+            "sha256": "aa2521869452ae52a65bbb92105e1a21a8527ec0cf1538da94739b9af1868cd2",
+            "line_start": 157,
+            "line_end": 180
+          }
+        ]
+      },
+      "content": "# N-02: not_a_conflict\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Partition USB transfer expectations by subtype. Apply the declared OUT_ISO behavior to isochronous endpoints and ordinary ACK/NAK rules to the ordinary transaction types for which they are specified.\n\nRejected reading: A protocol subtype exception is not a contradiction; do not impose ordinary retry/handshake expectations on isochronous traffic.\n\nChecker obligations: Cross endpoint mode with available-buffer/error conditions and select an independent subtype-aware response oracle.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/usbdev/data/usbdev.hjson` lines 899-917.\n- `hw/ip/usbdev/doc/theory_of_operation.md` lines 157-180.\n"
+    },
+    {
+      "id": "adjudication-N-03",
+      "title": "Benchmark author contract: N-03",
+      "layer": "module",
+      "module": "usbdev",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "c027f979e4d237a5e6011036e96bca10c4da4b8836d9c6e92ca787975e8ebd40",
+        "targets": [
+          {
+            "document_id": "hw--ip--usbdev--doc--theory_of_operation-md",
+            "sha256": "aa2521869452ae52a65bbb92105e1a21a8527ec0cf1538da94739b9af1868cd2",
+            "line_start": 56,
+            "line_end": 58
+          },
+          {
+            "document_id": "hw--ip--usbdev--data--usbdev-hjson",
+            "sha256": "7d80bb6852625b17c994647f06ef6b26f5cad8b4cdfd62f9295bd51a7b1ac28c",
+            "line_start": 1144,
+            "line_end": 1149
+          }
+        ]
+      },
+      "content": "# N-03: naming_correction\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Program the declared PHY_CONFIG.tx_use_d_se0 field. The theory name use_tx_d_se0 is an alias in prose for the same transmit encoding selection, not a second field.\n\nRejected reading: Do not generate a nonexistent register bit or block USB work over this name mismatch.\n\nChecker obligations: Check both DP/DN and D/SE0 output encodings with the actual field and the corresponding pin mapping.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/usbdev/doc/theory_of_operation.md` lines 56-58.\n- `hw/ip/usbdev/data/usbdev.hjson` lines 1144-1149.\n"
+    },
+    {
+      "id": "adjudication-SCOPE",
+      "title": "Benchmark author contract: SCOPE",
+      "layer": "architecture",
+      "module": "serial_io_subsystem",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "cab00437048aeddd307ae51fb782e1780454a86338fa5a1946c73c8493d17454",
+        "targets": [
+          {
+            "document_id": "hw--ip--spi_host--README-md",
+            "sha256": "e4b04a1dbab8f690edd6363955ef87086ec380328b6d4c7aa01e741afa29ac1d",
+            "line_start": 1,
+            "line_end": 50
+          },
+          {
+            "document_id": "hw--ip--spi_host--doc--interfaces-md",
+            "sha256": "383b296eb339fc30b5d719d7bf0f8596fce1c0e46d1a4403199c40012b526a7c",
+            "line_start": 1,
+            "line_end": 45
+          },
+          {
+            "document_id": "hw--ip--spi_host--doc--programmers_guide-md",
+            "sha256": "97cfb738633c7bd11cca17ae2608c3ac2ff4b250b21a067681acc020b77d872d",
+            "line_start": 1,
+            "line_end": 180
+          },
+          {
+            "document_id": "hw--ip--spi_host--doc--registers-md",
+            "sha256": "477dfb5e810c89111df2f0780bd0b7787d15488231e3e616914b94328f499d63",
+            "line_start": 1,
+            "line_end": 470
+          },
+          {
+            "document_id": "hw--ip--spi_host--doc--theory_of_operation-md",
+            "sha256": "3ea9d1b60617d50de5b08537cb6956cd538fffa1cf0f84033f4ac0ad91e9bff4",
+            "line_start": 1,
+            "line_end": 1325
+          },
+          {
+            "document_id": "hw--ip--spi_device--README-md",
+            "sha256": "f5e57e9a9cbd9c9ad13cbfbaef32d80f9b2974314ca7331b18d909fbb916c45c",
+            "line_start": 1,
+            "line_end": 96
+          },
+          {
+            "document_id": "hw--ip--spi_device--doc--interfaces-md",
+            "sha256": "c7df3cc33948112b64941dc7b4cbccfe1d70d53c95faad0c89d90ff399138bb0",
+            "line_start": 1,
+            "line_end": 65
+          },
+          {
+            "document_id": "hw--ip--spi_device--doc--programmers_guide-md",
+            "sha256": "b7f3317af15878a328dbbbef5db8778b160aac7a4477e5b7839f3bfcd1bcd69f",
+            "line_start": 1,
+            "line_end": 121
+          },
+          {
+            "document_id": "hw--ip--spi_device--doc--registers-md",
+            "sha256": "0b1f1c396c41ec70c6a40b67844e3f8c00cc3f7f832de4234f3ca730c1c72725",
+            "line_start": 1,
+            "line_end": 1666
+          },
+          {
+            "document_id": "hw--ip--spi_device--doc--theory_of_operation-md",
+            "sha256": "5b1e62ee87e513235c49ae86a2e650a461a96c44f8b7ab9dde9bf0c3d0db901d",
+            "line_start": 1,
+            "line_end": 405
+          },
+          {
+            "document_id": "hw--ip--usbdev--README-md",
+            "sha256": "f036c4f98bf315796aa28f7af0e577fcff591c880472dbd6b601c7bdf0b03f26",
+            "line_start": 1,
+            "line_end": 43
+          },
+          {
+            "document_id": "hw--ip--usbdev--doc--interfaces-md",
+            "sha256": "1b1033deca2d081b5b8ce7fd8b967a6f7c623154cf788f157e6e10b730ded66d",
+            "line_start": 1,
+            "line_end": 76
+          },
+          {
+            "document_id": "hw--ip--usbdev--doc--programmers_guide-md",
+            "sha256": "2d98ddce1dfcc6ed15a2016e81497a5a36868c3a1fe904edb9ffb5501502116a",
+            "line_start": 1,
+            "line_end": 172
+          },
+          {
+            "document_id": "hw--ip--usbdev--doc--registers-md",
+            "sha256": "ad6d4163fafa71b2fcd07399413b24e2da3e0990d2e4d86e325dbaab17b5aa8d",
+            "line_start": 1,
+            "line_end": 1534
+          },
+          {
+            "document_id": "hw--ip--usbdev--doc--theory_of_operation-md",
+            "sha256": "aa2521869452ae52a65bbb92105e1a21a8527ec0cf1538da94739b9af1868cd2",
+            "line_start": 1,
+            "line_end": 245
+          },
+          {
+            "document_id": "hw--ip--usbdev--doc--wake_resume-md",
+            "sha256": "aba2b230a19e80c99a4f7b605ff5d86d47d911b73850c87ffe80dc455ba26231",
+            "line_start": 1,
+            "line_end": 69
+          },
+          {
+            "document_id": "hw--ip--tlul--README-md",
+            "sha256": "eb7166756b7d260c23dcdb97793ae1aa039c7d7e64abcb49ab2276899417670a",
+            "line_start": 1,
+            "line_end": 700
+          },
+          {
+            "document_id": "doc--contributing--hw--comportability--README-md",
+            "sha256": "520152186999933415259bbf0636c385061b5485af10aa58b3ffb41dca30be25",
+            "line_start": 1,
+            "line_end": 736
+          },
+          {
+            "document_id": "hw--ip--spi_host--data--spi_host-hjson",
+            "sha256": "a65e533e66bd836f9a32627161e60f98c41f17ce34649a709eddc3a746b5f00e",
+            "line_start": 1,
+            "line_end": 644
+          },
+          {
+            "document_id": "hw--ip--spi_device--data--spi_device-hjson",
+            "sha256": "c4c81e6619addae169843324445470b9f77965c27a1dd7480d482f41786274f6",
+            "line_start": 1,
+            "line_end": 1593
+          },
+          {
+            "document_id": "hw--ip--usbdev--data--usbdev-hjson",
+            "sha256": "7d80bb6852625b17c994647f06ef6b26f5cad8b4cdfd62f9295bd51a7b1ac28c",
+            "line_start": 1,
+            "line_end": 1604
+          },
+          {
+            "document_id": "hw--top_earlgrey--data--top_earlgrey-hjson",
+            "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+            "line_start": 1,
+            "line_end": 1550
+          },
+          {
+            "document_id": "earlgrey-system-context",
+            "sha256": "27af006aada210cba0158cd12ac88e38bb74eed40aeb89d4a849afafc2f8700f",
+            "line_start": 1,
+            "line_end": 580
+          }
+        ]
+      },
+      "content": "# SCOPE: opentitan-serial-io exercise contract\n\nBenchmark-author authority (opentitan-adjudications-v1). DUT module types are exactly spi_device, spi_host, usbdev; the wrapper is serial_io_subsystem. Preserve the selected instance/configuration identities in integration_profile.json and the shared module_graph.json. Whole-chip chapters, UART, ROM, CPU, pads/technology and other external consumers are context or boundaries unless explicitly listed as DUTs. Do not create new RTL modules/coverage obligations or global blockers from unrelated background discrepancies.\n\nSource-adjudication documents supersede only their named statements/scopes; cite them with the original source. Literal field/access/bit declarations and selected configuration govern over obsolete names. Intra-source behavioral conflicts need the individual author decision, not a universal HJSON-wins rule. Do not infer a different source variant to excuse contradictions.\n\nBoth RTL and UVM use this same accepted contract. A precise missing interface/technology/timing definition gates only its dependent binding/checker; independent work continues. Unknown, unrun and reference-divergent behavior cannot count as passed or covered. Candidate/golden RTL never supplies silent requirements; author conventions are exercise choices, not claims of upstream bugs. Corrections and file size are not simulation evidence.\n"
     }
   ],
   "relations": [

@@ -855,7 +855,12 @@
         }
       ],
       "issue": "The locked README leaves the Bus Integrity Scheme unfilled and contains historical planned-behavior statements. The input does not fully define integrity encoding and fault acceptance.",
-      "required_resolution": "Record missing normative requirements; version an explicit addendum before claiming full integrity coverage. Golden RTL cannot silently supply specification."
+      "required_resolution": "Apply the revised question's CT-01, D-02; retain their checker obligations and any precise local gate. Do not reopen settled prose contradictions or silently copy golden RTL.",
+      "adjudication_ids": [
+        "CT-01",
+        "D-02"
+      ],
+      "resolution_state": "local_obligation_open"
     },
     {
       "id": "SPI-LEN-WIDTH",
@@ -874,7 +879,11 @@
         }
       ],
       "issue": "The theory COMMAND table says LEN is 8 bits (0:255); the register definition says 9 bits.",
-      "required_resolution": "Record a versioned interpretation citing both sources before generating length constraints, then test accepted maximum and adjacent boundaries."
+      "required_resolution": "Apply the revised question's SH-05; retain their checker obligations and any precise local gate. Do not reopen settled prose contradictions or silently copy golden RTL.",
+      "adjudication_ids": [
+        "SH-05"
+      ],
+      "resolution_state": "contract_defined"
     },
     {
       "id": "SPI-CLOCK-INTERFACE",
@@ -915,7 +924,12 @@
         }
       ],
       "issue": "The theory SCK-period and timeslice equations divide by CLKDIV+1, conflicting with the slower-clock prose, counter description and register formula T(sck)=2*(CLK_DIV+1)*T(core).",
-      "required_resolution": "Explicitly choose and version a coherent timing contract using the normative source evidence before defining SPI-02 timing oracle; do not copy a golden RTL counter as the definition."
+      "required_resolution": "Apply the revised question's SH-03, SH-04; retain their checker obligations and any precise local gate. Do not reopen settled prose contradictions or silently copy golden RTL.",
+      "adjudication_ids": [
+        "SH-03",
+        "SH-04"
+      ],
+      "resolution_state": "contract_defined"
     },
     {
       "id": "SPI-EVENT-IRQ-SEMANTICS",
@@ -944,5 +958,359 @@
     "Upstream leaf RTL/DV is not an existing implementation or verification suite for the authored reduced subsystem wrapper.",
     "Selected reference files are not a proved standalone dependency closure; use a full pinned checkout to resolve build dependencies.",
     "No simulation, CDC/lint signoff, formal proof or coverage percentage is certified."
+  ],
+  "adjudication_revision": "opentitan-adjudications-v1",
+  "adjudication_obligations": [
+    {
+      "issue_id": "SH-01",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "spi_host",
+      "requirement": "IDLE uses STATUS.ACTIVE becoming low; READY uses STATUS.READY becoming high. They are distinct event predicates and EVENT_ENABLE fields.",
+      "checks": [
+        "Exercise a command-ready but active transfer, then idle; predict the two predicates separately. Temporal IRQ qualification is a separate contract."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-SH-01"
+    },
+    {
+      "issue_id": "SH-02",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "spi_host",
+      "requirement": "For this exercise RXWM is true exactly when rx_depth_words > RX_WATERMARK. Use this strict comparison for STATUS.RXWM and the RXWM event predicate. The author selects the explicit greater-than event definition to adjudicate the conflicting reaches wording inside HJSON; this is not blanket HJSON precedence.",
+      "checks": [
+        "Check threshold-1, threshold and threshold+1 in FIFO words, including threshold zero and masking. Freeze that oracle before running the DUT."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-SH-02"
+    },
+    {
+      "issue_id": "SH-03",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "spi_host",
+      "requirement": "During unstalled clock generation T_SCK = 2*(CLKDIV+1)*T_core and T_half_SCK = (CLKDIV+1)*T_core. Interpret waveform time units using this half-period.",
+      "checks": [
+        "Measure complete and half periods for CLKDIV=0,1 and a larger value; distinguish intentional stalls from divider timing."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-SH-03"
+    },
+    {
+      "issue_id": "SH-04",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "spi_host",
+      "requirement": "A running divider timeslice spans CLKDIV+1 core cycles: T_timeslice=(CLKDIV+1)*T_core. FSM updates remain subject to the documented enable/stall conditions.",
+      "checks": [
+        "Check divider reload/countdown and frozen state under a stall; relate unstalled slices to SH-03 half periods."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-SH-04"
+    },
+    {
+      "issue_id": "SH-05",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "spi_host",
+      "requirement": "COMMAND.LEN is bits [8:0], range 0..511. A data segment transfers LEN+1 bytes; a dummy segment uses LEN+1 dummy cycles as defined by the field.",
+      "checks": [
+        "Cover encoded LEN=0,255,256,511, pack all nine bits and check exactly 1..512 units for the applicable direction."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-SH-05"
+    },
+    {
+      "issue_id": "SH-06",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "spi_host",
+      "requirement": "Quad transfer emits the upper nibble [7:4], followed by [3:0], with the source-defined SD lane ordering.",
+      "checks": [
+        "Use bytes whose nibbles and all bit positions differ; reconstruct exactly eight bits per byte."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-SH-06"
+    },
+    {
+      "issue_id": "SH-07",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "spi_host",
+      "requirement": "Dual output consumes [7:6], [5:4], [3:2], [1:0] in order for each byte. Each shift consumes exactly two bits.",
+      "checks": [
+        "Reconstruct asymmetric walking-one byte patterns in dual mode and verify no bit duplication or omission."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-SH-07"
+    },
+    {
+      "issue_id": "SH-08",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "spi_host",
+      "requirement": "TXSTALL/RXSTALL are diagnostic states and do not directly create an event IRQ. Independently evaluate the declared FIFO and other event-enable predicates.",
+      "checks": [
+        "Induce TX and RX stalls with event enables cleared and enabled individually; separate associated FIFO events from the diagnostic flags."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-SH-08"
+    },
+    {
+      "issue_id": "SD-01",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "spi_device",
+      "requirement": "The author adopts the coherent four-byte PAYLOAD_SWAP_MASK/PAYLOAD_SWAP_DATA contract: payload_swap_en enables masked substitution in the first four eligible payload bytes. Unselected bits and later bytes pass through unchanged; shorter payloads only transform bytes actually present. Preserve the documented byte ordering.",
+      "checks": [
+        "Check payload lengths 0,1,3,4,5, distinct mask/data bytes, all-zero and all-one masks, and disabled swap."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-SD-01"
+    },
+    {
+      "issue_id": "SD-02",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "spi_device",
+      "requirement": "CMD_INFO.addr_mode refers to ADDR_MODE.addr_4b_en for the configured address-width choice. Bind the actual declared enum values and ADDR_MODE CSR.",
+      "checks": [
+        "Cover no-address, configured address and explicitly selected address-width modes using the declared encoding."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-SD-02"
+    },
+    {
+      "issue_id": "SD-03",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "spi_device",
+      "requirement": "The declared field is CMD_INFO.read_pipeline_mode[23:22]. Preserve its multi-value enumeration and per-mode timing contract.",
+      "checks": [
+        "Generate the register model from the two-bit field; exercise every declared mode and handle reserved values explicitly."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-SD-03"
+    },
+    {
+      "issue_id": "SD-04",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "spi_device",
+      "requirement": "Upload address presence and width follow the current CMD_INFO.addr_mode enum and ADDR_MODE.addr_4b_en where that enum selects the global width. Upload only the address bytes present in the decoded command.",
+      "checks": [
+        "For each address mode, independently compare uploaded opcode, address and payload boundaries, including address-free commands."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-SD-04"
+    },
+    {
+      "issue_id": "SD-05",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "spi_device",
+      "requirement": "Ingress is 112 32-bit words (448 bytes): payload offset/depth 0/64, command 64/16, address 80/16, TPM-write 96/16, all in words. Egress is 848 words: read buffer 0/512, mailbox 512/256, SFDP 768/64, TPM-read 832/16. Banks have independent address spaces.",
+      "checks": [
+        "Convert words to bytes explicitly; check every first/last address, no intra-bank overlap and correct bank routing."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-SD-05"
+    },
+    {
+      "issue_id": "CT-01",
+      "classification": "scoped_gap",
+      "resolution_state": "local_obligation_open",
+      "module": "serial_io_subsystem",
+      "requirement": "Use the current logical sidebands a_user={instr_type,cmd_intg,data_intg} and d_user={rsp_intg,data_intg}. The old reserved/parity typedef and TL_DUW=4 example are not a fixed-version ABI. D-02 owns the remaining public type/encoding contract; logical request/response planning can continue.",
+      "checks": [
+        "Check field identity in the shared interface contract; require D-02 evidence before byte/bit-level integrity acceptance."
+      ],
+      "local_gate": "Only TL-UL packed interface binding and integrity-oracle acceptance await the D-02 normative type/encoding addendum.",
+      "status": "not_run",
+      "source_document_id": "adjudication-CT-01"
+    },
+    {
+      "issue_id": "CT-02",
+      "classification": "background_scope",
+      "resolution_state": "contract_defined",
+      "module": "serial_io_subsystem",
+      "requirement": "The selected top configuration instantiates uart0..uart3 (four UARTs). UART is whole-chip background and is outside both reduced subsystem DUTs.",
+      "checks": [
+        "Check scope inventory; do not add UART RTL, UART coverage bins or a global execution blocker."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CT-02"
+    },
+    {
+      "issue_id": "CT-03",
+      "classification": "scope_interpretation",
+      "resolution_state": "contract_defined",
+      "module": "serial_io_subsystem",
+      "requirement": "The base pinout has 47 muxed pads: IOA=9, IOB=13, IOC=13, IOR=12; direct IOR8/IOR9 are excluded. A 32-bit GPIO vector is not a count of all MIO pads. This constrains AON PINMUX geometry; it is external context in serial-I/O.",
+      "checks": [
+        "For in-scope PINMUX check enumeration, index bounds and direct/muxed classification; otherwise retain a boundary fact only."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CT-03"
+    },
+    {
+      "issue_id": "CT-04",
+      "classification": "background_scope",
+      "resolution_state": "contract_defined",
+      "module": "serial_io_subsystem",
+      "requirement": "The local ROM-key table enumerates seven slots, 0..6. Treat the earlier three-slot count as obsolete background; ROM/key provisioning is outside these exercises.",
+      "checks": [
+        "Retain the table/count correction in provenance; create no ROM DUT bins or global gate."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CT-04"
+    },
+    {
+      "issue_id": "CT-05",
+      "classification": "scope_interpretation",
+      "resolution_state": "contract_defined",
+      "module": "spi_device",
+      "requirement": "In serial-I/O use the selected SPI_DEVICE CONTROL modes disabled/flashmode/passthrough with TPM controlled separately. Do not add a legacy Firmware mode without a declared interface. In AON this SPI paragraph is out-of-scope background only.",
+      "checks": [
+        "Check selected mode enumeration for serial-I/O; for AON check only that the scope remains the six control IPs."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CT-05"
+    },
+    {
+      "issue_id": "Q-01",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "spi_host",
+      "requirement": "Author convention: CPHA determines the output launch edge (0 trailing, 1 leading); FULLCYC modifies receive sampling latency only, from half a SCK cycle to one full cycle after the corresponding launch. Preserve CPOL edge polarity. This chooses the field's sampling-only description; it is not a proven upstream implementation property.",
+      "checks": [
+        "Cross CPOL/CPHA/FULLCYC and divider values using an independent edge schedule; verify transmit and receive timing separately."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-01"
+    },
+    {
+      "issue_id": "Q-02",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "spi_host",
+      "requirement": "Chip selects are zero-indexed. For this exercise valid CSID satisfies 0 <= CSID < NumCS; CSID=NumCS is invalid and follows the declared CSIDINVAL error handling.",
+      "checks": [
+        "Test NumCS-1, NumCS and the largest encodable value; handle NumCS=1 and avoid creating an extra chip-select pin."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-02"
+    },
+    {
+      "issue_id": "Q-03",
+      "classification": "scoped_gap",
+      "resolution_state": "local_obligation_open",
+      "module": "spi_host",
+      "requirement": "Require conservation/order of accepted one-byte segments and correct READY/backpressure behavior. Six-versus-seven pipeline examples do not define a universal first-stall cycle: record initial queue/FSM/divider conditions and accepted commands when evaluating that observation.",
+      "checks": [
+        "Exercise bursts around six/seven segments; check no data loss and captured stalls. Keep an exact-first-stall timing claim pending a reviewed pipeline timing contract."
+      ],
+      "local_gate": "Only a cycle-exact first-stall latency bin requires a versioned initial-state/acceptance/pipeline-depth contract.",
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-03"
+    },
+    {
+      "issue_id": "Q-04",
+      "classification": "exercise_convention",
+      "resolution_state": "local_obligation_open",
+      "module": "spi_device",
+      "requirement": "For this exercise use the detailed staged/committed contract: SW requests cross via the asynchronous queue; serial Read Status emits atomic bytes from the latest committed state and can observe BUSY changes during one transaction at eight-SPI-clock commit boundaries. Passthrough gating changes only at CSb release using committed BUSY. Do not invent a fixed SW-to-SPI CDC latency.",
+      "checks": [
+        "Poll multiple status bytes while issuing a non-racing SW clear; check byte atomicity and delayed passthrough reopening. Keep simultaneous HW/SW same-bit priority separate."
+      ],
+      "local_gate": "Only simultaneous HW/SW updates to the same status bit await an explicit arbitration rule; serialized updates and byte-boundary polling are specified.",
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-04"
+    },
+    {
+      "issue_id": "Q-05",
+      "classification": "scope_interpretation",
+      "resolution_state": "contract_defined",
+      "module": "usbdev",
+      "requirement": "Apply the control-endpoint post-SETUP special case separately from ordinary OUT flow control: after SETUP clears protocol stall, the guide's set_nak_out/rxenable_out conditions hold subsequent IN/OUT requests in NAK until software prepares the control transfer. Do not extend that special condition to every endpoint/transaction.",
+      "checks": [
+        "Separate ordinary OUT backpressure from post-SETUP control IN/OUT tests; check recovery after software configures the new request."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-05"
+    },
+    {
+      "issue_id": "Q-06",
+      "classification": "scope_interpretation",
+      "resolution_state": "contract_defined",
+      "module": "usbdev",
+      "requirement": "Model synchronous accesses at each SRAM port. For this exercise the functional bus/USB clocks share the documented 48 MHz input; preserve their port/domain identities and the separate wake clock. Clock gating and wake handoff still require explicit CDC/reset analysis. The phrase asynchronous dual-port does not require asynchronous read data or unrelated functional frequencies.",
+      "checks": [
+        "Specify port edges, enables and reset/gating constraints in the shared contract; test buffer ownership and wake transfer when the functional clock stops."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-06"
+    },
+    {
+      "issue_id": "D-02",
+      "classification": "definition_gap",
+      "resolution_state": "local_obligation_open",
+      "module": "serial_io_subsystem",
+      "requirement": "The current input does not supply a complete normative packed TL-UL type and integrity-code algorithm. Before compatible interface/encoding acceptance, supply a pinned public interface package or explicit reviewed specification addendum covering widths, ordering, encoding and error policy. Keep the logical protocol requirements; CT-01 rejects obsolete ABI examples.",
+      "checks": [
+        "Validate the supplied type/encoding contract on both RTL and UVM sides with known vectors and invalid-code tests before counting integrity bins."
+      ],
+      "local_gate": "TL-UL ABI and integrity encoding/fault bins remain unverified until a normative interface/algorithm addendum is accepted.",
+      "status": "not_run",
+      "source_document_id": "adjudication-D-02"
+    },
+    {
+      "issue_id": "N-02",
+      "classification": "not_a_conflict",
+      "resolution_state": "contract_defined",
+      "module": "usbdev",
+      "requirement": "Partition USB transfer expectations by subtype. Apply the declared OUT_ISO behavior to isochronous endpoints and ordinary ACK/NAK rules to the ordinary transaction types for which they are specified.",
+      "checks": [
+        "Cross endpoint mode with available-buffer/error conditions and select an independent subtype-aware response oracle."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-N-02"
+    },
+    {
+      "issue_id": "N-03",
+      "classification": "naming_correction",
+      "resolution_state": "contract_defined",
+      "module": "usbdev",
+      "requirement": "Program the declared PHY_CONFIG.tx_use_d_se0 field. The theory name use_tx_d_se0 is an alias in prose for the same transmit encoding selection, not a second field.",
+      "checks": [
+        "Check both DP/DN and D/SE0 output encodings with the actual field and the corresponding pin mapping."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-N-03"
+    }
   ]
 }

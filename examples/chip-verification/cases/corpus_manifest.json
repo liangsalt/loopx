@@ -6,9 +6,149 @@
       "id": "opentitan-serial-io",
       "input_files": [
         {
+          "path": "adjudications/CT-01.md",
+          "sha256": "af221751e6bee3c8ed4f5ac25b0153bd65e0a306d92b8b41c977a6a9bd49f702",
+          "bytes": 1081
+        },
+        {
+          "path": "adjudications/CT-02.md",
+          "sha256": "88ef055dbfb9912c33058066e08ed00e023c9dc643cc57ad6a63d146346281e5",
+          "bytes": 712
+        },
+        {
+          "path": "adjudications/CT-03.md",
+          "sha256": "285eccccf52a6ce0a75f8cc1b1d7114ec8e20ae0108a6d601fac969ce3dc23ca",
+          "bytes": 809
+        },
+        {
+          "path": "adjudications/CT-04.md",
+          "sha256": "d394de9ab395f0e8df776aee189ed9f22794a205b98b0868444e167d272728c2",
+          "bytes": 697
+        },
+        {
+          "path": "adjudications/CT-05.md",
+          "sha256": "7c2dd653993f3447bccc9c67284eddc2e6bcba1e1d429059fc24f5c95da186c7",
+          "bytes": 883
+        },
+        {
+          "path": "adjudications/D-02.md",
+          "sha256": "accbfe944b6ba2ca87ac74709042877783d4be0e341da0ba50630ff1f7ec834e",
+          "bytes": 1165
+        },
+        {
+          "path": "adjudications/N-02.md",
+          "sha256": "88aa14853b07c0a59b46975798382a608c2fed3434bdd447670c3030fada89a5",
+          "bytes": 814
+        },
+        {
+          "path": "adjudications/N-03.md",
+          "sha256": "c027f979e4d237a5e6011036e96bca10c4da4b8836d9c6e92ca787975e8ebd40",
+          "bytes": 723
+        },
+        {
+          "path": "adjudications/Q-01.md",
+          "sha256": "aaf588c43964cae68418a1c3e6a83f61575df0e970055232ce6f027d026f89d5",
+          "bytes": 885
+        },
+        {
+          "path": "adjudications/Q-02.md",
+          "sha256": "e955ea213d677f72d7bed88b732a0dbe95cbd70d1e5f1107d59b46315effce6e",
+          "bytes": 720
+        },
+        {
+          "path": "adjudications/Q-03.md",
+          "sha256": "114074714a47de1cfde2f8446e8486340c6ff5ab651bb91eed959f9fbf0604a2",
+          "bytes": 1114
+        },
+        {
+          "path": "adjudications/Q-04.md",
+          "sha256": "365dc6db99287315132e2ead241945f06e0562672e4205e6d15cbb69a53b67f5",
+          "bytes": 1208
+        },
+        {
+          "path": "adjudications/Q-05.md",
+          "sha256": "5c0f60c26cfa83e213ea311107ad06ae583d6341e65412ac9c8bd53b9ccf276e",
+          "bytes": 985
+        },
+        {
+          "path": "adjudications/Q-06.md",
+          "sha256": "b0bca34bb2334dac9973dc0a834331aa5df59c2ae6fc9a0ccb6ae8e32b31470b",
+          "bytes": 1049
+        },
+        {
+          "path": "adjudications/SCOPE.md",
+          "sha256": "cab00437048aeddd307ae51fb782e1780454a86338fa5a1946c73c8493d17454",
+          "bytes": 1390
+        },
+        {
+          "path": "adjudications/SD-01.md",
+          "sha256": "35948713f2a15150cdfb41b9e0e1e730b65d47e3764ea992d36ff8ecf0bfe54b",
+          "bytes": 1003
+        },
+        {
+          "path": "adjudications/SD-02.md",
+          "sha256": "12e579c8ed84a362f7a7595a1495b905aa788fa0d6f5396a5999c2c43aa490d0",
+          "bytes": 698
+        },
+        {
+          "path": "adjudications/SD-03.md",
+          "sha256": "838c1eba99ed20333d65dcd6a15bc2a093871d39948b22f161ed6040cb554d79",
+          "bytes": 653
+        },
+        {
+          "path": "adjudications/SD-04.md",
+          "sha256": "3bb8d05f8c46ba4047d8ef51b58dc21bc0226fb0d05627404c7ea874a0c34cc5",
+          "bytes": 860
+        },
+        {
+          "path": "adjudications/SD-05.md",
+          "sha256": "e3d12bdb438263750c44a67cc5910ed3449543886a4e9afb8f7791bc388a86dc",
+          "bytes": 833
+        },
+        {
+          "path": "adjudications/SH-01.md",
+          "sha256": "47f4024528d93bdbe3896333e1d251b0e0ab0bcac4fce72bddca26920fd90b7f",
+          "bytes": 703
+        },
+        {
+          "path": "adjudications/SH-02.md",
+          "sha256": "f3800bed739bad5ec51ddc48bf436374b2f712a328e247c27c5146e7bb48fcb6",
+          "bytes": 1027
+        },
+        {
+          "path": "adjudications/SH-03.md",
+          "sha256": "8b1d051bcd384f75536a361bc40933ce133e0554377fd138f4e7fb1d941befee",
+          "bytes": 797
+        },
+        {
+          "path": "adjudications/SH-04.md",
+          "sha256": "a4013d8a8a165ecd2b1183279546162f0c21e4c05f45ba0cb9804b8a4c57e00e",
+          "bytes": 679
+        },
+        {
+          "path": "adjudications/SH-05.md",
+          "sha256": "f04667eef05909af21a44443b9c87d1f7b4f56d1f2b27527543ffa038ada9fd6",
+          "bytes": 708
+        },
+        {
+          "path": "adjudications/SH-06.md",
+          "sha256": "53c91617e8e4424e1bfe45b55cad984ca5ba86d83dae05375c8bcf6fd8c31804",
+          "bytes": 656
+        },
+        {
+          "path": "adjudications/SH-07.md",
+          "sha256": "86f579182b10dac80561107d6e834e999c421e882306065c4cefe056c3dfd5aa",
+          "bytes": 726
+        },
+        {
+          "path": "adjudications/SH-08.md",
+          "sha256": "820585b5e99273ad6ca941bc9066b4138a3d564425b110bce392aeb0ff0107cb",
+          "bytes": 763
+        },
+        {
           "path": "integration_profile.json",
-          "sha256": "0e2bfa12094c1dd6eb3808457c2334a5c67690c98b21cf8c174b337f8e2db34a",
-          "bytes": 5379
+          "sha256": "e25217b4976df54153e313864f811f2e4c5988c2b179ea4f00b3925ee4932898",
+          "bytes": 6687
         },
         {
           "path": "licenses/LICENSE",
@@ -27,13 +167,13 @@
         },
         {
           "path": "problem.md",
-          "sha256": "420ed5ea574b37ea668033e56b4cfaa7498e90e97a25e1f489a8e9184763f290",
-          "bytes": 4259
+          "sha256": "23ac533b027326ea650963b873c23a5808e5683a1908d0ea3263458c96279b9c",
+          "bytes": 13834
         },
         {
           "path": "source_manifest.json",
-          "sha256": "be60eb2717faae9350e89756a9a327a20a15d8ef8cd5fbb4168e8741f40021bd",
-          "bytes": 13287
+          "sha256": "ffa9713b1841917812fcd5ebeecd402279843a698db6682efdd1a677a3c6a224",
+          "bytes": 23849
         },
         {
           "path": "sources/doc/contributing/hw/comportability/README.md",
@@ -152,15 +292,15 @@
         },
         {
           "path": "spec.json",
-          "sha256": "e418d17dfc817319280b9c4cba653dee86db253ad218e8c35e7c1862e86a172d",
-          "bytes": 886487
+          "sha256": "f6ec3966784ed59d73f9e2929d1ca6e31c4959dd5b405f6e9334baf1b78c9530",
+          "bytes": 953979
         }
       ],
       "answer_files": [
         {
           "path": "answer_guide.md",
-          "sha256": "0681a75e185230702e9ca9a4b6b059f35fe432662f9b957f841694c85694bf45",
-          "bytes": 6983
+          "sha256": "7d8e9a897f56372181d23ca6892ecfb6054bc25c91776b9b7b28a1fc20728bfa",
+          "bytes": 8528
         },
         {
           "path": "dependency_declaration.json",
@@ -169,8 +309,8 @@
         },
         {
           "path": "obligations.json",
-          "sha256": "5ab479427aef835b03762840db38ed3ff790057d13d76673aacf5e2a8fbcb1a5",
-          "bytes": 36937
+          "sha256": "29bf7a982d75c0f2b69772a4930fd4ecd86abe768254938f63996394d14eda92",
+          "bytes": 56231
         },
         {
           "path": "README.md",
@@ -183,9 +323,139 @@
       "id": "opentitan-aon-control",
       "input_files": [
         {
+          "path": "adjudications/AC-01.md",
+          "sha256": "c4a50bc15a29fbc61a2cd28638d67205c29ee387350163c7c831e064cc0ae3e3",
+          "bytes": 905
+        },
+        {
+          "path": "adjudications/AC-02.md",
+          "sha256": "fce6f8effa897e9b5a2dfea0df435791e181a4bcd305b4913619062cd58d5447",
+          "bytes": 1119
+        },
+        {
+          "path": "adjudications/AC-03.md",
+          "sha256": "32e31e6452620bcfb352ff000cf8607381496e79d3a82920c5e497138135b8a7",
+          "bytes": 774
+        },
+        {
+          "path": "adjudications/AC-04.md",
+          "sha256": "aa30aea28ef4b5f4830a6b6150429911d40d5194e6ded58b2d484a07f9f9bb01",
+          "bytes": 905
+        },
+        {
+          "path": "adjudications/AH-01.md",
+          "sha256": "2dc40a8fbc4496a289449a36f14edbfd61c9ec4f4c914ff91f09a3d8932ed1ab",
+          "bytes": 1044
+        },
+        {
+          "path": "adjudications/AH-02.md",
+          "sha256": "b0ffd2cf7819ec422625d89fab41f70e96b23737608ed066467d69d37fee2551",
+          "bytes": 728
+        },
+        {
+          "path": "adjudications/AH-03.md",
+          "sha256": "d33eaa9d7a7ca4fdea209aa1dfc70f37955ef75dbe8530587507756298fbc7be",
+          "bytes": 1266
+        },
+        {
+          "path": "adjudications/AH-04.md",
+          "sha256": "689066e91f5cde424fc899677953f6bbc8c53ddf559ef2453a4fa7e3d0b49060",
+          "bytes": 742
+        },
+        {
+          "path": "adjudications/AH-05.md",
+          "sha256": "b420e6a74ff8737b807036bc02e53ee762acf050e1b01f9c10cbfb317f01b2b9",
+          "bytes": 863
+        },
+        {
+          "path": "adjudications/CT-01.md",
+          "sha256": "af221751e6bee3c8ed4f5ac25b0153bd65e0a306d92b8b41c977a6a9bd49f702",
+          "bytes": 1081
+        },
+        {
+          "path": "adjudications/CT-02.md",
+          "sha256": "88ef055dbfb9912c33058066e08ed00e023c9dc643cc57ad6a63d146346281e5",
+          "bytes": 712
+        },
+        {
+          "path": "adjudications/CT-03.md",
+          "sha256": "285eccccf52a6ce0a75f8cc1b1d7114ec8e20ae0108a6d601fac969ce3dc23ca",
+          "bytes": 809
+        },
+        {
+          "path": "adjudications/CT-04.md",
+          "sha256": "d394de9ab395f0e8df776aee189ed9f22794a205b98b0868444e167d272728c2",
+          "bytes": 697
+        },
+        {
+          "path": "adjudications/CT-05.md",
+          "sha256": "4757751f34d280a090828b34c5ba9b06b3dc3a7e47c9dd99d022d12b18dbcfa3",
+          "bytes": 775
+        },
+        {
+          "path": "adjudications/D-01.md",
+          "sha256": "256ec5844f39fdb92cd11cfd5dbe943038dd515e29ee3ea4614d68a9adef97fd",
+          "bytes": 1248
+        },
+        {
+          "path": "adjudications/D-02.md",
+          "sha256": "accbfe944b6ba2ca87ac74709042877783d4be0e341da0ba50630ff1f7ec834e",
+          "bytes": 1165
+        },
+        {
+          "path": "adjudications/N-01.md",
+          "sha256": "c7b73066e01cc4f47658c000166b474b32989ea48c97f3ca56854ac16d3c1f2c",
+          "bytes": 837
+        },
+        {
+          "path": "adjudications/N-04.md",
+          "sha256": "4073feac65a1b77938076b96dce8bfc0f75e8f2a71e582cd89a99379dc6f5646",
+          "bytes": 955
+        },
+        {
+          "path": "adjudications/Q-07.md",
+          "sha256": "d47473b06339e76970b11c0c096cb37baf560fe2b4778d1ef4065fdcfb9aeea2",
+          "bytes": 902
+        },
+        {
+          "path": "adjudications/Q-08.md",
+          "sha256": "1fd0ee63550b0225f0932c4139a865de9af081b88ed9645aee5e072844a51b85",
+          "bytes": 1109
+        },
+        {
+          "path": "adjudications/Q-09.md",
+          "sha256": "c34717236ce47d129a3248622d7b49a5aab783b1205a2479094f525d27d1788b",
+          "bytes": 910
+        },
+        {
+          "path": "adjudications/Q-10.md",
+          "sha256": "5070ad322e63e038dd0c8e2c37f4ac2bb131de45b184cbd406f097daf7282274",
+          "bytes": 1025
+        },
+        {
+          "path": "adjudications/Q-11.md",
+          "sha256": "a87ed566cb0218fa61cb1d32a3f9f461fa062d7cd647427b1fe4cde099c97740",
+          "bytes": 983
+        },
+        {
+          "path": "adjudications/Q-12.md",
+          "sha256": "78afbaf66808b025ed432894c8ef27ea55c38436c98c830af9d2e32d022c98bf",
+          "bytes": 959
+        },
+        {
+          "path": "adjudications/Q-13.md",
+          "sha256": "b7ee3a16c56e9c843573bc2f393b9056735e360caf7dca03729dafc7fef18603",
+          "bytes": 1087
+        },
+        {
+          "path": "adjudications/SCOPE.md",
+          "sha256": "a1c958c0f6233297f42ef19f0f99b273963e5e5067395748c8875bc9862c1121",
+          "bytes": 1424
+        },
+        {
           "path": "integration_profile.json",
-          "sha256": "a1c88266ecb2361ca393933d801a5e8f90a78aa97f1996e03171c2df7709b610",
-          "bytes": 14723
+          "sha256": "551fb89cc5391331f932e1d02b752b80abfaaa0f2adde39e9f1f8da4b309632b",
+          "bytes": 16012
         },
         {
           "path": "licenses/LICENSE",
@@ -204,13 +474,13 @@
         },
         {
           "path": "problem.md",
-          "sha256": "b406556155a047f48eb8caeab628fd330d9184ce793861f99f12f5412e5d6e6b",
-          "bytes": 4309
+          "sha256": "e058833bb8e86ae29a11dfaf7027bb5f6a1ffc3886c570d53695c01060c3eab0",
+          "bytes": 13982
         },
         {
           "path": "source_manifest.json",
-          "sha256": "b855309d0b8bf704ab84018fc4909f593d4c4e88241adf66f76c583c67b2b2ba",
-          "bytes": 21876
+          "sha256": "4d58bb5df0d063bd3ce3f26fe12b6a7f95ed89ea5bfcd9b4c8f65a77d9bedc34",
+          "bytes": 31740
         },
         {
           "path": "sources/doc/contributing/hw/comportability/README.md",
@@ -404,15 +674,15 @@
         },
         {
           "path": "spec.json",
-          "sha256": "7b89136c5899e170669139afd2350bea1ef930f929ddc6f052297b519639b802",
-          "bytes": 1079612
+          "sha256": "4e386060652043f00ba7bec6fed0f1c6560699442f22fb2c5640bf0b01630f7c",
+          "bytes": 1152997
         }
       ],
       "answer_files": [
         {
           "path": "answer_guide.md",
-          "sha256": "5b1be5c5be8fd392a49b2af67a8c3b00d34a9452041888e5c04007801e6430d0",
-          "bytes": 6988
+          "sha256": "aebf9a0c80fbfd79d30b67064f6facd21c6b275c0b09476d221dd5aaa95caff5",
+          "bytes": 8592
         },
         {
           "path": "dependency_declaration.json",
@@ -421,8 +691,8 @@
         },
         {
           "path": "obligations.json",
-          "sha256": "b9850883b14d673c3ff56da7c8937af4bdb6d94f87916bbb504fc5327ca2f8a8",
-          "bytes": 45541
+          "sha256": "2681bf1176a239cb030295fc33ad3347bd6c7b28c385d62a3164815a50fc5b1f",
+          "bytes": 64104
         },
         {
           "path": "README.md",

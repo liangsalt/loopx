@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "case_id": "coralnpu-fence-tso-ordering",
+  "repository": "https://github.com/google-coral/coralnpu",
+  "base_revision": "08eadd1caede64ac4ee99dbbfc9cc70b74c2c5ca",
+  "fixed_revision": "40be297c9472a24a7baba3c6bdee6578e5e33407",
+  "fix_parent": "08eadd1caede64ac4ee99dbbfc9cc70b74c2c5ca",
+  "commit_url": "https://github.com/google-coral/coralnpu/commit/40be297c9472a24a7baba3c6bdee6578e5e33407",
+  "patch_path": "upstream.patch",
+  "patch_format": "Unified per-file hunks obtained from GitHub commit API; complete changed-file snapshots are authoritative.",
+  "files": [
+    {
+      "path": "reference/hdl/chisel/src/coralnpu/scalar/Decode.scala",
+      "upstream_path": "hdl/chisel/src/coralnpu/scalar/Decode.scala",
+      "git_blob_sha1": "b8eb22c6f642b5dc1cee00eaace475d864a20f8e",
+      "sha256": "ed04bd94bb89421a63f3aca10f1412bfceb085cbdae9ee5237aaed336c06b403",
+      "url": "https://raw.githubusercontent.com/google-coral/coralnpu/40be297c9472a24a7baba3c6bdee6578e5e33407/hdl/chisel/src/coralnpu/scalar/Decode.scala"
+    },
+    {
+      "path": "reference/hdl/chisel/src/coralnpu/scalar/DecodeTest.scala",
+      "upstream_path": "hdl/chisel/src/coralnpu/scalar/DecodeTest.scala",
+      "git_blob_sha1": "27f12a2687e74fa956261092cf5ace866287912f",
+      "sha256": "12b2a246bfa6d96f08a21be1ec17fd4aa9a61abf28a3937b253265729bb664ae",
+      "url": "https://raw.githubusercontent.com/google-coral/coralnpu/40be297c9472a24a7baba3c6bdee6578e5e33407/hdl/chisel/src/coralnpu/scalar/DecodeTest.scala"
+    },
+    {
+      "path": "reference/tests/cocotb/coralnpu_isa/BUILD",
+      "upstream_path": "tests/cocotb/coralnpu_isa/BUILD",
+      "git_blob_sha1": "3fada501827a1b3a5b1a876e0cb3a1c8aef7f768",
+      "sha256": "51dc2fff15ad212d3c668bbf8537df58ee371dbc796bb2748ec168de07fa7138",
+      "url": "https://raw.githubusercontent.com/google-coral/coralnpu/40be297c9472a24a7baba3c6bdee6578e5e33407/tests/cocotb/coralnpu_isa/BUILD"
+    },
+    {
+      "path": "reference/tests/cocotb/coralnpu_isa/fence_test.cc",
+      "upstream_path": "tests/cocotb/coralnpu_isa/fence_test.cc",
+      "git_blob_sha1": "06930d543156eecc04c0d5bb3d1789c564b57a05",
+      "sha256": "bbacc6c8f9f81d33991ae3577b4528ab680bbaaa681a2e5bb4041fc8555e9aa7",
+      "url": "https://raw.githubusercontent.com/google-coral/coralnpu/40be297c9472a24a7baba3c6bdee6578e5e33407/tests/cocotb/coralnpu_isa/fence_test.cc"
+    }
+  ],
+  "simulation_executed": false,
+  "patch_application_checked": true,
+  "patched_files_matching_fixed_git_blobs": 4,
+  "coverage_percent": null,
+  "reference_validity": "Verified upstream parent/fix relationship and original file digests. The patch was applied to original parent files locally and every changed file matched its fixed Git blob. Upstream tests are claimed in its commit, not locally reproduced. Extended system/UVM acceptance is an authored rubric, not upstream signoff."
+}

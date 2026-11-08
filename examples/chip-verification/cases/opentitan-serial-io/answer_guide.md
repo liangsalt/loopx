@@ -20,7 +20,7 @@ The 25 obligations in `obligations.json` cover major risk areas and map normativ
 
 For each obligation, trace the candidate TP item to the actual sequence/checker/assertion and its execution evidence. Include a negative control or targeted mutation that makes the corresponding check fail; keep those runs separate from passing regression evidence. Then inspect missing cases against the pinned upstream testplans and independent spec review.
 
-Resolve documented source conflicts before implementing dependent behavior. Record the alternatives, chosen normative interpretation and source anchors in a versioned decision. Do not silently choose the behavior of golden RTL. A missing normative detail remains unresolved until an explicit addendum is supplied.
+Apply the revised problem's source adjudications before implementing dependent behavior. Their author decisions are the exercise oracle; cite both the correction and pinned evidence. Remaining local gaps require explicit addenda only for affected acceptance claims. Never silently select golden RTL behavior.
 
 ## Coverage acceptance
 
@@ -43,6 +43,18 @@ The TL-UL README leaves its Bus Integrity Scheme unfilled. The input alone canno
 
 There is no direct USB-to-SPI data path in this case. USB and SPI share software access and infrastructure; SPI_DEVICE-to-SPI_HOST0 passthrough is the direct functional relationship.
 
-The SPI_HOST theory lists an 8-bit LEN while the register definition uses 9 bits; README core-clock wording also conflicts with the declared single-clock interface. These require explicit interpretation records. The CLKDIV equations also conflict with the divider register formula, and event-interrupt timing needs an explicit level-versus-entry interpretation. Do not quietly adjust stimulus or expected values to the reference implementation.
+SH-05 fixes the exercise LEN contract to nine bits; SH-03/SH-04 fix period/timeslice formulas. Preserve the selected single-clock SPI_HOST interface. Event-interrupt temporal qualification still needs its separate assertion/deassertion and enable-while-active contract; resolved event identities do not supply that timing rule. Do not adjust the oracle to match the reference implementation.
 
 Upstream starting points: [SPI_HOST testplan](../reference/opentitan-c69eaea/upstream/hw/ip/spi_host/data/spi_host_testplan.hjson), [SPI_DEVICE testplan](../reference/opentitan-c69eaea/upstream/hw/ip/spi_device/data/spi_device_testplan.hjson), [USBDEV testplan](../reference/opentitan-c69eaea/upstream/hw/ip/usbdev/data/usbdev_testplan.hjson).
+
+<!-- BEGIN SOURCE-ADJUDICATIONS -->
+## Revised-question acceptance
+
+Use `opentitan-adjudications-v1`: 27 applicable grouped issue records plus one routed scope policy. The reported historical 66 log rows are not 66 independent defects. See `input/problem.md` for the normative rules and `adjudication_obligations` in the rubric for the required checks. Original upstream prose is preserved as provenance; the authored corrections revise the question.
+
+For each applicable record, inspect RTL/TP/UVM traceability and execute its independent checker or scope audit. A defined contract is not a passing test. Classify observed results as passed, failed, untested or locally blocked. Background scope audits and not-a-conflict decisions do not add DUT coverage bins. Do not count unknown behavior as covered, delete unresolved requirements from the frozen denominator or treat all Q items as proven bugs.
+
+Precise remaining local dependencies: CT-01, Q-03, Q-04, D-02. Their documents identify the affected binding/behavior; they do not globally block extraction, design or DV of specified behavior. Additional temporal or integration gaps outside the attached list remain explicit where already listed in the rubric.
+
+The held-out pinned implementation is comparison material, not absolute authority over author-chosen conventions. If it disagrees with an exercise convention, record reference divergence and evaluate the generated candidate against the accepted exercise contract. No updated document establishes simulation success or a coverage percentage.
+<!-- END SOURCE-ADJUDICATIONS -->

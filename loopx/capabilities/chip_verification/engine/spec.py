@@ -147,7 +147,7 @@ def ingest_spec(path: str | Path, output_dir: str | Path, max_chunk_chars: int =
         parsed = json.loads(raw.decode("utf-8-sig"), object_pairs_hook=_unique_object, parse_constant=_reject_constant)
     except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as error:
         raise SpecError(f"Cannot parse UTF-8 JSON specification: {error}") from error
-    from .bundles import validate_bundle, source_metadata
+    from .bundles import validate_bundle, source_metadata, adjudication_dependencies
     bundle = validate_bundle(parsed)
     digest = _sha(raw)
     destination = Path(output_dir).resolve() / f"{digest[:20]}-v1-c{max_chunk_chars}"
@@ -226,6 +226,7 @@ def ingest_spec(path: str | Path, output_dir: str | Path, max_chunk_chars: int =
     if batch:
         groups.append(batch)
     tasks = []
+    adjudications = adjudication_dependencies(bundle, records)
     for index, group in enumerate(groups):
         ids = [record["source_id"] for record in group]
         tasks.append({
@@ -241,6 +242,16 @@ def ingest_spec(path: str | Path, output_dir: str | Path, max_chunk_chars: int =
                 "instruction": "Extract candidate requirements, definitions, references and ambiguities. Classify every supplied source; preserve conditions and exceptions. Unresolved fragment neighbors must be recorded, not guessed.",
             },
         })
+        applicable = {source_id: adjudications[source_id] for source_id in ids if source_id in adjudications}
+        if applicable:
+            tasks[-1]["payload"]["instruction"] = (
+                "Extract candidate requirements, definitions, references and ambiguities. Classify every owned source; "
+                "use the explicit adjudication dependencies as scoped policy evidence without duplicate dispositions. "
+                "Preserve conditions, exceptions and unresolved fragment neighbors; do not guess.")
+            tasks[-1]["payload"]["dependency_source_ids"] = sorted({
+                dependency for dependencies in applicable.values() for dependency in dependencies})
+            tasks[-1]["payload"]["acceptance"] = {
+                "owned_source_ids": ids, "source_adjudication_sources": applicable}
     if metadata_records:
         ids = [record["source_id"] for record in metadata_records]
         tasks.append({
@@ -344,5 +355,35 @@ def audit_manifest(manifest: dict[str, Any] | str | Path) -> dict[str, Any]:
             raise SpecIntegrityError("Leaf cannot be reconstructed from its fragments")
     if len(seen) != len(sources):
         raise SpecIntegrityError("Unassigned source fragments")
+    from .bundles import adjudication_dependencies, source_metadata, validate_bundle
+    parsed = json.loads(snapshot.decode("utf-8-sig"))
+    bundle = validate_bundle(parsed)
+    if bundle is not None:
+        # Cache checksums establish internal consistency, not document authority.
+        # Re-derive labels from the hash-verified snapshot before relying on them
+        # for routing, prompt metadata or local metadata-only task classification.
+        expected_metadata = {pointer: {**metadata, **source_metadata(bundle, pointer)}
+                             for pointer, _, _, metadata in _leaves(parsed)}
+        for source in sources:
+            if (source["pointer"] not in expected_metadata or
+                    source.get("metadata") != expected_metadata[source["pointer"]]):
+                raise SpecIntegrityError("Source metadata disagrees with specification snapshot")
+    expected = adjudication_dependencies(bundle, sources)
+    if expected:
+        routed = set()
+        for task in data["extraction_tasks"]:
+            owned = task["source_ids"]
+            applicable = {source_id: expected[source_id] for source_id in owned if source_id in expected}
+            payload = task["payload"]
+            acceptance = payload.get("acceptance", {})
+            dependencies = sorted({dependency for values in applicable.values() for dependency in values})
+            if (payload["source_ids"] != owned or
+                    acceptance.get("source_adjudication_sources", {}) != applicable or
+                    payload.get("dependency_source_ids", []) != dependencies or
+                    (applicable and acceptance.get("owned_source_ids") != owned)):
+                raise SpecIntegrityError("Source adjudication routing is stale or altered; re-import into fresh source storage")
+            routed.update(applicable)
+        if routed != set(expected):
+            raise SpecIntegrityError("Source adjudication targets are missing extraction tasks")
     return {"source_inventory_complete": True, "semantic_review_complete": False,
             "leaf_count": len(leaves), "source_count": len(sources), "spec_bytes": len(snapshot)}

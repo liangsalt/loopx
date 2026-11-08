@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "case_id": "coralnpu-vector-zero-retirement",
+  "root_module": "CoralNPU",
+  "candidate_repository": "https://github.com/google-coral/coralnpu",
+  "candidate_revision": "c0b98e39b995174fa052c3dd248bd540d120e96f",
+  "reported_affected_revision": null,
+  "scope_policy_id": "case-scope-policy",
+  "module_graph_sha256": "88615509d3d2ce419c6c4a7857022c6ce218eda73a1226ee92e718213aaa3683",
+  "entry_modes": [
+    "spec_first_boundary",
+    "repair_existing_design"
+  ],
+  "complete_build_checkout_included": false,
+  "missing_build_dependencies": [
+    "Full pinned CoralNPU source tree and Bazel dependency lockfiles",
+    "Chisel/firtool and RV32 compiler configured by upstream",
+    "UVM-compatible simulator and its required toolchain/license",
+    "AXI/control/retirement monitor binding for selected generated top"
+  ],
+  "profile": {
+    "xlen": 32,
+    "vlen": 128,
+    "elen": 32,
+    "vector_registers": 32,
+    "extensions": [
+      "RV32I",
+      "M",
+      "F-background",
+      "Zicsr",
+      "Zve32x"
+    ]
+  },
+  "issue": {
+    "url": "https://github.com/google-coral/coralnpu/issues/89",
+    "observed_at": "2026-11-08",
+    "state_at_observation": "open",
+    "updated_at": "2026-05-27T15:50:18Z"
+  },
+  "coverage": {
+    "target_functional_percent": 90,
+    "observed_percent": null,
+    "denominator": "Freeze applicable functional bins before execution; exclude unsupported features with reviewed rationale."
+  },
+  "source_precedence": [
+    "source-adjudication + supported ISA clause",
+    "selected immutable baseline interfaces/configuration",
+    "historical documentation as scoped context"
+  ],
+  "repair_boundary": "zero_element_vector_command_retirement",
+  "pressure_constraints": {
+    "baseline_qualification_required": true,
+    "excluded_opcodes": [
+      "0x8330000f"
+    ]
+  }
+}

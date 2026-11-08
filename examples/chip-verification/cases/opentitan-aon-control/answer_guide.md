@@ -20,7 +20,7 @@ The 34 obligations in `obligations.json` cover major risk areas and map normativ
 
 For each obligation, trace the candidate TP item to the actual sequence/checker/assertion and its execution evidence. Include a negative control or targeted mutation that makes the corresponding check fail; keep those runs separate from passing regression evidence. Then inspect missing cases against the pinned upstream testplans and independent spec review.
 
-Resolve documented source conflicts before implementing dependent behavior. Record the alternatives, chosen normative interpretation and source anchors in a versioned decision. Do not silently choose the behavior of golden RTL. A missing normative detail remains unresolved until an explicit addendum is supplied.
+Apply the revised problem's source adjudications before implementing dependent behavior. Their author decisions are the exercise oracle; cite both the correction and pinned evidence. Remaining local gaps require explicit addenda only for affected acceptance claims. Never silently select golden RTL behavior.
 
 ## Coverage acceptance
 
@@ -44,3 +44,15 @@ The TL-UL README leaves its Bus Integrity Scheme unfilled. The input alone canno
 PINMUX has upstream FPV/security testplans and formal properties, but no upstream UVM environment at this revision. Its generated UVM environment and the integrated subsystem TB require new review and actual execution. Formal reference files do not certify either a UVM run or a proof.
 
 Upstream starting points: [PWRMGR testplan](../reference/opentitan-c69eaea/upstream/hw/top_earlgrey/ip_autogen/pwrmgr/data/pwrmgr_testplan.hjson), [RSTMGR testplan](../reference/opentitan-c69eaea/upstream/hw/top_earlgrey/ip_autogen/rstmgr/data/rstmgr_testplan.hjson), [CLKMGR testplan](../reference/opentitan-c69eaea/upstream/hw/top_earlgrey/ip_autogen/clkmgr/data/clkmgr_testplan.hjson), [SYSRST testplan](../reference/opentitan-c69eaea/upstream/hw/ip/sysrst_ctrl/data/sysrst_ctrl_testplan.hjson), [PINMUX formal testplan](../reference/opentitan-c69eaea/upstream/hw/ip/pinmux/data/pinmux_fpv_testplan.hjson), [ALERT_HANDLER testplan](../reference/opentitan-c69eaea/upstream/hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler_testplan.hjson).
+
+<!-- BEGIN SOURCE-ADJUDICATIONS -->
+## Revised-question acceptance
+
+Use `opentitan-adjudications-v1`: 25 applicable grouped issue records plus one routed scope policy. The reported historical 66 log rows are not 66 independent defects. See `input/problem.md` for the normative rules and `adjudication_obligations` in the rubric for the required checks. Original upstream prose is preserved as provenance; the authored corrections revise the question.
+
+For each applicable record, inspect RTL/TP/UVM traceability and execute its independent checker or scope audit. A defined contract is not a passing test. Classify observed results as passed, failed, untested or locally blocked. Background scope audits and not-a-conflict decisions do not add DUT coverage bins. Do not count unknown behavior as covered, delete unresolved requirements from the frozen denominator or treat all Q items as proven bugs.
+
+Precise remaining local dependencies: CT-01, Q-10, Q-13, D-01, D-02. Their documents identify the affected binding/behavior; they do not globally block extraction, design or DV of specified behavior. Additional temporal or integration gaps outside the attached list remain explicit where already listed in the rubric.
+
+The held-out pinned implementation is comparison material, not absolute authority over author-chosen conventions. If it disagrees with an exercise convention, record reference divergence and evaluate the generated candidate against the accepted exercise contract. No updated document establishes simulation success or a coverage percentage.
+<!-- END SOURCE-ADJUDICATIONS -->

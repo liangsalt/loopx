@@ -1149,7 +1149,12 @@
         }
       ],
       "issue": "The locked README leaves the Bus Integrity Scheme unfilled and contains historical planned-behavior statements. The input does not fully define integrity encoding and fault acceptance.",
-      "required_resolution": "Record missing normative requirements; version an explicit addendum before claiming full integrity coverage. Golden RTL cannot silently supply specification."
+      "required_resolution": "Apply the revised question's CT-01, D-02; retain their checker obligations and any precise local gate. Do not reopen settled prose contradictions or silently copy golden RTL.",
+      "adjudication_ids": [
+        "CT-01",
+        "D-02"
+      ],
+      "resolution_state": "local_obligation_open"
     }
   ],
   "reference_gaps": [
@@ -1157,5 +1162,333 @@
     "Selected reference files are not a proved standalone dependency closure; use a full pinned checkout to resolve build dependencies.",
     "No simulation, CDC/lint signoff, formal proof or coverage percentage is certified.",
     "Pinmux has FPV/security testplans and formal sources but no upstream UVM environment at this revision; generated pinmux UVM remains a new implementation/review/execution obligation."
+  ],
+  "adjudication_revision": "opentitan-adjudications-v1",
+  "adjudication_obligations": [
+    {
+      "issue_id": "AC-01",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "rstmgr",
+      "requirement": "For this exercise the NDM reset summary table governs: outside PROD/PROD_END, assert LC and module trees and retain SYS; in PROD/PROD_END assert LC, SYS and module trees. NDM does not assert POR. This author choice resolves two conflicting prose accounts, not an observed RTL bug.",
+      "checks": [
+        "Check each tree separately under both lifecycle groups, including debug retention and reset-cause recording."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AC-01"
+    },
+    {
+      "issue_id": "AC-02",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "sysrst_ctrl",
+      "requirement": "INTR_STATE.event_detected is read-only status. Clear the relevant source latch with its W1C operation: COMBO_INTR_STATUS, KEY_INTR_STATUS or ULP_STATUS as applicable. Apply the source-aggregation scope in Q-08; clearing one source does not clear another asserted source.",
+      "checks": [
+        "Set two independent sources, clear them separately, try an INTR_STATE write and verify remaining status/IRQ and enable behavior."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AC-02"
+    },
+    {
+      "issue_id": "AC-03",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "sysrst_ctrl",
+      "requirement": "Program combo precondition duration through COM_PRE_DET_CTL for the selected combo. Keep selection and duration fields distinct.",
+      "checks": [
+        "Program distinct selection/duration values and check the resulting precondition timing against the configured timer width/clock."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AC-03"
+    },
+    {
+      "issue_id": "AC-04",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "pinmux",
+      "requirement": "Use the generated CSR layout: input_disable bit 7, slew_rate [17:16], drive_strength [23:20]. Map these named fields explicitly into the pad attribute interface; N-01 describes a different packed layout.",
+      "checks": [
+        "Write distinguishable fields and check named-field mapping, reserved bits and readback under the declared pad capability profile (D-01)."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AC-04"
+    },
+    {
+      "issue_id": "AH-01",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "Escalation due to accumulation occurs on the next alert after the threshold is reached: threshold 0 triggers on the first eligible alert; threshold 1 on the second; threshold 15 on the sixteenth, subject to class enable and escalation configuration.",
+      "checks": [
+        "For thresholds 0,1,15 check the preceding count, exact trigger and later events; separate accumulation from IRQ timeout causes."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AH-01"
+    },
+    {
+      "issue_id": "AH-02",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "Class configuration is guarded by the separate CLASSx_REGWEN CSR bound by CLASSx_CTRL_SHADOWED.regwen, for x=A..D.",
+      "checks": [
+        "Lock each class via its declared guard, attempt a shadowed configuration update and verify lock persistence and independent classes."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AH-02"
+    },
+    {
+      "issue_id": "AH-03",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "For each class A..D the escalation abort/clear write goes through CLASSx_CLR_SHADOWED and is guarded by CLASSx_CLR_REGWEN. CLASSx_REGWEN guards configuration, not this clear path. CTRL_SHADOWED.LOCK affects the separately documented clear lock behavior.",
+      "checks": [
+        "Cross configuration-lock and clear-lock states; test accepted and rejected clears in every class and confirm ESC_CNT remains read-only."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AH-03"
+    },
+    {
+      "issue_id": "AH-04",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "PING_TIMER_REGWEN is rw0c with reset value 1. A write of zero clears the enable; writing one preserves its value. Once cleared, guarded ping configuration writes cannot restore it until reset.",
+      "checks": [
+        "Check reset=1, write1 retention, write0 lock, failed re-enable and rejected guarded writes while locked."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AH-04"
+    },
+    {
+      "issue_id": "AH-05",
+      "classification": "corrected",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "Ping response timeout uses PING_TIMEOUT_CYC_SHADOWED. CLASSx_TIMEOUT_CYC_SHADOWED controls the separate class interrupt timeout escalation path.",
+      "checks": [
+        "Set visibly different ping/class timeouts and independently stimulate missed ping and unserviced class IRQ."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-AH-05"
+    },
+    {
+      "issue_id": "CT-01",
+      "classification": "scoped_gap",
+      "resolution_state": "local_obligation_open",
+      "module": "aon_control_subsystem",
+      "requirement": "Use the current logical sidebands a_user={instr_type,cmd_intg,data_intg} and d_user={rsp_intg,data_intg}. The old reserved/parity typedef and TL_DUW=4 example are not a fixed-version ABI. D-02 owns the remaining public type/encoding contract; logical request/response planning can continue.",
+      "checks": [
+        "Check field identity in the shared interface contract; require D-02 evidence before byte/bit-level integrity acceptance."
+      ],
+      "local_gate": "Only TL-UL packed interface binding and integrity-oracle acceptance await the D-02 normative type/encoding addendum.",
+      "status": "not_run",
+      "source_document_id": "adjudication-CT-01"
+    },
+    {
+      "issue_id": "CT-02",
+      "classification": "background_scope",
+      "resolution_state": "contract_defined",
+      "module": "aon_control_subsystem",
+      "requirement": "The selected top configuration instantiates uart0..uart3 (four UARTs). UART is whole-chip background and is outside both reduced subsystem DUTs.",
+      "checks": [
+        "Check scope inventory; do not add UART RTL, UART coverage bins or a global execution blocker."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CT-02"
+    },
+    {
+      "issue_id": "CT-03",
+      "classification": "scope_interpretation",
+      "resolution_state": "contract_defined",
+      "module": "pinmux",
+      "requirement": "The base pinout has 47 muxed pads: IOA=9, IOB=13, IOC=13, IOR=12; direct IOR8/IOR9 are excluded. A 32-bit GPIO vector is not a count of all MIO pads. This constrains AON PINMUX geometry; it is external context in serial-I/O.",
+      "checks": [
+        "For in-scope PINMUX check enumeration, index bounds and direct/muxed classification; otherwise retain a boundary fact only."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CT-03"
+    },
+    {
+      "issue_id": "CT-04",
+      "classification": "background_scope",
+      "resolution_state": "contract_defined",
+      "module": "aon_control_subsystem",
+      "requirement": "The local ROM-key table enumerates seven slots, 0..6. Treat the earlier three-slot count as obsolete background; ROM/key provisioning is outside these exercises.",
+      "checks": [
+        "Retain the table/count correction in provenance; create no ROM DUT bins or global gate."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CT-04"
+    },
+    {
+      "issue_id": "CT-05",
+      "classification": "scope_interpretation",
+      "resolution_state": "contract_defined",
+      "module": "aon_control_subsystem",
+      "requirement": "In serial-I/O use the selected SPI_DEVICE CONTROL modes disabled/flashmode/passthrough with TPM controlled separately. Do not add a legacy Firmware mode without a declared interface. In AON this SPI paragraph is out-of-scope background only.",
+      "checks": [
+        "Check selected mode enumeration for serial-I/O; for AON check only that the scope remains the six control IPs."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-CT-05"
+    },
+    {
+      "issue_id": "Q-07",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "sysrst_ctrl",
+      "requirement": "For auto-block debounce the explicit two-sample description governs: qualify the start and end samples; an intermediate pulse that is not sampled at either endpoint is not guaranteed to cancel detection. This rule is confined to auto-block, not every SYSRST timer.",
+      "checks": [
+        "Check start/end levels, just-before-expiry changes and an intermediate returned pulse; distinguish sampling guarantees from analog pulse capture."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-07"
+    },
+    {
+      "issue_id": "Q-08",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "sysrst_ctrl",
+      "requirement": "Author convention for the status IRQ: include a latched ULP_STATUS.ulp_wakeup alongside enabled combo/key source status in event_detected; INTR_ENABLE gates the output IRQ. Clear ULP at its declared W1C ULP_STATUS source, not at read-only INTR_STATE. The abbreviated combo/keyboard summary is not a prohibition of ULP.",
+      "checks": [
+        "Trigger ULP alone and concurrently with a key/combo source; mask/unmask, clear each source and check source-OR retention. This authored merge rule must be evaluated as such."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-08"
+    },
+    {
+      "issue_id": "Q-09",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "pwrmgr",
+      "requirement": "For wake recording, interpret leaving Active in the context of a valid low-power-entry path. A reset-only transition out of Active does not open a new wake-recording window. Apply the documented recording stop/clear controls within the valid low-power path.",
+      "checks": [
+        "Contrast valid low-power entry, entry abort/fall-through and reset-only exit; inject wake before/inside/after the defined recording window."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-09"
+    },
+    {
+      "issue_id": "Q-10",
+      "classification": "scoped_gap",
+      "resolution_state": "local_obligation_open",
+      "module": "rstmgr",
+      "requirement": "Treat the LC/SYS chains as reset classes, not proof that every leaf has multiple drivers. The named peripheral module-reset class derives from LC. For each additional consumer, retain one explicit reset parent and domain in the shared integration map, supported by the selected configuration.",
+      "checks": [
+        "Review one parent per leaf and propagation through the relevant chain; run reset tests for mapped leaves. Record unknown consumers individually."
+      ],
+      "local_gate": "Only an unmapped leaf's reset binding/propagation acceptance awaits its documented parent; already mapped reset paths can proceed.",
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-10"
+    },
+    {
+      "issue_id": "Q-11",
+      "classification": "not_a_conflict",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "Clearing the escalation counter describes an effect of the CLASSx_CLR_SHADOWED operation, subject to CLASSx_CLR_REGWEN. ESC_CNT remains read-only. The link to the counter describes the observed state, not a writable entry point.",
+      "checks": [
+        "Clear through the shadowed clear interface and observe the counter/escalation effect; verify a write to the RO counter cannot substitute for clear."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-11"
+    },
+    {
+      "issue_id": "Q-12",
+      "classification": "exercise_convention",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "Author-chosen exercise reset contract: class A..D interrupt state resets to zero, sets on its qualified alert and clears through the declared interrupt W1C action. The interrupt-list description has no explicit reset field; this addendum supplies the exercise value rather than claiming an inferred generator/RTL result.",
+      "checks": [
+        "Check all four state bits immediately after reset, first qualifying alerts and independent clear operations; record this as an authored reset convention."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-12"
+    },
+    {
+      "issue_id": "Q-13",
+      "classification": "scope_interpretation",
+      "resolution_state": "local_obligation_open",
+      "module": "pinmux",
+      "requirement": "Use the selected top special-signal mapping with exposed dft0=IOR5 and dft1=IOR7, plus tap0=IOC8 and tap1=IOC5. Three generic DFT straps do not imply a third external pad in this selected profile. Any extra internal generic strap remains an explicit wrapper boundary with a separately declared binding.",
+      "checks": [
+        "Check selected named straps and capture conditions; prevent an unbound internal generic port from being silently tied off or counted as verified."
+      ],
+      "local_gate": "If the chosen generic IP exposes an additional strap port, only that port's binding awaits an explicit configuration decision.",
+      "status": "not_run",
+      "source_document_id": "adjudication-Q-13"
+    },
+    {
+      "issue_id": "D-01",
+      "classification": "configuration_gap",
+      "resolution_state": "local_obligation_open",
+      "module": "pinmux",
+      "requirement": "Per-pad attribute WARL support is a technology/profile dependency, not a contradictory spec. TAP strap0 is identified as IOC8 in the selected mapping; preserve its documented pull-enable reset exception. Parameterize the capability/readback mapping and record the chosen pad profile before claiming exact physical behavior.",
+      "checks": [
+        "Check named-field plumbing and configured masks separately. Exact per-pad WARL/reset acceptance must cite a public or authored, reviewed pad capability table."
+      ],
+      "local_gate": "Only precise technology-dependent pad masks/readback/reset qualification remains pending; mux routing and declared logical attributes can proceed.",
+      "status": "not_run",
+      "source_document_id": "adjudication-D-01"
+    },
+    {
+      "issue_id": "D-02",
+      "classification": "definition_gap",
+      "resolution_state": "local_obligation_open",
+      "module": "aon_control_subsystem",
+      "requirement": "The current input does not supply a complete normative packed TL-UL type and integrity-code algorithm. Before compatible interface/encoding acceptance, supply a pinned public interface package or explicit reviewed specification addendum covering widths, ordering, encoding and error policy. Keep the logical protocol requirements; CT-01 rejects obsolete ABI examples.",
+      "checks": [
+        "Validate the supplied type/encoding contract on both RTL and UVM sides with known vectors and invalid-code tests before counting integrity bins."
+      ],
+      "local_gate": "TL-UL ABI and integrity encoding/fault bins remain unverified until a normative interface/algorithm addendum is accepted.",
+      "status": "not_run",
+      "source_document_id": "adjudication-D-02"
+    },
+    {
+      "issue_id": "N-01",
+      "classification": "not_a_conflict",
+      "resolution_state": "contract_defined",
+      "module": "pinmux",
+      "requirement": "CSR slew [17:16]/drive [23:20] and packed attr_i slew [9:8]/drive [13:10] are different interfaces. Translate by field name; differing packed positions are valid. AC-04 resolves the actual stale CSR layout.",
+      "checks": [
+        "Use different field values and verify explicit CSR-to-attribute mapping in both directions supported by the interface."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-N-01"
+    },
+    {
+      "issue_id": "N-04",
+      "classification": "not_a_conflict",
+      "resolution_state": "contract_defined",
+      "module": "alert_handler",
+      "requirement": "The selected HJSON provides NAlerts=65, NLpg=24 and the LpgMap/AsyncOn defaults. Parse those provided parameter values for the profile; the early see-RTL table does not leave them missing. Do not copy a reference implementation to populate them.",
+      "checks": [
+        "Validate parameter dimensions/ranges from the complete HJSON arrays and ensure RTL and DV use the same selected values."
+      ],
+      "local_gate": null,
+      "status": "not_run",
+      "source_document_id": "adjudication-N-04"
+    }
   ]
 }

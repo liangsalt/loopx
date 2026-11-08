@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "case_id": "coralnpu-fence-tso-ordering",
+  "root_module": "CoralNPU",
+  "candidate_repository": "https://github.com/google-coral/coralnpu",
+  "candidate_revision": "08eadd1caede64ac4ee99dbbfc9cc70b74c2c5ca",
+  "reported_affected_revision": "9f31e14e7d105b99b8c99b3a3f4bd569a8e835f9",
+  "scope_policy_id": "case-scope-policy",
+  "module_graph_sha256": "7625bbacb04e6586b44c677de3ae0cdcfd41adc20abedb81f71ea21755932bcf",
+  "entry_modes": [
+    "spec_first_boundary",
+    "repair_existing_design"
+  ],
+  "complete_build_checkout_included": false,
+  "missing_build_dependencies": [
+    "Full pinned CoralNPU source tree and Bazel dependency lockfiles",
+    "Chisel/firtool and RV32 compiler configured by upstream",
+    "UVM-compatible simulator and its required toolchain/license",
+    "AXI/control/retirement monitor binding for selected generated top"
+  ],
+  "profile": {
+    "xlen": 32,
+    "vlen": 128,
+    "elen": 32,
+    "vector_registers": 32,
+    "extensions": [
+      "RV32I",
+      "M",
+      "F-background",
+      "Zicsr",
+      "Zve32x"
+    ]
+  },
+  "issue": {
+    "url": "https://github.com/google-coral/coralnpu/issues/130",
+    "observed_at": "2026-11-08",
+    "state_at_observation": "open",
+    "updated_at": "2026-10-20T05:00:02Z"
+  },
+  "coverage": {
+    "target_functional_percent": 90,
+    "observed_percent": null,
+    "denominator": "Freeze applicable functional bins before execution; exclude unsupported features with reviewed rationale."
+  },
+  "source_precedence": [
+    "source-adjudication + supported ISA clause",
+    "selected immutable baseline interfaces/configuration",
+    "historical documentation as scoped context"
+  ],
+  "repair_boundary": "fence_tso_decode_dispatch_ordering",
+  "pressure_constraints": {
+    "baseline_qualification_required": true,
+    "vector_vl": "0<vl<=VLMAX",
+    "vector_vstart": 0,
+    "exclude_unrelated_failures": true
+  }
+}

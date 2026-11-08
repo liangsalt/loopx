@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import sys
 import tempfile
 
 from fetch import git_blob, prose_text
@@ -135,9 +136,21 @@ def check_input(root: Path, *, minimum: int = MINIMUM_BODY_BYTES) -> dict:
                 "Invalid document relationship")
         require(edge["id"] not in relation_ids, "Duplicate relationship")
         relation_ids.add(edge["id"])
+    # The case and the importer must agree on source-bound task amendments.
+    # This imports only the stdlib domain parser, not inference/EDA dependencies.
+    repository = Path(__file__).resolve().parents[2]
+    if str(repository) not in sys.path:
+        sys.path.insert(0, str(repository))
+    from loopx.capabilities.chip_verification.engine.bundles import validate_bundle
+    validate_bundle(bundle)
+    adjudications = [doc for doc in docs.values() if doc["origin"].get("kind") == "source_adjudication"]
+    for doc in adjudications:
+        require(sources[doc["id"]].get("count_toward_size") is False,
+                "Authored source adjudications cannot count toward the original specification size")
     return {"spec_bytes": (root / "spec.json").stat().st_size,
             "unique_specification_body_bytes": body_bytes,
-            "unique_specification_prose_bytes": prose_bytes, "documents": len(docs)}
+            "unique_specification_prose_bytes": prose_bytes, "documents": len(docs),
+            "source_adjudications": len(adjudications)}
 
 
 def check_answer_anchors(root: Path, reference_sources: dict[str, bytes]) -> dict:
@@ -185,7 +198,32 @@ def check_answer_anchors(root: Path, reference_sources: dict[str, bytes]) -> dic
             require(bool(testpoint["anchor_exact"])
                     and testpoint["anchor_exact"] in reference_sources[testpoint["upstream_path"]].decode("utf-8"),
                     "Reference testpoint absent")
-    return {"review_obligations": len(ids), "integration_evidence_anchors": len(evidence)}
+    bundle = read_json(root / "input" / "spec.json")
+    adjudications = {doc["id"]: doc for doc in bundle["documents"]
+                    if doc["origin"].get("kind") == "source_adjudication"}
+    policies = set()
+    issue_ids = set()
+    for obligation in rubric.get("adjudication_obligations", []):
+        source_id = obligation["source_document_id"]
+        require(source_id in adjudications and source_id not in policies,
+                "Adjudication obligation must identify a unique input policy")
+        require(obligation["issue_id"] not in issue_ids, "Repeated adjudication issue")
+        require(obligation["module"] in nodes | {node.get("module_type") for node in graph["nodes"]},
+                "Unknown adjudication module")
+        require(isinstance(obligation["requirement"], str) and bool(obligation["requirement"].strip())
+                and isinstance(obligation["checks"], list) and bool(obligation["checks"])
+                and all(isinstance(check, str) and check.strip() for check in obligation["checks"]),
+                "Adjudication obligation requires a rule and concrete checks")
+        require(obligation["status"] == "not_run", "Stored answer rubric is not simulation evidence")
+        require(obligation["requirement"] in adjudications[source_id]["content"],
+                "Answer rule differs from the revised input policy")
+        policies.add(source_id)
+        issue_ids.add(obligation["issue_id"])
+    # The scope policy bounds the whole question and is not a reported erratum.
+    require(policies == {key for key in adjudications if key != "adjudication-SCOPE"},
+            "Every revised input issue must have one matching answer obligation")
+    return {"review_obligations": len(ids), "adjudication_obligations": len(policies),
+            "integration_evidence_anchors": len(evidence)}
 
 
 def validate(cases: Path = CASES) -> dict:

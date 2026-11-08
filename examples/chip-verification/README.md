@@ -6,10 +6,12 @@
 
 | 题目 | 设计范围 | spec.json 字节 | 独立规格正文字节 | 题目与答案 |
 | --- | --- | ---: | ---: | --- |
-| 串行 I/O 子系统 | SPI Host、SPI Device、USB Device；TL-UL 访问、FIFO/缓冲、模式切换、错误与中断、时钟复位和外部连接约束 | 886,487 | 567,411 | [opentitan-serial-io](cases/opentitan-serial-io/README.md) |
-| 常开控制子系统 | 电源、复位、时钟、系统复位、引脚复用与告警处理；低功耗进入/退出、唤醒、保持、复位原因、升级处理 | 1,079,612 | 592,589 | [opentitan-aon-control](cases/opentitan-aon-control/README.md) |
+| 串行 I/O 子系统 | SPI Host、SPI Device、USB Device；TL-UL 访问、FIFO/缓冲、模式切换、错误与中断、时钟复位和外部连接约束 | 953,979 | 567,411 | [opentitan-serial-io](cases/opentitan-serial-io/README.md) |
+| 常开控制子系统 | 电源、复位、时钟、系统复位、引脚复用与告警处理；低功耗进入/退出、唤醒、保持、复位原因、升级处理 | 1,152,997 | 592,589 | [opentitan-aon-control](cases/opentitan-aon-control/README.md) |
 
 每题从作者明确标注的系统题设，连接到原始架构、微架构和模块/寄存器规格。设计线与 DV 线读取同一份 `module_graph.json` 和集成约束。这些文件是输入材料与验收依据，不是另一个任务状态管理器；运行状态仍由 LoopX 保存。
+
+两题现已直接修订 46 个不同的问题编号（串行题适用 27 项、常开题适用 25 项，部分共有）。`input/problem.md` 给出生效规则；`input/adjudications/` 的单项规则同时嵌入 `spec.json`，以原文哈希和行范围绑定。LoopX 分片后将相关规则作为必需依赖送入上下文，要求保留原文与修订的共同引用，再传向同一设计/DV契约。明确的练习约定标注作者权限，原始上游文件保持不变。ABI、pad 能力和少量精确时序缺口只约束依赖它们的验收项，不能伪装为已解决或已覆盖；背景差异不扩大 DUT 范围。
 
 目录中的 `answer_guide.md` 和 `obligations.json` 解释预期行为、来源、负向测试、覆盖维度与已知歧义；共享 `reference/` 保存锁定版本的上游实现。答案用于语义和接口比较，不要求候选 RTL 与上游逐字一致。Pinmux 在该版本具有 FPV/安全测试计划，缺少同版本独立 UVM 环境，不能用其他模块的 UVM 代替其验收。
 
@@ -33,7 +35,28 @@ Codex、TRAE 中国版及其他宿主使用现有 [chip-verification 能力](../
 
 ```powershell
 python -m unittest discover -s examples/chip-verification -p test_case_tool.py -v
+python -m pytest -q examples/chip-verification/test_opentitan_adjudications.py
 ```
+
+## 来自 Coral NPU issue 的复杂题目
+
+[`issue_cases/`](issue_cases/README.md) 另存两份以真实故障为入口的系统集成题。题面贯穿系统观察、ISA/CSR、调度与微架构、模块边界、RTL 修复和独立 UVM 验证；候选输入保存修复前源码种子，参考修复、补丁和上游回归只在答案目录。
+
+| 题目 | 来源 | spec.json 字节 | 独立原始上下文字节 |
+| --- | --- | ---: | ---: |
+| 零元素向量操作退休与前进性 | [Coral NPU #89](https://github.com/google-coral/coralnpu/issues/89) | 647,013 | 606,813 |
+| FENCE.TSO 合法性与内存排序 | [Coral NPU #130](https://github.com/google-coral/coralnpu/issues/130) | 666,546 | 625,849 |
+
+Coral 的字节列统计保留的原始上下文，包含范围策略明确排除的 ISA 背景，不能等同于全部适用规范。规格锁定 RISC-V ISA 20240411 和各题修复前的 Coral 提交，不混用旧 Kelvin SIMD 与 RVV 配置。简短的范围策略随每个原文片段提供。两题均要求集成已固定的现有 IP，而非从通用 ISA 章节重造完整 NPU。
+
+```powershell
+python examples/chip-verification/coral_issue_cases.py validate
+python examples/chip-verification/coral_issue_cases.py stage coralnpu-vector-zero-retirement ..\chip-runs\coral-zero-01
+python -m loopx.cli chip-verification --workspace ..\chip-runs\coral-zero-01 import --spec spec.json --flow design-dv --execute
+python -m unittest discover -s examples/chip-verification -p test_coral_issue_cases.py -v
+```
+
+另一题使用 `coralnpu-fence-tso-ordering` 和新的导出目录。完整仓库、构建依赖和 EDA 仍需在实验机器准备；补丁来源校验不代表 RTL/UVM 仿真通过。90% 功能覆盖率是冻结适用覆盖分母后的执行验收目标，不是题库生成结果。
 
 ## 下载式入门资料集合
 

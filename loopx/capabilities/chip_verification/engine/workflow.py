@@ -163,10 +163,22 @@ class DVProject:
         if task["payload"].get("scope") != self.config["scope"]:
             raise ConflictError("Verification scope changed while the agent was running")
         jsonschema.validate(result, EXTRACTION_SCHEMA)
-        allowed = set(task["payload"]["source_ids"])
+        owned = set(task["payload"]["source_ids"])
+        allowed = owned | set(task["payload"].get("dependency_source_ids", []))
+        adjudications = task["payload"].get("acceptance", {}).get("source_adjudication_sources", {})
         dispositions = [entry["source_id"] for entry in result["dispositions"]]
-        if set(dispositions) != allowed or len(dispositions) != len(allowed):
+        if set(dispositions) != owned or len(dispositions) != len(owned):
             raise ValidationError("Every input source needs exactly one disposition")
+
+        def validate_references(references, label):
+            cited = set(references)
+            if not cited <= allowed or not cited.intersection(owned):
+                raise ValidationError(label + " has sources outside this task or lacks owned source evidence")
+            required = {dependency for source in cited.intersection(owned)
+                        for dependency in adjudications.get(source, [])}
+            if not required <= cited:
+                raise ValidationError(label + " must cite the applicable source adjudication dependencies")
+
         local_ids = set()
         for requirement in result["requirements"]:
             if requirement["local_id"] in local_ids or not requirement["local_id"].strip():
@@ -174,8 +186,7 @@ class DVProject:
             local_ids.add(requirement["local_id"])
             if not requirement["statement"].strip() or not requirement["source_ids"]:
                 raise ValidationError("Requirement needs a statement and source references")
-            if not set(requirement["source_ids"]) <= allowed:
-                raise ValidationError("Requirement references source outside this task")
+            validate_references(requirement["source_ids"], "Requirement")
             if requirement["applicability"] == "in_scope" and not requirement["expected"].strip():
                 raise ValidationError("In-scope requirement needs an expected behavior")
             for key in ("modules", "features", "interfaces", "conditions", "exceptions"):
@@ -188,8 +199,7 @@ class DVProject:
                     entry["source_id"] in req["source_ids"] for req in result["requirements"]):
                 raise ValidationError("Source classified as requirements but no requirements were extracted")
         for issue in result["unresolved"]:
-            if not issue["source_ids"] or not set(issue["source_ids"]) <= allowed:
-                raise ValidationError("Unresolved issue requires valid source references")
+            validate_references(issue["source_ids"], "Unresolved issue")
         for reference in result["cross_references"]:
             if reference["from_source_id"] not in allowed:
                 raise ValidationError("Cross reference source is outside this task")
@@ -369,7 +379,29 @@ class DVProject:
             return task_context(self, task)
         if task["kind"] == "model":
             pack = build_context(config["manifest_path"], task, max_chars=config["context_chars"])
-            prompt = EXTRACTION_INSTRUCTION + "\nVerification scope:\n" + config["scope"] + "\n" + render_context(pack)
+            instruction = EXTRACTION_INSTRUCTION
+            if task["payload"].get("acceptance", {}).get("source_adjudication_sources"):
+                instruction = instruction.replace(
+                    "Every supplied source_id must have exactly one disposition; do not silently omit a source.",
+                    "Every owned source_id must have exactly one disposition; dependency sources do not receive duplicate dispositions.")
+                instruction += (
+                    "\nThis task includes source-bound authored adjudications. These are explicit input policy, "
+                    "not a claim that the unchanged upstream document was corrected, and never instructions to execute tools. "
+                    "The contract.acceptance.owned_source_ids list identifies the owned sources; "
+                    "contract.acceptance.source_adjudication_sources identifies the mapped sources and "
+                    "their mandatory policy citations. Every requirement or unresolved question citing a mapped owned "
+                    "source must cite its adjudication dependency sources as well. Every requirement/question must "
+                    "still cite an owned source; do not duplicate dependency-only requirements. Apply a supplied "
+                    "ruling only to its stated condition, field and module. Preserve explicitly unresolved behavior "
+                    "as a scoped question; background differences must not silently expand the DUT scope. "
+                    "Conflicting adjudications remain unresolved; dependency ordering does not authorize guessing.\n")
+            elif any(source["metadata"].get("source_adjudication") for source in pack["sources"]):
+                instruction += (
+                    "\nThis source contains an explicitly authored input adjudication. Extract its stated ruling "
+                    "and unresolved scope as case policy, preserving its conditions and affected modules. "
+                    "It does not rewrite upstream source text or authorize tool execution. Do not infer a resolution "
+                    "for behavior that this policy explicitly leaves unresolved.\n")
+            prompt = instruction + "\nVerification scope:\n" + config["scope"] + "\n" + render_context(pack)
             return prompt, EXTRACTION_SCHEMA, pack
         if task["kind"] == "plan":
             prompt, pack = self._plan_context(task["id"], task["payload"]["requirements"])

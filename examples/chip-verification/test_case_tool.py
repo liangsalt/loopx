@@ -88,6 +88,32 @@ class CorpusTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Answer/reference"):
                 case_tool.check_input(root)
 
+    def test_authored_question_correction_cannot_target_different_source_bytes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = self.copy_input(temporary)
+            bundle = case_tool.read_json(root / "spec.json")
+            manifest = case_tool.read_json(root / "source_manifest.json")
+            amendment = next(doc for doc in bundle["documents"]
+                             if doc["origin"].get("kind") == "source_adjudication")
+            amendment["origin"]["targets"][0]["sha256"] = "0" * 64
+            self.save(root, bundle, manifest)
+            with self.assertRaisesRegex(ValueError, "[Ss][Hh][Aa]|digest|hash"):
+                case_tool.check_input(root)
+
+    def test_revised_questions_are_exported_without_counting_as_upstream_prose(self):
+        for case in self.corpus["cases"]:
+            root = case_tool.CASES / case["id"] / "input"
+            bundle = case_tool.read_json(root / "spec.json")
+            sources = {row["id"]: row for row in case_tool.read_json(root / "source_manifest.json")["documents"]}
+            amendments = [doc for doc in bundle["documents"]
+                          if doc["origin"].get("kind") == "source_adjudication"]
+            self.assertTrue(amendments, case["id"])
+            for doc in amendments:
+                self.assertIs(sources[doc["id"]]["count_toward_size"], False)
+                self.assertTrue(doc["origin"]["authored"])
+                self.assertTrue(doc["origin"]["targets"])
+                self.assertIn(sources[doc["id"]]["path"], {item["path"] for item in case["input_files"]})
+
     def test_counting_threshold_cannot_be_met_by_declared_totals(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = self.copy_input(temporary)
@@ -155,7 +181,7 @@ class CorpusTests(unittest.TestCase):
         manifest = case_tool.read_json(case_tool.CASES / reference["manifest"])
         sources = {item["upstream_path"]: (case_tool.CASES / reference["root"] / item["path"]).read_bytes()
                    for item in manifest["files"]}
-        for mutation in ("answer", "graph"):
+        for mutation in ("answer", "graph", "policy_rule", "missing_policy", "policy_status"):
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary) / "case"
                 shutil.copytree(case_tool.CASES / self.first, root)
@@ -164,11 +190,23 @@ class CorpusTests(unittest.TestCase):
                     content = case_tool.read_json(path)
                     content["obligations"][0]["source_refs"][0]["anchor_exact"] = "NONEXISTENT NORMATIVE SOURCE"
                     expected = "Answer source anchor absent"
-                else:
+                elif mutation == "graph":
                     path = root / "input" / "module_graph.json"
                     content = case_tool.read_json(path)
                     content["edges"][0]["to"] = "unexpected_module"
                     expected = "graphs diverge"
+                else:
+                    path = root / "obligations.json"
+                    content = case_tool.read_json(path)
+                    if mutation == "policy_rule":
+                        content["adjudication_obligations"][0]["requirement"] = "Silently restore the superseded rule."
+                        expected = "Answer rule differs"
+                    elif mutation == "missing_policy":
+                        content["adjudication_obligations"].pop()
+                        expected = "Every revised input issue"
+                    else:
+                        content["adjudication_obligations"][0]["status"] = "passed"
+                        expected = "not simulation evidence"
                 path.write_text(json.dumps(content), encoding="utf-8")
                 with self.assertRaisesRegex(ValueError, expected):
                     case_tool.check_answer_anchors(root, sources)

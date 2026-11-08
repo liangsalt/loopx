@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "id": "coralnpu-fence-tso-ordering",
+  "input_files": [
+    {
+      "path": "baseline/hdl/chisel/src/coralnpu/Parameters.scala",
+      "bytes": 10176,
+      "sha256": "ed5f5fbfb73ce12a4b260369fa945101736be344fd7c0dbe2bd443b18ac01034"
+    },
+    {
+      "path": "baseline/hdl/chisel/src/coralnpu/RetirementBuffer.scala",
+      "bytes": 32499,
+      "sha256": "78182e5f5180a6f6824e1f0827d35ac1c91e41fc8f11278f73b0959ab073cd9c"
+    },
+    {
+      "path": "baseline/hdl/chisel/src/coralnpu/rvv/RvvInterface.scala",
+      "bytes": 5507,
+      "sha256": "a3c46ede951ac94a20d6a31f4d4b02d6e3fbbe4757a310f72d6e10262a68ba46"
+    },
+    {
+      "path": "baseline/hdl/chisel/src/coralnpu/scalar/Decode.scala",
+      "bytes": 56678,
+      "sha256": "cb9fa4389c904af530544f026d3e60ad2f2058ac8973e45fbeccdd4f5345bf17"
+    },
+    {
+      "path": "integration_profile.json",
+      "bytes": 1916,
+      "sha256": "daffddb961761f015e8d217513fea804899b40d700cc252e5b47132d6079ef0f"
+    },
+    {
+      "path": "licenses/google-coral-coralnpu/LICENSE",
+      "bytes": 11357,
+      "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+    },
+    {
+      "path": "licenses/riscv-riscv-isa-manual/LICENSE",
+      "bytes": 18652,
+      "sha256": "cce5d01fa4a83b794271bd2c28cffdf99afd43c803e6ddefddae39b591ea7448"
+    },
+    {
+      "path": "module_graph.json",
+      "bytes": 2795,
+      "sha256": "7625bbacb04e6586b44c677de3ae0cdcfd41adc20abedb81f71ea21755932bcf"
+    },
+    {
+      "path": "problem.md",
+      "bytes": 4677,
+      "sha256": "4f5811a826cd6e73f059b0c92e7cc0d36a2b11a36b78525e3f398ad126aa1c07"
+    },
+    {
+      "path": "scope_policy.md",
+      "bytes": 2169,
+      "sha256": "4d526cf3fcd251c2d0ee8eadbea24bf3e83be1bc2ee4a3d6d633c8d546dabeac"
+    },
+    {
+      "path": "source_manifest.json",
+      "bytes": 22149,
+      "sha256": "d406d0c85420bd83494cf625cba980bb50ef4990052e8391778850f13267fb80"
+    },
+    {
+      "path": "sources/google-coral-coralnpu/doc/integration_guide.md",
+      "bytes": 11046,
+      "sha256": "e8c15e79dd90189094e5c64b23f806d8ef21f53f7c57138dac7d2702bd77f75c"
+    },
+    {
+      "path": "sources/google-coral-coralnpu/doc/microarch/debug.md",
+      "bytes": 14354,
+      "sha256": "ccc06e038135d8470dea0bfab7346b44870b064ff619bdef686ea4b26a54245b"
+    },
+    {
+      "path": "sources/google-coral-coralnpu/doc/microarch/dispatch.md",
+      "bytes": 1656,
+      "sha256": "b7764c72a6212ed7e1adfd3ba69708fd16247154de48c1f80722e744422a6e2b"
+    },
+    {
+      "path": "sources/google-coral-coralnpu/doc/microarch/lsu.md",
+      "bytes": 13047,
+      "sha256": "a599c1bdf3b1923bca007d1c0f6950a7cd9af198a3c170903b43beb6aec8861f"
+    },
+    {
+      "path": "sources/google-coral-coralnpu/doc/microarch/microarch.md",
+      "bytes": 1416,
+      "sha256": "a442c4052cd741b0862317f105c61a491bc72a0fa6d6ab9d4de564906fe975f4"
+    },
+    {
+      "path": "sources/google-coral-coralnpu/doc/overview.md",
+      "bytes": 20197,
+      "sha256": "01e35bc210aa9df46e5472b7164cf4dd8d6c7238b76579c34dd63c2c42b827d9"
+    },
+    {
+      "path": "sources/riscv-riscv-isa-manual/src/machine.adoc",
+      "bytes": 130015,
+      "sha256": "8f618a44306091b44bad55f7d2aaee7c8b332a2d6aa665d8476247257f072a57"
+    },
+    {
+      "path": "sources/riscv-riscv-isa-manual/src/mm-eplan.adoc",
+      "bytes": 78511,
+      "sha256": "a66623aad41c6caf2b38d063410ecdfd2c6b75271441329b8da94e3ec31dbdd5"
+    },
+    {
+      "path": "sources/riscv-riscv-isa-manual/src/mm-formal.adoc",
+      "bytes": 60586,
+      "sha256": "508c6914ee23bcd0b620e83150690d8f69adca21bd4a1062b86f514ec1e424a0"
+    },
+    {
+      "path": "sources/riscv-riscv-isa-manual/src/rv32.adoc",
+      "bytes": 46690,
+      "sha256": "77106c3fc0bdbc687291a9e8c9598b2e7cd3ab4cdf62e9bfae4f5a3c05a148d7"
+    },
+    {
+      "path": "sources/riscv-riscv-isa-manual/src/rvwmo.adoc",
+      "bytes": 24813,
+      "sha256": "4603bf79b740af390775949046459abc6f00cd853ebcc399ca1855e35110800e"
+    },
+    {
+      "path": "sources/riscv-riscv-isa-manual/src/v-st-ext.adoc",
+      "bytes": 212269,
+      "sha256": "f114464f32de3825863df04ff903137685a94a89973a8b38df3c4e804adf116f"
+    },
+    {
+      "path": "sources/riscv-riscv-isa-manual/src/zicsr.adoc",
+      "bytes": 11249,
+      "sha256": "8ef986fdc464ac604851a8d0b021eb9c3414d3d4f790cb348313b9510bc8438c"
+    },
+    {
+      "path": "spec.json",
+      "bytes": 666546,
+      "sha256": "e5dd42bd772a8604854d4512c621d7a7540b5bc8e5a8db2aad4f1e881c8135f9"
+    }
+  ],
+  "answer_files": [
+    {
+      "path": "LICENSE",
+      "bytes": 11357,
+      "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+    },
+    {
+      "path": "README.md",
+      "bytes": 2187,
+      "sha256": "2bbb0d1317edfa719ef62637fa1fe982b1bf8f6fa09c8ff0c622ff298177e9fc"
+    },
+    {
+      "path": "reference/hdl/chisel/src/coralnpu/scalar/Decode.scala",
+      "bytes": 56825,
+      "sha256": "ed04bd94bb89421a63f3aca10f1412bfceb085cbdae9ee5237aaed336c06b403"
+    },
+    {
+      "path": "reference/hdl/chisel/src/coralnpu/scalar/DecodeTest.scala",
+      "bytes": 2971,
+      "sha256": "12b2a246bfa6d96f08a21be1ec17fd4aa9a61abf28a3937b253265729bb664ae"
+    },
+    {
+      "path": "reference/tests/cocotb/coralnpu_isa/BUILD",
+      "bytes": 1107,
+      "sha256": "51dc2fff15ad212d3c668bbf8537df58ee371dbc796bb2748ec168de07fa7138"
+    },
+    {
+      "path": "reference/tests/cocotb/coralnpu_isa/fence_test.cc",
+      "bytes": 1659,
+      "sha256": "bbacc6c8f9f81d33991ae3577b4528ab680bbaaa681a2e5bb4041fc8555e9aa7"
+    },
+    {
+      "path": "reference_manifest.json",
+      "bytes": 2900,
+      "sha256": "22f0772a17bf443c373cd7836904d6413ffe26497902398cf7d385238b9e055d"
+    },
+    {
+      "path": "review_rubric.json",
+      "bytes": 3038,
+      "sha256": "ed4dc992f9042df5c39479e88c8962db9f3dca1fbc51c3b9119176d2c57676ee"
+    },
+    {
+      "path": "upstream.patch",
+      "bytes": 5991,
+      "sha256": "14376a6d1d10275c4380c801e2cd0289af66b37d7b39b3610368d1c70acfcaaf"
+    }
+  ]
+}

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections import deque
 
 
 LAYERS = {"system", "architecture", "microarchitecture", "module", "verification", "software"}
@@ -43,6 +44,53 @@ def validate_bundle(value):
         sha = doc["origin"].get("sha256")
         if sha is not None:
             require(sha == hashlib.sha256(doc["content"].encode("utf-8")).hexdigest(), "document content SHA mismatch: " + doc["id"])
+    by_id = {doc["id"]: doc for doc in docs}
+    edges = {doc["id"]: set() for doc in docs}
+    for doc in docs:
+        origin = doc["origin"]
+        if origin.get("kind") != "source_adjudication":
+            continue
+        require(origin.get("authored") is True and doc["role"] == "specification",
+                "source adjudication must be an explicit authored specification")
+        require(origin.get("sha256") == hashlib.sha256(doc["content"].encode("utf-8")).hexdigest(),
+                "source adjudication needs its content SHA")
+        targets = origin.get("targets")
+        require(isinstance(targets, list) and 0 < len(targets) <= 64,
+                "source adjudication needs 1..64 anchored targets")
+        identities = set()
+        for target in targets:
+            require(isinstance(target, dict) and set(target) == {"document_id", "sha256", "line_start", "line_end"},
+                    "invalid source adjudication target fields")
+            target_id = target["document_id"]
+            require(isinstance(target_id, str) and target_id in by_id and target_id != doc["id"],
+                    "source adjudication target is missing or self-referential")
+            original = by_id[target_id]
+            require(original["role"] == "specification", "source adjudication cannot promote reference material")
+            require(target["sha256"] == hashlib.sha256(original["content"].encode("utf-8")).hexdigest(),
+                    "source adjudication target SHA mismatch: " + target_id)
+            start, end = target["line_start"], target["line_end"]
+            require(type(start) is int and type(end) is int and 1 <= start <= end <= len(original["content"].splitlines()),
+                    "source adjudication target line range is invalid")
+            identity = (target_id, start, end)
+            require(identity not in identities, "duplicate source adjudication target")
+            identities.add(identity)
+            edges[doc["id"]].add(target_id)
+    # Dependencies may refine another authored adjudication, but never form a
+    # cycle. A normal document relation does not confer adjudication authority.
+    incoming = {identity: 0 for identity in edges}
+    for targets in edges.values():
+        for target_id in targets:
+            incoming[target_id] += 1
+    ready = deque(identity for identity, count in incoming.items() if count == 0)
+    visited = 0
+    while ready:
+        identity = ready.popleft()
+        visited += 1
+        for target_id in edges[identity]:
+            incoming[target_id] -= 1
+            if incoming[target_id] == 0:
+                ready.append(target_id)
+    require(visited == len(edges), "source adjudication dependency cycle")
     relations = value.get("relations", [])
     require(isinstance(relations, list), "relations must be an array")
     relation_ids = set()
@@ -68,4 +116,43 @@ def source_metadata(bundle, pointer):
                       title=doc["title"], document_role=doc["role"])
         if pointer == f"/documents/{match[1]}/content":
             result["source_role"] = doc["role"]
+            if doc["origin"].get("kind") == "source_adjudication":
+                result["source_adjudication"] = True
+    return result
+
+
+def adjudication_dependencies(bundle, records):
+    """Route explicit anchored policy bodies to overlapping original fragments.
+
+    Both original text and authored policy remain separately traceable sources.
+    These edges demand context and citations, not a semantic verdict or waiver.
+    """
+    if bundle is None:
+        return {}
+    bodies = {}
+    for record in records:
+        if record["metadata"].get("source_role") != "bundle_metadata":
+            bodies.setdefault(record["metadata"].get("document_id"), []).append(record)
+    documents = {doc["id"]: doc for doc in bundle["documents"]}
+    direct = {}
+    for doc in bundle["documents"]:
+        if doc["origin"].get("kind") != "source_adjudication":
+            continue
+        dependency_ids = {record["source_id"] for record in bodies.get(doc["id"], [])}
+        for target in doc["origin"]["targets"]:
+            lines = documents[target["document_id"]]["content"].splitlines(keepends=True)
+            start = sum(len(line) for line in lines[:target["line_start"] - 1])
+            end = start + sum(len(line) for line in lines[target["line_start"] - 1:target["line_end"]])
+            for record in bodies.get(target["document_id"], []):
+                if record["start_char"] < end and start < record["end_char"]:
+                    direct.setdefault(record["source_id"], set()).update(dependency_ids)
+    result = {}
+    for source_id, dependencies in direct.items():
+        reached, pending = set(), list(dependencies)
+        while pending:
+            dependency = pending.pop()
+            if dependency not in reached:
+                reached.add(dependency)
+                pending.extend(direct.get(dependency, ()))
+        result[source_id] = sorted(reached)
     return result

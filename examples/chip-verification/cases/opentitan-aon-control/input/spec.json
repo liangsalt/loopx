@@ -697,9 +697,9 @@
         "authored": true,
         "kind": "benchmark_scope_and_integration_contract",
         "path": "problem.md",
-        "sha256": "b406556155a047f48eb8caeab628fd330d9184ce793861f99f12f5412e5d6e6b"
+        "sha256": "e058833bb8e86ae29a11dfaf7027bb5f6a1ffc3886c570d53695c01060c3eab0"
       },
-      "content": "# OpenTitan always-on control subsystem design and UVM verification problem\n\nBuild a specification-driven design and DV result for the selected always-on control subsystem. The in-scope IP identities are `pwrmgr`, `rstmgr`, `clkmgr`, `sysrst_ctrl`, `pinmux`, `alert_handler`. This is a bounded subsystem exercise using one pinned OpenTitan revision, not a request to implement all of Earlgrey or a claim that this subset is a standalone upstream top-level.\n\n## Input authority and hierarchy\n\n`spec.json` contains unchanged public system/architecture/module/behavior/register documents, normative register configuration, and an explicitly authored integration profile and module graph. The source manifest records which original prose bodies qualify the >512 KiB size floor. System background and whole-top context do not expand the implementation scope. Register HJSON and selected integration context do not count toward that floor. Upstream RTL, existing testplans, UVM code and answer obligations are not part of the exported input.\n\nUse `integration_profile.json` to distinguish normative requirements, selected configuration, external environment assumptions, and proposed design choices. Use `module_graph.json` as an initial shared relationship map; source-check and refine it without silently converting a proposal to a proven contract. TL-UL/comportability documents constrain applicable interfaces; they do not by themselves require redesigning an entire SoC fabric. Retain concrete contradictions, missing dependencies and ambiguity with source anchors. Where prose and HJSON conflict, record the disagreement and block affected decisions instead of guessing precedence.\n\n## Required design and verification outputs\n\n1. Import the specification by path through LoopX. Persist every requirement and its provenance; work in bounded contexts and recover from durable state in fresh host sessions.\n2. Create one shared module/interface/configuration graph for both tracks. Preserve boundary assumptions, clock/reset domains, address/register contracts, cross-module handshake and error behavior, and any unresolved ownership or composition obligations.\n3. Design track: adopt or refine the available microarchitecture, propose explicit choices where the source permits them, and produce reviewable synthesizable RTL or a declared fixed-version IP binding. Produce real elaboration/lint/CDC evidence where tools and complete constraints permit it.\n4. DV track: derive TP directly from the same specification and shared contract. Generate UVM transactions, sequencers/sequences, drivers, passive monitors, independent scoreboards, functional coverage, environment, test classes and top-level binding. Cover normal operations, boundaries, backpressure, reset/error paths, and the cross-module scenarios justified by the sources.\n5. Join the two tracks only at the same accepted contract/configuration revision. Preserve all required composition work; a fragment is not a completed module. Run simulation only when a complete build and checker contract exists.\n6. Report passed, failed, blocked and untested stages separately. Requirement extraction, test counts, generated files and smoke success are not coverage. Declare any percentage only from real simulator evidence using a frozen bin denominator; functional coverage and RTL code coverage are separate metrics.\n\n## Execution and evaluation boundary\n\nStart an installed LoopX capability in this input-only workspace with the selected Codex or TRAE host. Use public `dv_import`, `dv_next`, `dv_claim`, `dv_context`, `dv_submit` and relevant design/DV tools; do not manufacture state acceptance or direct database edits. The fixture is inert and does not automatically invoke models or EDA tools. Raw sessions, candidates, private state and logs belong in the execution workspace, never back in this public corpus.\n\nAn evaluator may compare outputs against a separately held pinned upstream reference implementation and verification material. Multiple correct RTL architectures and UVM organizations are acceptable; textual similarity is not the correctness criterion. File-only staging is not a claim of network/filesystem isolation from public upstream answers. Simulator/dependency qualification and any 90% target remain separate execution gates.\n"
+      "content": "# OpenTitan always-on control subsystem design and UVM verification problem\n\nBuild a specification-driven design and DV result for the selected always-on control subsystem. The in-scope IP identities are `pwrmgr`, `rstmgr`, `clkmgr`, `sysrst_ctrl`, `pinmux`, `alert_handler`. This is a bounded subsystem exercise using one pinned OpenTitan revision, not a request to implement all of Earlgrey or a claim that this subset is a standalone upstream top-level.\n\n## Input authority and hierarchy\n\n`spec.json` contains unchanged public system/architecture/module/behavior/register documents, normative register configuration, and an explicitly authored integration profile and module graph. The source manifest records which original prose bodies qualify the >512 KiB size floor. System background and whole-top context do not expand the implementation scope. Register HJSON and selected integration context do not count toward that floor. Upstream RTL, existing testplans, UVM code and answer obligations are not part of the exported input.\n\nUse `integration_profile.json` to distinguish normative requirements, selected configuration, external environment assumptions, and proposed design choices. Use `module_graph.json` as an initial shared relationship map; source-check and refine it without silently converting a proposal to a proven contract. TL-UL/comportability documents constrain applicable interfaces; they do not by themselves require redesigning an entire SoC fabric. Retain concrete contradictions, missing dependencies and ambiguity with source anchors. Use the revised benchmark-author contract below for named issues. New gaps require precise local obligations, not blanket source-conflict blockers.\n\n## Required design and verification outputs\n\n1. Import the specification by path through LoopX. Persist every requirement and its provenance; work in bounded contexts and recover from durable state in fresh host sessions.\n2. Create one shared module/interface/configuration graph for both tracks. Preserve boundary assumptions, clock/reset domains, address/register contracts, cross-module handshake and error behavior, and any unresolved ownership or composition obligations.\n3. Design track: adopt or refine the available microarchitecture, propose explicit choices where the source permits them, and produce reviewable synthesizable RTL or a declared fixed-version IP binding. Produce real elaboration/lint/CDC evidence where tools and complete constraints permit it.\n4. DV track: derive TP directly from the same specification and shared contract. Generate UVM transactions, sequencers/sequences, drivers, passive monitors, independent scoreboards, functional coverage, environment, test classes and top-level binding. Cover normal operations, boundaries, backpressure, reset/error paths, and the cross-module scenarios justified by the sources.\n5. Join the two tracks only at the same accepted contract/configuration revision. Preserve all required composition work; a fragment is not a completed module. Run simulation only when a complete build and checker contract exists.\n6. Report passed, failed, blocked and untested stages separately. Requirement extraction, test counts, generated files and smoke success are not coverage. Declare any percentage only from real simulator evidence using a frozen bin denominator; functional coverage and RTL code coverage are separate metrics.\n\n## Execution and evaluation boundary\n\nStart an installed LoopX capability in this input-only workspace with the selected Codex or TRAE host. Use public `dv_import`, `dv_next`, `dv_claim`, `dv_context`, `dv_submit` and relevant design/DV tools; do not manufacture state acceptance or direct database edits. The fixture is inert and does not automatically invoke models or EDA tools. Raw sessions, candidates, private state and logs belong in the execution workspace, never back in this public corpus.\n\nAn evaluator may compare outputs against a separately held pinned upstream reference implementation and verification material. Multiple correct RTL architectures and UVM organizations are acceptable; textual similarity is not the correctness criterion. File-only staging is not a claim of network/filesystem isolation from public upstream answers. Simulator/dependency qualification and any 90% target remain separate execution gates.\n\n<!-- BEGIN SOURCE-ADJUDICATIONS -->\n## Revised normative exercise contract\n\nBenchmark-author policy: explicit declared field names, bit ranges, access types and selected integration configuration govern over obsolete narrative references. This is an authored exercise policy, not an attributed user instruction or a universal upstream priority rule. Conflicts inside HJSON and behavioral ambiguities use the individually named adjudications; no blanket HJSON-wins rule resolves them. Authored decisions supersede only their stated scope. Preserve original source bytes and provenance. Local open obligations gate only affected acceptance claims. Candidate/golden RTL and UVM are not specification authority. No correction is simulation or coverage evidence.\n\nThe following rules are part of the question. Both RTL and TP/UVM generation must consume the same revision. Each linked correction is also embedded in spec.json with exact source-span targets so bounded contexts receive it alongside affected prose.\n\n- **[AC-01](adjudications/AC-01.md)** (exercise_convention): For this exercise the NDM reset summary table governs: outside PROD/PROD_END, assert LC and module trees and retain SYS; in PROD/PROD_END assert LC, SYS and module trees. NDM does not assert POR. This author choice resolves two conflicting prose accounts, not an observed RTL bug.\n- **[AC-02](adjudications/AC-02.md)** (corrected): INTR_STATE.event_detected is read-only status. Clear the relevant source latch with its W1C operation: COMBO_INTR_STATUS, KEY_INTR_STATUS or ULP_STATUS as applicable. Apply the source-aggregation scope in Q-08; clearing one source does not clear another asserted source.\n- **[AC-03](adjudications/AC-03.md)** (corrected): Program combo precondition duration through COM_PRE_DET_CTL for the selected combo. Keep selection and duration fields distinct.\n- **[AC-04](adjudications/AC-04.md)** (corrected): Use the generated CSR layout: input_disable bit 7, slew_rate [17:16], drive_strength [23:20]. Map these named fields explicitly into the pad attribute interface; N-01 describes a different packed layout.\n- **[AH-01](adjudications/AH-01.md)** (corrected): Escalation due to accumulation occurs on the next alert after the threshold is reached: threshold 0 triggers on the first eligible alert; threshold 1 on the second; threshold 15 on the sixteenth, subject to class enable and escalation configuration.\n- **[AH-02](adjudications/AH-02.md)** (corrected): Class configuration is guarded by the separate CLASSx_REGWEN CSR bound by CLASSx_CTRL_SHADOWED.regwen, for x=A..D.\n- **[AH-03](adjudications/AH-03.md)** (corrected): For each class A..D the escalation abort/clear write goes through CLASSx_CLR_SHADOWED and is guarded by CLASSx_CLR_REGWEN. CLASSx_REGWEN guards configuration, not this clear path. CTRL_SHADOWED.LOCK affects the separately documented clear lock behavior.\n- **[AH-04](adjudications/AH-04.md)** (corrected): PING_TIMER_REGWEN is rw0c with reset value 1. A write of zero clears the enable; writing one preserves its value. Once cleared, guarded ping configuration writes cannot restore it until reset.\n- **[AH-05](adjudications/AH-05.md)** (corrected): Ping response timeout uses PING_TIMEOUT_CYC_SHADOWED. CLASSx_TIMEOUT_CYC_SHADOWED controls the separate class interrupt timeout escalation path.\n- **[CT-01](adjudications/CT-01.md)** (scoped_gap): Use the current logical sidebands a_user={instr_type,cmd_intg,data_intg} and d_user={rsp_intg,data_intg}. The old reserved/parity typedef and TL_DUW=4 example are not a fixed-version ABI. D-02 owns the remaining public type/encoding contract; logical request/response planning can continue. **Local gate:** Only TL-UL packed interface binding and integrity-oracle acceptance await the D-02 normative type/encoding addendum.\n- **[CT-02](adjudications/CT-02.md)** (background_scope): The selected top configuration instantiates uart0..uart3 (four UARTs). UART is whole-chip background and is outside both reduced subsystem DUTs.\n- **[CT-03](adjudications/CT-03.md)** (scope_interpretation): The base pinout has 47 muxed pads: IOA=9, IOB=13, IOC=13, IOR=12; direct IOR8/IOR9 are excluded. A 32-bit GPIO vector is not a count of all MIO pads. This constrains AON PINMUX geometry; it is external context in serial-I/O.\n- **[CT-04](adjudications/CT-04.md)** (background_scope): The local ROM-key table enumerates seven slots, 0..6. Treat the earlier three-slot count as obsolete background; ROM/key provisioning is outside these exercises.\n- **[CT-05](adjudications/CT-05.md)** (scope_interpretation): In serial-I/O use the selected SPI_DEVICE CONTROL modes disabled/flashmode/passthrough with TPM controlled separately. Do not add a legacy Firmware mode without a declared interface. In AON this SPI paragraph is out-of-scope background only.\n- **[Q-07](adjudications/Q-07.md)** (exercise_convention): For auto-block debounce the explicit two-sample description governs: qualify the start and end samples; an intermediate pulse that is not sampled at either endpoint is not guaranteed to cancel detection. This rule is confined to auto-block, not every SYSRST timer.\n- **[Q-08](adjudications/Q-08.md)** (exercise_convention): Author convention for the status IRQ: include a latched ULP_STATUS.ulp_wakeup alongside enabled combo/key source status in event_detected; INTR_ENABLE gates the output IRQ. Clear ULP at its declared W1C ULP_STATUS source, not at read-only INTR_STATE. The abbreviated combo/keyboard summary is not a prohibition of ULP.\n- **[Q-09](adjudications/Q-09.md)** (exercise_convention): For wake recording, interpret leaving Active in the context of a valid low-power-entry path. A reset-only transition out of Active does not open a new wake-recording window. Apply the documented recording stop/clear controls within the valid low-power path.\n- **[Q-10](adjudications/Q-10.md)** (scoped_gap): Treat the LC/SYS chains as reset classes, not proof that every leaf has multiple drivers. The named peripheral module-reset class derives from LC. For each additional consumer, retain one explicit reset parent and domain in the shared integration map, supported by the selected configuration. **Local gate:** Only an unmapped leaf's reset binding/propagation acceptance awaits its documented parent; already mapped reset paths can proceed.\n- **[Q-11](adjudications/Q-11.md)** (not_a_conflict): Clearing the escalation counter describes an effect of the CLASSx_CLR_SHADOWED operation, subject to CLASSx_CLR_REGWEN. ESC_CNT remains read-only. The link to the counter describes the observed state, not a writable entry point.\n- **[Q-12](adjudications/Q-12.md)** (exercise_convention): Author-chosen exercise reset contract: class A..D interrupt state resets to zero, sets on its qualified alert and clears through the declared interrupt W1C action. The interrupt-list description has no explicit reset field; this addendum supplies the exercise value rather than claiming an inferred generator/RTL result.\n- **[Q-13](adjudications/Q-13.md)** (scope_interpretation): Use the selected top special-signal mapping with exposed dft0=IOR5 and dft1=IOR7, plus tap0=IOC8 and tap1=IOC5. Three generic DFT straps do not imply a third external pad in this selected profile. Any extra internal generic strap remains an explicit wrapper boundary with a separately declared binding. **Local gate:** If the chosen generic IP exposes an additional strap port, only that port's binding awaits an explicit configuration decision.\n- **[D-01](adjudications/D-01.md)** (configuration_gap): Per-pad attribute WARL support is a technology/profile dependency, not a contradictory spec. TAP strap0 is identified as IOC8 in the selected mapping; preserve its documented pull-enable reset exception. Parameterize the capability/readback mapping and record the chosen pad profile before claiming exact physical behavior. **Local gate:** Only precise technology-dependent pad masks/readback/reset qualification remains pending; mux routing and declared logical attributes can proceed.\n- **[D-02](adjudications/D-02.md)** (definition_gap): The current input does not supply a complete normative packed TL-UL type and integrity-code algorithm. Before compatible interface/encoding acceptance, supply a pinned public interface package or explicit reviewed specification addendum covering widths, ordering, encoding and error policy. Keep the logical protocol requirements; CT-01 rejects obsolete ABI examples. **Local gate:** TL-UL ABI and integrity encoding/fault bins remain unverified until a normative interface/algorithm addendum is accepted.\n- **[N-01](adjudications/N-01.md)** (not_a_conflict): CSR slew [17:16]/drive [23:20] and packed attr_i slew [9:8]/drive [13:10] are different interfaces. Translate by field name; differing packed positions are valid. AC-04 resolves the actual stale CSR layout.\n- **[N-04](adjudications/N-04.md)** (not_a_conflict): The selected HJSON provides NAlerts=65, NLpg=24 and the LpgMap/AsyncOn defaults. Parse those provided parameter values for the profile; the early see-RTL table does not leave them missing. Do not copy a reference implementation to populate them.\n\nAn authored convention defines this exercise, not a new claim about the held-out upstream implementation. If that implementation differs, report reference divergence; do not change the oracle to fit it. An open local obligation is not a passed or covered requirement and must not be silently removed from a frozen coverage denominator. Unrelated specified work proceeds; full acceptance waits only on the applicable, precisely identified dependencies.\n<!-- END SOURCE-ADJUDICATIONS -->\n"
     },
     {
       "id": "case-integration_profile-json",
@@ -711,9 +711,9 @@
         "authored": true,
         "kind": "benchmark_scope_and_integration_contract",
         "path": "integration_profile.json",
-        "sha256": "a1c88266ecb2361ca393933d801a5e8f90a78aa97f1996e03171c2df7709b610"
+        "sha256": "551fb89cc5391331f932e1d02b752b80abfaaa0f2adde39e9f1f8da4b309632b"
       },
-      "content": "{\r\n  \"schema_version\": 1,\r\n  \"case_id\": \"opentitan-aon-control\",\r\n  \"root_module\": \"aon_control_subsystem\",\r\n  \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n  \"classification\": \"author_defined_reduced_integration_profile\",\r\n  \"scope\": \"Selected EarlGrey subsystem; the reduced wrapper is a benchmark design choice, not an upstream native top-level. External boundaries do not become DUT RTL targets.\",\r\n  \"modules\": [\r\n    {\r\n      \"instance\": \"pwrmgr_aon\",\r\n      \"type\": \"pwrmgr\"\r\n    },\r\n    {\r\n      \"instance\": \"rstmgr_aon\",\r\n      \"type\": \"rstmgr\"\r\n    },\r\n    {\r\n      \"instance\": \"clkmgr_aon\",\r\n      \"type\": \"clkmgr\"\r\n    },\r\n    {\r\n      \"instance\": \"sysrst_ctrl_aon\",\r\n      \"type\": \"sysrst_ctrl\"\r\n    },\r\n    {\r\n      \"instance\": \"pinmux_aon\",\r\n      \"type\": \"pinmux\"\r\n    },\r\n    {\r\n      \"instance\": \"alert_handler\",\r\n      \"type\": \"alert_handler\"\r\n    }\r\n  ],\r\n  \"external_boundaries\": [\r\n    {\r\n      \"id\": \"tlul_boundary\",\r\n      \"description\": \"TL-UL host/interconnect model\"\r\n    },\r\n    {\r\n      \"id\": \"ast_boundary\",\r\n      \"description\": \"AST power-good and root clock controls\"\r\n    },\r\n    {\r\n      \"id\": \"cpu_boundary\",\r\n      \"description\": \"CPU sleep/debug/reset/crashdump boundary\"\r\n    },\r\n    {\r\n      \"id\": \"boot_boundary\",\r\n      \"description\": \"OTP/lifecycle/flash/ROM startup acknowledgements\"\r\n    },\r\n    {\r\n      \"id\": \"usbdev_boundary\",\r\n      \"description\": \"USBDEV wake interface\"\r\n    },\r\n    {\r\n      \"id\": \"edn_boundary\",\r\n      \"description\": \"EDN entropy response\"\r\n    },\r\n    {\r\n      \"id\": \"pads_and_other_wakes\",\r\n      \"description\": \"external pads and unselected wake/reset sources\"\r\n    }\r\n  ],\r\n  \"design_choices\": [\r\n    \"Implement the six control instances; CPU, AST, lifecycle, OTP, flash, ROM and USBDEV remain explicit environment boundaries.\",\r\n    \"Preserve source-defined parameters, clocks/resets and CSR semantics in a versioned configuration. Reduced counts/widths form a distinct profile and cannot inherit full-profile coverage.\",\r\n    \"Boundary models expose controllable latency, withheld acknowledgement, errors and stopped clocks. Permanently-ready tieoffs cannot substantiate startup/low-power scenarios.\",\r\n    \"Use one shared interface/module graph for RTL and DV planning; runtime sessions receive relevant source shards and durable state handles.\",\r\n    \"RTL microarchitecture choices may vary; observable specified behavior and declared integration relationships form the acceptance contract.\"\r\n  ],\r\n  \"top_configuration_evidence\": [\r\n    {\r\n      \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n      \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n      \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n      \"line_start\": 319,\r\n      \"line_end\": 325,\r\n      \"excerpt\": \"    { name: \\\"alert_handler\\\",\\n      type: \\\"alert_handler\\\",\\n      clock_srcs: {clk_i: \\\"io_div4\\\", clk_edn_i: \\\"main\\\"},\\n      clock_group: \\\"secure\\\",\\n      reset_connections: {rst_ni: \\\"lc_io_div4\\\", rst_edn_ni: \\\"lc\\\"},\\n      base_addr: \\\"0x40150000\\\",\\n      attr: \\\"ipgen\\\",\",\r\n      \"count_toward_specification_body_bytes\": false\r\n    },\r\n    {\r\n      \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n      \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n      \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n      \"line_start\": 351,\r\n      \"line_end\": 460,\r\n      \"excerpt\": \"    { name: \\\"pwrmgr_aon\\\",\\n      type: \\\"pwrmgr\\\",\\n      clock_group: \\\"powerup\\\",\\n      clock_srcs: {\\n        clk_i: \\\"io_div4\\\",\\n        clk_slow_i: \\\"aon\\\",\\n        clk_lc_i: \\\"io_div4\\\",\\n        clk_esc_i: {\\n          clock: \\\"io_div4\\\",\\n          group: \\\"secure\\\"\\n        }\\n      },\\n      reset_connections: {\\n        rst_ni: {\\n          name: \\\"por_io_div4\\\",\\n          domain: \\\"Aon\\\"\\n        },\\n        rst_main_ni: {\\n          name: \\\"por_aon\\\",\\n          domain: \\\"0\\\"\\n        },\\n        rst_lc_ni: {\\n          name: \\\"lc_io_div4\\\",\\n          domain: \\\"Aon\\\"\\n        },\\n        rst_esc_ni: {\\n          name: \\\"lc_io_div4\\\",\\n          domain: \\\"Aon\\\"\\n        },\\n        rst_slow_ni: {\\n          name: \\\"por_aon\\\",\\n          domain: \\\"Aon\\\",\\n        },\\n      },\\n      domain: [\\\"Aon\\\", \\\"0\\\"],\\n      base_addr: \\\"0x40400000\\\",\\n      attr: \\\"ipgen\\\",\\n    },\\n    { name: \\\"rstmgr_aon\\\",\\n      type: \\\"rstmgr\\\",\\n      clock_srcs: {\\n        clk_i: {\\n          clock: \\\"io_div4\\\",\\n          group: \\\"powerup\\\"\\n        },\\n        clk_por_i: \\\"io_div4\\\", clk_aon_i: \\\"aon\\\", clk_main_i: \\\"main\\\", clk_io_i: \\\"io\\\", clk_usb_i: \\\"usb\\\",\\n        clk_io_div2_i: \\\"io_div2\\\", clk_io_div4_i: \\\"io_div4\\\"\\n      },\\n      clock_group: \\\"powerup\\\",\\n      reset_connections: {\\n        rst_ni: {\\n          name: \\\"lc_io_div4\\\",\\n          domain: \\\"Aon\\\"\\n        },\\n        rst_por_ni: {\\n          name: \\\"por_io_div4\\\",\\n          domain: \\\"Aon\\\"\\n        },\\n      },\\n      domain: [\\\"Aon\\\", \\\"0\\\"],\\n      base_addr: \\\"0x40410000\\\",\\n      attr: \\\"ipgen\\\",\\n    },\\n    { name: \\\"clkmgr_aon\\\",\\n      type: \\\"clkmgr\\\",\\n      clock_srcs: {\\n        clk_i: \\\"io_div4\\\",\\n        clk_main_i: {\\n          group: \\\"ast\\\",\\n          clock: \\\"main\\\"\\n        },\\n        clk_io_i: {\\n          group: \\\"ast\\\",\\n          clock: \\\"io\\\"\\n        },\\n        clk_usb_i: {\\n          group: \\\"ast\\\",\\n          clock: \\\"usb\\\"\\n        },\\n        clk_aon_i: {\\n          group: \\\"ast\\\",\\n          clock: \\\"aon\\\"\\n        }\\n      },\\n      clock_group: \\\"powerup\\\",\\n      reset_connections: {rst_ni: \\\"lc_io_div4\\\",\\n                          rst_aon_ni: \\\"lc_aon\\\",\\n                          rst_io_ni: \\\"lc_io\\\",\\n                          rst_io_div2_ni: \\\"lc_io_div2\\\",\\n                          rst_io_div4_ni: \\\"lc_io_div4\\\",\\n                          rst_main_ni: \\\"lc\\\",\\n                          rst_usb_ni: \\\"lc_usb\\\",\\n                          rst_root_ni: \\\"por_io_div4\\\",\\n                          rst_root_io_ni: \\\"por_io\\\",\\n                          rst_root_io_div2_ni: \\\"por_io_div2\\\",\\n                          rst_root_io_div4_ni: \\\"por_io_div4\\\",\\n                          rst_root_main_ni: \\\"por\\\",\\n                          rst_root_usb_ni: \\\"por_usb\\\",\\n                         },\\n      domain: [\\\"Aon\\\"],\\n      base_addr: \\\"0x40420000\\\",\\n      attr: \\\"ipgen\\\",\\n    },\\n    { name: \\\"sysrst_ctrl_aon\\\",\\n      type: \\\"sysrst_ctrl\\\",\\n      clock_srcs: {clk_i: \\\"io_div4\\\", clk_aon_i: \\\"aon\\\"},\\n      clock_group: \\\"secure\\\",\\n      reset_connections: {rst_ni: \\\"lc_io_div4\\\", rst_aon_ni: \\\"lc_aon\\\"},\\n      domain: [\\\"Aon\\\"],\\n      base_addr: \\\"0x40430000\\\"\",\r\n      \"count_toward_specification_body_bytes\": false\r\n    },\r\n    {\r\n      \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n      \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n      \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n      \"line_start\": 478,\r\n      \"line_end\": 494,\r\n      \"excerpt\": \"    { name: \\\"pinmux_aon\\\",\\n      type: \\\"pinmux\\\",\\n      clock_srcs: {clk_i: \\\"io_div4\\\", clk_aon_i: \\\"aon\\\"},\\n      clock_group: \\\"powerup\\\",\\n      reset_connections: {rst_ni: \\\"lc_io_div4\\\",\\n                          rst_aon_ni: \\\"lc_aon\\\",\\n                          rst_sys_ni: \\\"sys_io_div4\\\"\\n                         },\\n      domain: [\\\"Aon\\\"],\\n      base_addr: \\\"0x40460000\\\",\\n      attr: \\\"templated\\\",\\n      param_decl: {\\n        // NOTE THAT THIS IS A FEATURE FOR TEST CHIPS ONLY TO MITIGATE\\n        // THE RISK OF A BROKEN OTP MACRO. THIS WILL BE DISABLED FOR\\n        // PRODUCTION DEVICES.\\n        SecVolatileRawUnlockEn: \\\"top_pkg::SecVolatileRawUnlockEn\\\",\\n      }\",\r\n      \"count_toward_specification_body_bytes\": false\r\n    }\r\n  ],\r\n  \"relationship_evidence\": [\r\n    {\r\n      \"from\": \"pwrmgr_aon\",\r\n      \"to\": \"rstmgr_aon\",\r\n      \"relationship\": \"power/reset request-response\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 927,\r\n        \"line_end\": 931,\r\n        \"excerpt\": \"      'pwrmgr_aon.pwr_flash'    : ['flash_ctrl.pwrmgr'],\\n      'pwrmgr_aon.pwr_rst'      : ['rstmgr_aon.pwr'],\\n      'pwrmgr_aon.pwr_clk'      : ['clkmgr_aon.pwr'],\\n      'pwrmgr_aon.pwr_otp'      : ['otp_ctrl.pwr_otp'],\\n      'pwrmgr_aon.pwr_lc'       : ['lc_ctrl.pwr_lc'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"pwrmgr_aon\",\r\n      \"to\": \"clkmgr_aon\",\r\n      \"relationship\": \"power/clock request-response\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 927,\r\n        \"line_end\": 931,\r\n        \"excerpt\": \"      'pwrmgr_aon.pwr_flash'    : ['flash_ctrl.pwrmgr'],\\n      'pwrmgr_aon.pwr_rst'      : ['rstmgr_aon.pwr'],\\n      'pwrmgr_aon.pwr_clk'      : ['clkmgr_aon.pwr'],\\n      'pwrmgr_aon.pwr_otp'      : ['otp_ctrl.pwr_otp'],\\n      'pwrmgr_aon.pwr_lc'       : ['lc_ctrl.pwr_lc'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"pwrmgr_aon\",\r\n      \"to\": \"pinmux_aon\",\r\n      \"relationship\": \"strap sampling and sleep indication\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 932,\r\n        \"line_end\": 934,\r\n        \"excerpt\": \"      'pwrmgr_aon.strap'        : ['pinmux_aon.strap_en'],\\n      'pwrmgr_aon.low_power'    : ['pinmux_aon.sleep_en',\\n                                   'aon_timer_aon.sleep_mode'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"alert_handler\",\r\n      \"to\": \"pwrmgr_aon\",\r\n      \"relationship\": \"escalation reset channel\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 909,\r\n        \"line_end\": 916,\r\n        \"excerpt\": \"      'alert_handler.esc_rx'    : ['rv_core_ibex.esc_rx',\\n                                   'lc_ctrl.esc_scrap_state0_rx',\\n                                   'lc_ctrl.esc_scrap_state1_rx',\\n                                   'pwrmgr_aon.esc_rst_rx'],\\n      'alert_handler.esc_tx'    : ['rv_core_ibex.esc_tx',\\n                                   'lc_ctrl.esc_scrap_state0_tx',\\n                                   'lc_ctrl.esc_scrap_state1_tx',\\n                                   'pwrmgr_aon.esc_rst_tx'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"alert_handler\",\r\n      \"to\": \"rstmgr_aon\",\r\n      \"relationship\": \"crashdump\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 908,\r\n        \"line_end\": 908,\r\n        \"excerpt\": \"      'alert_handler.crashdump' : ['rstmgr_aon.alert_dump'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"rstmgr_aon\",\r\n      \"to\": \"pwrmgr_aon\",\r\n      \"relationship\": \"software reset request\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 1060,\r\n        \"line_end\": 1061,\r\n        \"excerpt\": \"      // Reset manager software reset request to pwrmgr\\n      'rstmgr_aon.sw_rst_req' : ['pwrmgr_aon.sw_rst_req'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"sysrst_ctrl_aon\",\r\n      \"to\": \"pwrmgr_aon\",\r\n      \"relationship\": \"wake and reset request vector membership\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/autogen/top_earlgrey.gen.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"611a13bcd616ff15fded70a64ca5e580bb9907320a7ed2baa9a78e65023c0348\",\r\n        \"line_start\": 8662,\r\n        \"line_end\": 8675,\r\n        \"excerpt\": \"      pwrmgr_aon.wakeups:\\n      [\\n        sysrst_ctrl_aon.wkup_req\\n        adc_ctrl_aon.wkup_req\\n        pinmux_aon.pin_wkup_req\\n        pinmux_aon.usb_wkup_req\\n        aon_timer_aon.wkup_req\\n        sensor_ctrl_aon.wkup_req\\n      ]\\n      pwrmgr_aon.rstreqs:\\n      [\\n        sysrst_ctrl_aon.rst_req\\n        aon_timer_aon.aon_timer_rst_req\\n      ]\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"pinmux_aon\",\r\n      \"to\": \"pwrmgr_aon\",\r\n      \"relationship\": \"pin and USB wake vector membership\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/autogen/top_earlgrey.gen.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"611a13bcd616ff15fded70a64ca5e580bb9907320a7ed2baa9a78e65023c0348\",\r\n        \"line_start\": 8662,\r\n        \"line_end\": 8675,\r\n        \"excerpt\": \"      pwrmgr_aon.wakeups:\\n      [\\n        sysrst_ctrl_aon.wkup_req\\n        adc_ctrl_aon.wkup_req\\n        pinmux_aon.pin_wkup_req\\n        pinmux_aon.usb_wkup_req\\n        aon_timer_aon.wkup_req\\n        sensor_ctrl_aon.wkup_req\\n      ]\\n      pwrmgr_aon.rstreqs:\\n      [\\n        sysrst_ctrl_aon.rst_req\\n        aon_timer_aon.aon_timer_rst_req\\n      ]\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    }\r\n  ],\r\n  \"context_size_credit\": 0,\r\n  \"source_precedence\": \"Record normative source contradictions explicitly. Do not use candidate or golden RTL to silently supply missing requirements.\"\r\n}"
+      "content": "{\r\n  \"schema_version\": 1,\r\n  \"case_id\": \"opentitan-aon-control\",\r\n  \"root_module\": \"aon_control_subsystem\",\r\n  \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n  \"classification\": \"author_defined_reduced_integration_profile\",\r\n  \"scope\": \"Selected EarlGrey subsystem; the reduced wrapper is a benchmark design choice, not an upstream native top-level. External boundaries do not become DUT RTL targets.\",\r\n  \"modules\": [\r\n    {\r\n      \"instance\": \"pwrmgr_aon\",\r\n      \"type\": \"pwrmgr\"\r\n    },\r\n    {\r\n      \"instance\": \"rstmgr_aon\",\r\n      \"type\": \"rstmgr\"\r\n    },\r\n    {\r\n      \"instance\": \"clkmgr_aon\",\r\n      \"type\": \"clkmgr\"\r\n    },\r\n    {\r\n      \"instance\": \"sysrst_ctrl_aon\",\r\n      \"type\": \"sysrst_ctrl\"\r\n    },\r\n    {\r\n      \"instance\": \"pinmux_aon\",\r\n      \"type\": \"pinmux\"\r\n    },\r\n    {\r\n      \"instance\": \"alert_handler\",\r\n      \"type\": \"alert_handler\"\r\n    }\r\n  ],\r\n  \"external_boundaries\": [\r\n    {\r\n      \"id\": \"tlul_boundary\",\r\n      \"description\": \"TL-UL host/interconnect model\"\r\n    },\r\n    {\r\n      \"id\": \"ast_boundary\",\r\n      \"description\": \"AST power-good and root clock controls\"\r\n    },\r\n    {\r\n      \"id\": \"cpu_boundary\",\r\n      \"description\": \"CPU sleep/debug/reset/crashdump boundary\"\r\n    },\r\n    {\r\n      \"id\": \"boot_boundary\",\r\n      \"description\": \"OTP/lifecycle/flash/ROM startup acknowledgements\"\r\n    },\r\n    {\r\n      \"id\": \"usbdev_boundary\",\r\n      \"description\": \"USBDEV wake interface\"\r\n    },\r\n    {\r\n      \"id\": \"edn_boundary\",\r\n      \"description\": \"EDN entropy response\"\r\n    },\r\n    {\r\n      \"id\": \"pads_and_other_wakes\",\r\n      \"description\": \"external pads and unselected wake/reset sources\"\r\n    }\r\n  ],\r\n  \"design_choices\": [\r\n    \"Implement the six control instances; CPU, AST, lifecycle, OTP, flash, ROM and USBDEV remain explicit environment boundaries.\",\r\n    \"Preserve source-defined parameters, clocks/resets and CSR semantics in a versioned configuration. Reduced counts/widths form a distinct profile and cannot inherit full-profile coverage.\",\r\n    \"Boundary models expose controllable latency, withheld acknowledgement, errors and stopped clocks. Permanently-ready tieoffs cannot substantiate startup/low-power scenarios.\",\r\n    \"Use one shared interface/module graph for RTL and DV planning; runtime sessions receive relevant source shards and durable state handles.\",\r\n    \"RTL microarchitecture choices may vary; observable specified behavior and declared integration relationships form the acceptance contract.\"\r\n  ],\r\n  \"top_configuration_evidence\": [\r\n    {\r\n      \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n      \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n      \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n      \"line_start\": 319,\r\n      \"line_end\": 325,\r\n      \"excerpt\": \"    { name: \\\"alert_handler\\\",\\n      type: \\\"alert_handler\\\",\\n      clock_srcs: {clk_i: \\\"io_div4\\\", clk_edn_i: \\\"main\\\"},\\n      clock_group: \\\"secure\\\",\\n      reset_connections: {rst_ni: \\\"lc_io_div4\\\", rst_edn_ni: \\\"lc\\\"},\\n      base_addr: \\\"0x40150000\\\",\\n      attr: \\\"ipgen\\\",\",\r\n      \"count_toward_specification_body_bytes\": false\r\n    },\r\n    {\r\n      \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n      \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n      \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n      \"line_start\": 351,\r\n      \"line_end\": 460,\r\n      \"excerpt\": \"    { name: \\\"pwrmgr_aon\\\",\\n      type: \\\"pwrmgr\\\",\\n      clock_group: \\\"powerup\\\",\\n      clock_srcs: {\\n        clk_i: \\\"io_div4\\\",\\n        clk_slow_i: \\\"aon\\\",\\n        clk_lc_i: \\\"io_div4\\\",\\n        clk_esc_i: {\\n          clock: \\\"io_div4\\\",\\n          group: \\\"secure\\\"\\n        }\\n      },\\n      reset_connections: {\\n        rst_ni: {\\n          name: \\\"por_io_div4\\\",\\n          domain: \\\"Aon\\\"\\n        },\\n        rst_main_ni: {\\n          name: \\\"por_aon\\\",\\n          domain: \\\"0\\\"\\n        },\\n        rst_lc_ni: {\\n          name: \\\"lc_io_div4\\\",\\n          domain: \\\"Aon\\\"\\n        },\\n        rst_esc_ni: {\\n          name: \\\"lc_io_div4\\\",\\n          domain: \\\"Aon\\\"\\n        },\\n        rst_slow_ni: {\\n          name: \\\"por_aon\\\",\\n          domain: \\\"Aon\\\",\\n        },\\n      },\\n      domain: [\\\"Aon\\\", \\\"0\\\"],\\n      base_addr: \\\"0x40400000\\\",\\n      attr: \\\"ipgen\\\",\\n    },\\n    { name: \\\"rstmgr_aon\\\",\\n      type: \\\"rstmgr\\\",\\n      clock_srcs: {\\n        clk_i: {\\n          clock: \\\"io_div4\\\",\\n          group: \\\"powerup\\\"\\n        },\\n        clk_por_i: \\\"io_div4\\\", clk_aon_i: \\\"aon\\\", clk_main_i: \\\"main\\\", clk_io_i: \\\"io\\\", clk_usb_i: \\\"usb\\\",\\n        clk_io_div2_i: \\\"io_div2\\\", clk_io_div4_i: \\\"io_div4\\\"\\n      },\\n      clock_group: \\\"powerup\\\",\\n      reset_connections: {\\n        rst_ni: {\\n          name: \\\"lc_io_div4\\\",\\n          domain: \\\"Aon\\\"\\n        },\\n        rst_por_ni: {\\n          name: \\\"por_io_div4\\\",\\n          domain: \\\"Aon\\\"\\n        },\\n      },\\n      domain: [\\\"Aon\\\", \\\"0\\\"],\\n      base_addr: \\\"0x40410000\\\",\\n      attr: \\\"ipgen\\\",\\n    },\\n    { name: \\\"clkmgr_aon\\\",\\n      type: \\\"clkmgr\\\",\\n      clock_srcs: {\\n        clk_i: \\\"io_div4\\\",\\n        clk_main_i: {\\n          group: \\\"ast\\\",\\n          clock: \\\"main\\\"\\n        },\\n        clk_io_i: {\\n          group: \\\"ast\\\",\\n          clock: \\\"io\\\"\\n        },\\n        clk_usb_i: {\\n          group: \\\"ast\\\",\\n          clock: \\\"usb\\\"\\n        },\\n        clk_aon_i: {\\n          group: \\\"ast\\\",\\n          clock: \\\"aon\\\"\\n        }\\n      },\\n      clock_group: \\\"powerup\\\",\\n      reset_connections: {rst_ni: \\\"lc_io_div4\\\",\\n                          rst_aon_ni: \\\"lc_aon\\\",\\n                          rst_io_ni: \\\"lc_io\\\",\\n                          rst_io_div2_ni: \\\"lc_io_div2\\\",\\n                          rst_io_div4_ni: \\\"lc_io_div4\\\",\\n                          rst_main_ni: \\\"lc\\\",\\n                          rst_usb_ni: \\\"lc_usb\\\",\\n                          rst_root_ni: \\\"por_io_div4\\\",\\n                          rst_root_io_ni: \\\"por_io\\\",\\n                          rst_root_io_div2_ni: \\\"por_io_div2\\\",\\n                          rst_root_io_div4_ni: \\\"por_io_div4\\\",\\n                          rst_root_main_ni: \\\"por\\\",\\n                          rst_root_usb_ni: \\\"por_usb\\\",\\n                         },\\n      domain: [\\\"Aon\\\"],\\n      base_addr: \\\"0x40420000\\\",\\n      attr: \\\"ipgen\\\",\\n    },\\n    { name: \\\"sysrst_ctrl_aon\\\",\\n      type: \\\"sysrst_ctrl\\\",\\n      clock_srcs: {clk_i: \\\"io_div4\\\", clk_aon_i: \\\"aon\\\"},\\n      clock_group: \\\"secure\\\",\\n      reset_connections: {rst_ni: \\\"lc_io_div4\\\", rst_aon_ni: \\\"lc_aon\\\"},\\n      domain: [\\\"Aon\\\"],\\n      base_addr: \\\"0x40430000\\\"\",\r\n      \"count_toward_specification_body_bytes\": false\r\n    },\r\n    {\r\n      \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n      \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n      \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n      \"line_start\": 478,\r\n      \"line_end\": 494,\r\n      \"excerpt\": \"    { name: \\\"pinmux_aon\\\",\\n      type: \\\"pinmux\\\",\\n      clock_srcs: {clk_i: \\\"io_div4\\\", clk_aon_i: \\\"aon\\\"},\\n      clock_group: \\\"powerup\\\",\\n      reset_connections: {rst_ni: \\\"lc_io_div4\\\",\\n                          rst_aon_ni: \\\"lc_aon\\\",\\n                          rst_sys_ni: \\\"sys_io_div4\\\"\\n                         },\\n      domain: [\\\"Aon\\\"],\\n      base_addr: \\\"0x40460000\\\",\\n      attr: \\\"templated\\\",\\n      param_decl: {\\n        // NOTE THAT THIS IS A FEATURE FOR TEST CHIPS ONLY TO MITIGATE\\n        // THE RISK OF A BROKEN OTP MACRO. THIS WILL BE DISABLED FOR\\n        // PRODUCTION DEVICES.\\n        SecVolatileRawUnlockEn: \\\"top_pkg::SecVolatileRawUnlockEn\\\",\\n      }\",\r\n      \"count_toward_specification_body_bytes\": false\r\n    }\r\n  ],\r\n  \"relationship_evidence\": [\r\n    {\r\n      \"from\": \"pwrmgr_aon\",\r\n      \"to\": \"rstmgr_aon\",\r\n      \"relationship\": \"power/reset request-response\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 927,\r\n        \"line_end\": 931,\r\n        \"excerpt\": \"      'pwrmgr_aon.pwr_flash'    : ['flash_ctrl.pwrmgr'],\\n      'pwrmgr_aon.pwr_rst'      : ['rstmgr_aon.pwr'],\\n      'pwrmgr_aon.pwr_clk'      : ['clkmgr_aon.pwr'],\\n      'pwrmgr_aon.pwr_otp'      : ['otp_ctrl.pwr_otp'],\\n      'pwrmgr_aon.pwr_lc'       : ['lc_ctrl.pwr_lc'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"pwrmgr_aon\",\r\n      \"to\": \"clkmgr_aon\",\r\n      \"relationship\": \"power/clock request-response\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 927,\r\n        \"line_end\": 931,\r\n        \"excerpt\": \"      'pwrmgr_aon.pwr_flash'    : ['flash_ctrl.pwrmgr'],\\n      'pwrmgr_aon.pwr_rst'      : ['rstmgr_aon.pwr'],\\n      'pwrmgr_aon.pwr_clk'      : ['clkmgr_aon.pwr'],\\n      'pwrmgr_aon.pwr_otp'      : ['otp_ctrl.pwr_otp'],\\n      'pwrmgr_aon.pwr_lc'       : ['lc_ctrl.pwr_lc'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"pwrmgr_aon\",\r\n      \"to\": \"pinmux_aon\",\r\n      \"relationship\": \"strap sampling and sleep indication\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 932,\r\n        \"line_end\": 934,\r\n        \"excerpt\": \"      'pwrmgr_aon.strap'        : ['pinmux_aon.strap_en'],\\n      'pwrmgr_aon.low_power'    : ['pinmux_aon.sleep_en',\\n                                   'aon_timer_aon.sleep_mode'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"alert_handler\",\r\n      \"to\": \"pwrmgr_aon\",\r\n      \"relationship\": \"escalation reset channel\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 909,\r\n        \"line_end\": 916,\r\n        \"excerpt\": \"      'alert_handler.esc_rx'    : ['rv_core_ibex.esc_rx',\\n                                   'lc_ctrl.esc_scrap_state0_rx',\\n                                   'lc_ctrl.esc_scrap_state1_rx',\\n                                   'pwrmgr_aon.esc_rst_rx'],\\n      'alert_handler.esc_tx'    : ['rv_core_ibex.esc_tx',\\n                                   'lc_ctrl.esc_scrap_state0_tx',\\n                                   'lc_ctrl.esc_scrap_state1_tx',\\n                                   'pwrmgr_aon.esc_rst_tx'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"alert_handler\",\r\n      \"to\": \"rstmgr_aon\",\r\n      \"relationship\": \"crashdump\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 908,\r\n        \"line_end\": 908,\r\n        \"excerpt\": \"      'alert_handler.crashdump' : ['rstmgr_aon.alert_dump'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"rstmgr_aon\",\r\n      \"to\": \"pwrmgr_aon\",\r\n      \"relationship\": \"software reset request\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 1060,\r\n        \"line_end\": 1061,\r\n        \"excerpt\": \"      // Reset manager software reset request to pwrmgr\\n      'rstmgr_aon.sw_rst_req' : ['pwrmgr_aon.sw_rst_req'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"sysrst_ctrl_aon\",\r\n      \"to\": \"pwrmgr_aon\",\r\n      \"relationship\": \"wake and reset request vector membership\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/autogen/top_earlgrey.gen.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"611a13bcd616ff15fded70a64ca5e580bb9907320a7ed2baa9a78e65023c0348\",\r\n        \"line_start\": 8662,\r\n        \"line_end\": 8675,\r\n        \"excerpt\": \"      pwrmgr_aon.wakeups:\\n      [\\n        sysrst_ctrl_aon.wkup_req\\n        adc_ctrl_aon.wkup_req\\n        pinmux_aon.pin_wkup_req\\n        pinmux_aon.usb_wkup_req\\n        aon_timer_aon.wkup_req\\n        sensor_ctrl_aon.wkup_req\\n      ]\\n      pwrmgr_aon.rstreqs:\\n      [\\n        sysrst_ctrl_aon.rst_req\\n        aon_timer_aon.aon_timer_rst_req\\n      ]\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"pinmux_aon\",\r\n      \"to\": \"pwrmgr_aon\",\r\n      \"relationship\": \"pin and USB wake vector membership\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/autogen/top_earlgrey.gen.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"611a13bcd616ff15fded70a64ca5e580bb9907320a7ed2baa9a78e65023c0348\",\r\n        \"line_start\": 8662,\r\n        \"line_end\": 8675,\r\n        \"excerpt\": \"      pwrmgr_aon.wakeups:\\n      [\\n        sysrst_ctrl_aon.wkup_req\\n        adc_ctrl_aon.wkup_req\\n        pinmux_aon.pin_wkup_req\\n        pinmux_aon.usb_wkup_req\\n        aon_timer_aon.wkup_req\\n        sensor_ctrl_aon.wkup_req\\n      ]\\n      pwrmgr_aon.rstreqs:\\n      [\\n        sysrst_ctrl_aon.rst_req\\n        aon_timer_aon.aon_timer_rst_req\\n      ]\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    }\r\n  ],\r\n  \"context_size_credit\": 0,\r\n  \"source_precedence\": \"Benchmark-author policy: explicit declared field names, bit ranges, access types and selected integration configuration govern over obsolete narrative references. This is an authored exercise policy, not an attributed user instruction or a universal upstream priority rule. Conflicts inside HJSON and behavioral ambiguities use the individually named adjudications; no blanket HJSON-wins rule resolves them. Authored decisions supersede only their stated scope. Preserve original source bytes and provenance. Local open obligations gate only affected acceptance claims. Candidate/golden RTL and UVM are not specification authority. No correction is simulation or coverage evidence.\",\r\n  \"source_adjudications\": {\r\n    \"revision\": \"opentitan-adjudications-v1\",\r\n    \"authority\": \"benchmark_author\",\r\n    \"issue_ids\": [\r\n      \"AC-01\",\r\n      \"AC-02\",\r\n      \"AC-03\",\r\n      \"AC-04\",\r\n      \"AH-01\",\r\n      \"AH-02\",\r\n      \"AH-03\",\r\n      \"AH-04\",\r\n      \"AH-05\",\r\n      \"CT-01\",\r\n      \"CT-02\",\r\n      \"CT-03\",\r\n      \"CT-04\",\r\n      \"CT-05\",\r\n      \"Q-07\",\r\n      \"Q-08\",\r\n      \"Q-09\",\r\n      \"Q-10\",\r\n      \"Q-11\",\r\n      \"Q-12\",\r\n      \"Q-13\",\r\n      \"D-01\",\r\n      \"D-02\",\r\n      \"N-01\",\r\n      \"N-04\"\r\n    ],\r\n    \"scope_policy\": \"adjudications/SCOPE.md\",\r\n    \"open_local_obligations\": [\r\n      \"CT-01\",\r\n      \"Q-10\",\r\n      \"Q-13\",\r\n      \"D-01\",\r\n      \"D-02\"\r\n    ],\r\n    \"no_simulation_claim\": true\r\n  }\r\n}\r\n"
     },
     {
       "id": "case-module_graph-json",
@@ -728,6 +728,1008 @@
         "sha256": "bee7f1c7cb3cf897197ece127a2d224d24489d6139771f965260cbb2f5417642"
       },
       "content": "{\r\n  \"schema_version\": 1,\r\n  \"case_id\": \"opentitan-aon-control\",\r\n  \"root_module\": \"aon_control_subsystem\",\r\n  \"graph_role\": \"shared_input_contract_for_spec2rtl_and_spec2dv\",\r\n  \"nodes\": [\r\n    {\r\n      \"id\": \"aon_control_subsystem\",\r\n      \"kind\": \"authored_subsystem_root\"\r\n    },\r\n    {\r\n      \"id\": \"pwrmgr_aon\",\r\n      \"module_type\": \"pwrmgr\",\r\n      \"kind\": \"design_module\"\r\n    },\r\n    {\r\n      \"id\": \"rstmgr_aon\",\r\n      \"module_type\": \"rstmgr\",\r\n      \"kind\": \"design_module\"\r\n    },\r\n    {\r\n      \"id\": \"clkmgr_aon\",\r\n      \"module_type\": \"clkmgr\",\r\n      \"kind\": \"design_module\"\r\n    },\r\n    {\r\n      \"id\": \"sysrst_ctrl_aon\",\r\n      \"module_type\": \"sysrst_ctrl\",\r\n      \"kind\": \"design_module\"\r\n    },\r\n    {\r\n      \"id\": \"pinmux_aon\",\r\n      \"module_type\": \"pinmux\",\r\n      \"kind\": \"design_module\"\r\n    },\r\n    {\r\n      \"id\": \"alert_handler\",\r\n      \"module_type\": \"alert_handler\",\r\n      \"kind\": \"design_module\"\r\n    },\r\n    {\r\n      \"id\": \"tlul_boundary\",\r\n      \"kind\": \"environment_boundary\",\r\n      \"description\": \"TL-UL host/interconnect model\"\r\n    },\r\n    {\r\n      \"id\": \"ast_boundary\",\r\n      \"kind\": \"environment_boundary\",\r\n      \"description\": \"AST power-good and root clock controls\"\r\n    },\r\n    {\r\n      \"id\": \"cpu_boundary\",\r\n      \"kind\": \"environment_boundary\",\r\n      \"description\": \"CPU sleep/debug/reset/crashdump boundary\"\r\n    },\r\n    {\r\n      \"id\": \"boot_boundary\",\r\n      \"kind\": \"environment_boundary\",\r\n      \"description\": \"OTP/lifecycle/flash/ROM startup acknowledgements\"\r\n    },\r\n    {\r\n      \"id\": \"usbdev_boundary\",\r\n      \"kind\": \"environment_boundary\",\r\n      \"description\": \"USBDEV wake interface\"\r\n    },\r\n    {\r\n      \"id\": \"edn_boundary\",\r\n      \"kind\": \"environment_boundary\",\r\n      \"description\": \"EDN entropy response\"\r\n    },\r\n    {\r\n      \"id\": \"pads_and_other_wakes\",\r\n      \"kind\": \"environment_boundary\",\r\n      \"description\": \"external pads and unselected wake/reset sources\"\r\n    },\r\n    {\r\n      \"id\": \"comportable\",\r\n      \"kind\": \"shared_contract\"\r\n    }\r\n  ],\r\n  \"edges\": [\r\n    {\r\n      \"from\": \"pwrmgr_aon\",\r\n      \"to\": \"rstmgr_aon\",\r\n      \"relationship\": \"power/reset request-response\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 927,\r\n        \"line_end\": 931,\r\n        \"excerpt\": \"      'pwrmgr_aon.pwr_flash'    : ['flash_ctrl.pwrmgr'],\\n      'pwrmgr_aon.pwr_rst'      : ['rstmgr_aon.pwr'],\\n      'pwrmgr_aon.pwr_clk'      : ['clkmgr_aon.pwr'],\\n      'pwrmgr_aon.pwr_otp'      : ['otp_ctrl.pwr_otp'],\\n      'pwrmgr_aon.pwr_lc'       : ['lc_ctrl.pwr_lc'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"pwrmgr_aon\",\r\n      \"to\": \"clkmgr_aon\",\r\n      \"relationship\": \"power/clock request-response\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 927,\r\n        \"line_end\": 931,\r\n        \"excerpt\": \"      'pwrmgr_aon.pwr_flash'    : ['flash_ctrl.pwrmgr'],\\n      'pwrmgr_aon.pwr_rst'      : ['rstmgr_aon.pwr'],\\n      'pwrmgr_aon.pwr_clk'      : ['clkmgr_aon.pwr'],\\n      'pwrmgr_aon.pwr_otp'      : ['otp_ctrl.pwr_otp'],\\n      'pwrmgr_aon.pwr_lc'       : ['lc_ctrl.pwr_lc'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"pwrmgr_aon\",\r\n      \"to\": \"pinmux_aon\",\r\n      \"relationship\": \"strap sampling and sleep indication\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 932,\r\n        \"line_end\": 934,\r\n        \"excerpt\": \"      'pwrmgr_aon.strap'        : ['pinmux_aon.strap_en'],\\n      'pwrmgr_aon.low_power'    : ['pinmux_aon.sleep_en',\\n                                   'aon_timer_aon.sleep_mode'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"alert_handler\",\r\n      \"to\": \"pwrmgr_aon\",\r\n      \"relationship\": \"escalation reset channel\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 909,\r\n        \"line_end\": 916,\r\n        \"excerpt\": \"      'alert_handler.esc_rx'    : ['rv_core_ibex.esc_rx',\\n                                   'lc_ctrl.esc_scrap_state0_rx',\\n                                   'lc_ctrl.esc_scrap_state1_rx',\\n                                   'pwrmgr_aon.esc_rst_rx'],\\n      'alert_handler.esc_tx'    : ['rv_core_ibex.esc_tx',\\n                                   'lc_ctrl.esc_scrap_state0_tx',\\n                                   'lc_ctrl.esc_scrap_state1_tx',\\n                                   'pwrmgr_aon.esc_rst_tx'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"alert_handler\",\r\n      \"to\": \"rstmgr_aon\",\r\n      \"relationship\": \"crashdump\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 908,\r\n        \"line_end\": 908,\r\n        \"excerpt\": \"      'alert_handler.crashdump' : ['rstmgr_aon.alert_dump'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"rstmgr_aon\",\r\n      \"to\": \"pwrmgr_aon\",\r\n      \"relationship\": \"software reset request\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/top_earlgrey.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5\",\r\n        \"line_start\": 1060,\r\n        \"line_end\": 1061,\r\n        \"excerpt\": \"      // Reset manager software reset request to pwrmgr\\n      'rstmgr_aon.sw_rst_req' : ['pwrmgr_aon.sw_rst_req'],\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"sysrst_ctrl_aon\",\r\n      \"to\": \"pwrmgr_aon\",\r\n      \"relationship\": \"wake and reset request vector membership\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/autogen/top_earlgrey.gen.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"611a13bcd616ff15fded70a64ca5e580bb9907320a7ed2baa9a78e65023c0348\",\r\n        \"line_start\": 8662,\r\n        \"line_end\": 8675,\r\n        \"excerpt\": \"      pwrmgr_aon.wakeups:\\n      [\\n        sysrst_ctrl_aon.wkup_req\\n        adc_ctrl_aon.wkup_req\\n        pinmux_aon.pin_wkup_req\\n        pinmux_aon.usb_wkup_req\\n        aon_timer_aon.wkup_req\\n        sensor_ctrl_aon.wkup_req\\n      ]\\n      pwrmgr_aon.rstreqs:\\n      [\\n        sysrst_ctrl_aon.rst_req\\n        aon_timer_aon.aon_timer_rst_req\\n      ]\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    },\r\n    {\r\n      \"from\": \"pinmux_aon\",\r\n      \"to\": \"pwrmgr_aon\",\r\n      \"relationship\": \"pin and USB wake vector membership\",\r\n      \"classification\": \"real_upstream_connection\",\r\n      \"evidence\": {\r\n        \"upstream_path\": \"hw/top_earlgrey/data/autogen/top_earlgrey.gen.hjson\",\r\n        \"revision\": \"c69eaea24a57c581ed274779887cb4a0c1405e3b\",\r\n        \"sha256\": \"611a13bcd616ff15fded70a64ca5e580bb9907320a7ed2baa9a78e65023c0348\",\r\n        \"line_start\": 8662,\r\n        \"line_end\": 8675,\r\n        \"excerpt\": \"      pwrmgr_aon.wakeups:\\n      [\\n        sysrst_ctrl_aon.wkup_req\\n        adc_ctrl_aon.wkup_req\\n        pinmux_aon.pin_wkup_req\\n        pinmux_aon.usb_wkup_req\\n        aon_timer_aon.wkup_req\\n        sensor_ctrl_aon.wkup_req\\n      ]\\n      pwrmgr_aon.rstreqs:\\n      [\\n        sysrst_ctrl_aon.rst_req\\n        aon_timer_aon.aon_timer_rst_req\\n      ]\",\r\n        \"count_toward_specification_body_bytes\": false\r\n      }\r\n    }\r\n  ],\r\n  \"containment\": [\r\n    {\r\n      \"parent\": \"aon_control_subsystem\",\r\n      \"child\": \"pwrmgr_aon\"\r\n    },\r\n    {\r\n      \"parent\": \"aon_control_subsystem\",\r\n      \"child\": \"rstmgr_aon\"\r\n    },\r\n    {\r\n      \"parent\": \"aon_control_subsystem\",\r\n      \"child\": \"clkmgr_aon\"\r\n    },\r\n    {\r\n      \"parent\": \"aon_control_subsystem\",\r\n      \"child\": \"sysrst_ctrl_aon\"\r\n    },\r\n    {\r\n      \"parent\": \"aon_control_subsystem\",\r\n      \"child\": \"pinmux_aon\"\r\n    },\r\n    {\r\n      \"parent\": \"aon_control_subsystem\",\r\n      \"child\": \"alert_handler\"\r\n    }\r\n  ],\r\n  \"common_relationships\": [\r\n    {\r\n      \"relationship\": \"TL-UL software access\",\r\n      \"members\": [\r\n        \"pwrmgr_aon\",\r\n        \"rstmgr_aon\",\r\n        \"clkmgr_aon\",\r\n        \"sysrst_ctrl_aon\",\r\n        \"pinmux_aon\",\r\n        \"alert_handler\"\r\n      ],\r\n      \"boundary\": \"tlul_boundary\",\r\n      \"classification\": \"upstream interface obligation; reduced interconnect is authored\"\r\n    },\r\n    {\r\n      \"relationship\": \"clock/reset/alert connectivity\",\r\n      \"members\": [\r\n        \"pwrmgr_aon\",\r\n        \"rstmgr_aon\",\r\n        \"clkmgr_aon\",\r\n        \"sysrst_ctrl_aon\",\r\n        \"pinmux_aon\",\r\n        \"alert_handler\"\r\n      ],\r\n      \"classification\": \"bind to selected top configuration and module interfaces\"\r\n    }\r\n  ],\r\n  \"non_edges\": [],\r\n  \"source_body_bytes_credit\": 0\r\n}"
+    },
+    {
+      "id": "adjudication-AC-01",
+      "title": "Benchmark author contract: AC-01",
+      "layer": "module",
+      "module": "rstmgr",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "c4a50bc15a29fbc61a2cd28638d67205c29ee387350163c7c831e064cc0ae3e3",
+        "targets": [
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--rstmgr--doc--theory_of_operation-md",
+            "sha256": "819020bec8e2bf282b373eaa02d334d447383a74d7d654a1da193f1ed6821933",
+            "line_start": 230,
+            "line_end": 237
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--rstmgr--doc--theory_of_operation-md",
+            "sha256": "819020bec8e2bf282b373eaa02d334d447383a74d7d654a1da193f1ed6821933",
+            "line_start": 276,
+            "line_end": 279
+          }
+        ]
+      },
+      "content": "# AC-01: exercise_convention\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: For this exercise the NDM reset summary table governs: outside PROD/PROD_END, assert LC and module trees and retain SYS; in PROD/PROD_END assert LC, SYS and module trees. NDM does not assert POR. This author choice resolves two conflicting prose accounts, not an observed RTL bug.\n\nRejected reading: Reject the later unconditional only-rst_sys_n account as the exercise reset-tree oracle.\n\nChecker obligations: Check each tree separately under both lifecycle groups, including debug retention and reset-cause recording.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/ip_autogen/rstmgr/doc/theory_of_operation.md` lines 230-237.\n- `hw/top_earlgrey/ip_autogen/rstmgr/doc/theory_of_operation.md` lines 276-279.\n"
+    },
+    {
+      "id": "adjudication-AC-02",
+      "title": "Benchmark author contract: AC-02",
+      "layer": "module",
+      "module": "sysrst_ctrl",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "fce6f8effa897e9b5a2dfea0df435791e181a4bcd305b4913619062cd58d5447",
+        "targets": [
+          {
+            "document_id": "hw--ip--sysrst_ctrl--doc--theory_of_operation-md",
+            "sha256": "ba8d4960179de26fa6920a4403c3e94f72ad080df0ede82de732b00cab23e7fe",
+            "line_start": 49,
+            "line_end": 50
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--doc--theory_of_operation-md",
+            "sha256": "ba8d4960179de26fa6920a4403c3e94f72ad080df0ede82de732b00cab23e7fe",
+            "line_start": 95,
+            "line_end": 96
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--doc--theory_of_operation-md",
+            "sha256": "ba8d4960179de26fa6920a4403c3e94f72ad080df0ede82de732b00cab23e7fe",
+            "line_start": 119,
+            "line_end": 120
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--doc--registers-md",
+            "sha256": "c4195d76c8359cbbbe7be32274671c5f90f0ee6682d9d671c2c4d770257e4b59",
+            "line_start": 59,
+            "line_end": 67
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--data--sysrst_ctrl-hjson",
+            "sha256": "f3c6e6fece167a32b70f3d74272e6182b4589bed9dc82db272bb930bb091b166",
+            "line_start": 279,
+            "line_end": 294
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--data--sysrst_ctrl-hjson",
+            "sha256": "f3c6e6fece167a32b70f3d74272e6182b4589bed9dc82db272bb930bb091b166",
+            "line_start": 970,
+            "line_end": 1008
+          }
+        ]
+      },
+      "content": "# AC-02: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: INTR_STATE.event_detected is read-only status. Clear the relevant source latch with its W1C operation: COMBO_INTR_STATUS, KEY_INTR_STATUS or ULP_STATUS as applicable. Apply the source-aggregation scope in Q-08; clearing one source does not clear another asserted source.\n\nRejected reading: Writing INTR_STATE is not a source-clear operation and must not change its declared read-only access.\n\nChecker obligations: Set two independent sources, clear them separately, try an INTR_STATE write and verify remaining status/IRQ and enable behavior.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/sysrst_ctrl/doc/theory_of_operation.md` lines 49-50.\n- `hw/ip/sysrst_ctrl/doc/theory_of_operation.md` lines 95-96.\n- `hw/ip/sysrst_ctrl/doc/theory_of_operation.md` lines 119-120.\n- `hw/ip/sysrst_ctrl/doc/registers.md` lines 59-67.\n- `hw/ip/sysrst_ctrl/data/sysrst_ctrl.hjson` lines 279-294.\n- `hw/ip/sysrst_ctrl/data/sysrst_ctrl.hjson` lines 970-1008.\n"
+    },
+    {
+      "id": "adjudication-AC-03",
+      "title": "Benchmark author contract: AC-03",
+      "layer": "module",
+      "module": "sysrst_ctrl",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "32e31e6452620bcfb352ff000cf8607381496e79d3a82920c5e497138135b8a7",
+        "targets": [
+          {
+            "document_id": "hw--ip--sysrst_ctrl--doc--theory_of_operation-md",
+            "sha256": "ba8d4960179de26fa6920a4403c3e94f72ad080df0ede82de732b00cab23e7fe",
+            "line_start": 39,
+            "line_end": 42
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--data--sysrst_ctrl-hjson",
+            "sha256": "f3c6e6fece167a32b70f3d74272e6182b4589bed9dc82db272bb930bb091b166",
+            "line_start": 797,
+            "line_end": 799
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--data--sysrst_ctrl-hjson",
+            "sha256": "f3c6e6fece167a32b70f3d74272e6182b4589bed9dc82db272bb930bb091b166",
+            "line_start": 837,
+            "line_end": 840
+          }
+        ]
+      },
+      "content": "# AC-03: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Program combo precondition duration through COM_PRE_DET_CTL for the selected combo. Keep selection and duration fields distinct.\n\nRejected reading: COM_DET_SEL_CTL_0 in the duration example is not the declared timer register.\n\nChecker obligations: Program distinct selection/duration values and check the resulting precondition timing against the configured timer width/clock.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/sysrst_ctrl/doc/theory_of_operation.md` lines 39-42.\n- `hw/ip/sysrst_ctrl/data/sysrst_ctrl.hjson` lines 797-799.\n- `hw/ip/sysrst_ctrl/data/sysrst_ctrl.hjson` lines 837-840.\n"
+    },
+    {
+      "id": "adjudication-AC-04",
+      "title": "Benchmark author contract: AC-04",
+      "layer": "module",
+      "module": "pinmux",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "aa30aea28ef4b5f4830a6b6150429911d40d5194e6ded58b2d484a07f9f9bb01",
+        "targets": [
+          {
+            "document_id": "hw--ip--pinmux--doc--programmers_guide-md",
+            "sha256": "6e0571159d43c4d7907a7a8e135952db291efbdd1952314332996228632dd29a",
+            "line_start": 13,
+            "line_end": 25
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip--pinmux--data--autogen--pinmux-hjson",
+            "sha256": "aaa3c2c9c96887a0da995b0e36744e549cda412fd859afc239dd66b2b3b0b70e",
+            "line_start": 606,
+            "line_end": 627
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip--pinmux--data--autogen--pinmux-hjson",
+            "sha256": "aaa3c2c9c96887a0da995b0e36744e549cda412fd859afc239dd66b2b3b0b70e",
+            "line_start": 709,
+            "line_end": 722
+          }
+        ]
+      },
+      "content": "# AC-04: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Use the generated CSR layout: input_disable bit 7, slew_rate [17:16], drive_strength [23:20]. Map these named fields explicitly into the pad attribute interface; N-01 describes a different packed layout.\n\nRejected reading: Reject the guide's CSR slew [8:7]/drive [12:9] layout and do not use packed attr_i positions as CSR positions.\n\nChecker obligations: Write distinguishable fields and check named-field mapping, reserved bits and readback under the declared pad capability profile (D-01).\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/pinmux/doc/programmers_guide.md` lines 13-25.\n- `hw/top_earlgrey/ip/pinmux/data/autogen/pinmux.hjson` lines 606-627.\n- `hw/top_earlgrey/ip/pinmux/data/autogen/pinmux.hjson` lines 709-722.\n"
+    },
+    {
+      "id": "adjudication-AH-01",
+      "title": "Benchmark author contract: AH-01",
+      "layer": "module",
+      "module": "alert_handler",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "2dc40a8fbc4496a289449a36f14edbfd61c9ec4f4c914ff91f09a3d8932ed1ab",
+        "targets": [
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--theory_of_operation-md",
+            "sha256": "6c7290f7fee941b29f5e2c3ac9eb20ddff63403548830bd85b92f32ce5657216",
+            "line_start": 369,
+            "line_end": 372
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--theory_of_operation-md",
+            "sha256": "6c7290f7fee941b29f5e2c3ac9eb20ddff63403548830bd85b92f32ce5657216",
+            "line_start": 462,
+            "line_end": 466
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--data--alert_handler-hjson",
+            "sha256": "a819d14a2fa5f699bdfecf14e702f361ba455c205517a067c602cd47911376c1",
+            "line_start": 903,
+            "line_end": 907
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--programmers_guide-md",
+            "sha256": "5944be1d51fedc04aa2d30d1f9ecb04b8895e270c0b7ea7323b27e7dcff4540a",
+            "line_start": 113,
+            "line_end": 116
+          }
+        ]
+      },
+      "content": "# AH-01: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Escalation due to accumulation occurs on the next alert after the threshold is reached: threshold 0 triggers on the first eligible alert; threshold 1 on the second; threshold 15 on the sixteenth, subject to class enable and escalation configuration.\n\nRejected reading: Fast-track threshold 1 does not mean escalate on the first alert.\n\nChecker obligations: For thresholds 0,1,15 check the preceding count, exact trigger and later events; separate accumulation from IRQ timeout causes.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/ip_autogen/alert_handler/doc/theory_of_operation.md` lines 369-372.\n- `hw/top_earlgrey/ip_autogen/alert_handler/doc/theory_of_operation.md` lines 462-466.\n- `hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler.hjson` lines 903-907.\n- `hw/top_earlgrey/ip_autogen/alert_handler/doc/programmers_guide.md` lines 113-116.\n"
+    },
+    {
+      "id": "adjudication-AH-02",
+      "title": "Benchmark author contract: AH-02",
+      "layer": "module",
+      "module": "alert_handler",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "b0ffd2cf7819ec422625d89fab41f70e96b23737608ed066467d69d37fee2551",
+        "targets": [
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--programmers_guide-md",
+            "sha256": "5944be1d51fedc04aa2d30d1f9ecb04b8895e270c0b7ea7323b27e7dcff4540a",
+            "line_start": 55,
+            "line_end": 57
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--data--alert_handler-hjson",
+            "sha256": "a819d14a2fa5f699bdfecf14e702f361ba455c205517a067c602cd47911376c1",
+            "line_start": 759,
+            "line_end": 780
+          }
+        ]
+      },
+      "content": "# AH-02: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Class configuration is guarded by the separate CLASSx_REGWEN CSR bound by CLASSx_CTRL_SHADOWED.regwen, for x=A..D.\n\nRejected reading: CLASSA_CTRL_SHADOWED.REGWEN is not a declared subfield.\n\nChecker obligations: Lock each class via its declared guard, attempt a shadowed configuration update and verify lock persistence and independent classes.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/ip_autogen/alert_handler/doc/programmers_guide.md` lines 55-57.\n- `hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler.hjson` lines 759-780.\n"
+    },
+    {
+      "id": "adjudication-AH-03",
+      "title": "Benchmark author contract: AH-03",
+      "layer": "module",
+      "module": "alert_handler",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "d33eaa9d7a7ca4fdea209aa1dfc70f37955ef75dbe8530587507756298fbc7be",
+        "targets": [
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--data--alert_handler-hjson",
+            "sha256": "a819d14a2fa5f699bdfecf14e702f361ba455c205517a067c602cd47911376c1",
+            "line_start": 842,
+            "line_end": 875
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--data--alert_handler-hjson",
+            "sha256": "a819d14a2fa5f699bdfecf14e702f361ba455c205517a067c602cd47911376c1",
+            "line_start": 1026,
+            "line_end": 1028
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--data--alert_handler-hjson",
+            "sha256": "a819d14a2fa5f699bdfecf14e702f361ba455c205517a067c602cd47911376c1",
+            "line_start": 1174,
+            "line_end": 1178
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--data--alert_handler-hjson",
+            "sha256": "a819d14a2fa5f699bdfecf14e702f361ba455c205517a067c602cd47911376c1",
+            "line_start": 1477,
+            "line_end": 1481
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--data--alert_handler-hjson",
+            "sha256": "a819d14a2fa5f699bdfecf14e702f361ba455c205517a067c602cd47911376c1",
+            "line_start": 1780,
+            "line_end": 1784
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--programmers_guide-md",
+            "sha256": "5944be1d51fedc04aa2d30d1f9ecb04b8895e270c0b7ea7323b27e7dcff4540a",
+            "line_start": 85,
+            "line_end": 88
+          }
+        ]
+      },
+      "content": "# AH-03: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: For each class A..D the escalation abort/clear write goes through CLASSx_CLR_SHADOWED and is guarded by CLASSx_CLR_REGWEN. CLASSx_REGWEN guards configuration, not this clear path. CTRL_SHADOWED.LOCK affects the separately documented clear lock behavior.\n\nRejected reading: Reject ESC_CNT prose that substitutes CLASSx_REGWEN for CLASSx_CLR_REGWEN. Do not merge the two guards.\n\nChecker obligations: Cross configuration-lock and clear-lock states; test accepted and rejected clears in every class and confirm ESC_CNT remains read-only.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler.hjson` lines 842-875.\n- `hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler.hjson` lines 1026-1028.\n- `hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler.hjson` lines 1174-1178.\n- `hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler.hjson` lines 1477-1481.\n- `hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler.hjson` lines 1780-1784.\n- `hw/top_earlgrey/ip_autogen/alert_handler/doc/programmers_guide.md` lines 85-88.\n"
+    },
+    {
+      "id": "adjudication-AH-04",
+      "title": "Benchmark author contract: AH-04",
+      "layer": "module",
+      "module": "alert_handler",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "689066e91f5cde424fc899677953f6bbc8c53ddf559ef2453a4fa7e3d0b49060",
+        "targets": [
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--data--alert_handler-hjson",
+            "sha256": "a819d14a2fa5f699bdfecf14e702f361ba455c205517a067c602cd47911376c1",
+            "line_start": 503,
+            "line_end": 518
+          }
+        ]
+      },
+      "content": "# AH-04: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: PING_TIMER_REGWEN is rw0c with reset value 1. A write of zero clears the enable; writing one preserves its value. Once cleared, guarded ping configuration writes cannot restore it until reset.\n\nRejected reading: The write-one-to-clear sentence conflicts with the explicit access declaration and is superseded here.\n\nChecker obligations: Check reset=1, write1 retention, write0 lock, failed re-enable and rejected guarded writes while locked.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler.hjson` lines 503-518.\n"
+    },
+    {
+      "id": "adjudication-AH-05",
+      "title": "Benchmark author contract: AH-05",
+      "layer": "module",
+      "module": "alert_handler",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "b420e6a74ff8737b807036bc02e53ee762acf050e1b01f9c10cbfb317f01b2b9",
+        "targets": [
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--theory_of_operation-md",
+            "sha256": "6c7290f7fee941b29f5e2c3ac9eb20ddff63403548830bd85b92f32ce5657216",
+            "line_start": 315,
+            "line_end": 319
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--theory_of_operation-md",
+            "sha256": "6c7290f7fee941b29f5e2c3ac9eb20ddff63403548830bd85b92f32ce5657216",
+            "line_start": 383,
+            "line_end": 390
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--theory_of_operation-md",
+            "sha256": "6c7290f7fee941b29f5e2c3ac9eb20ddff63403548830bd85b92f32ce5657216",
+            "line_start": 750,
+            "line_end": 751
+          }
+        ]
+      },
+      "content": "# AH-05: corrected\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Ping response timeout uses PING_TIMEOUT_CYC_SHADOWED. CLASSx_TIMEOUT_CYC_SHADOWED controls the separate class interrupt timeout escalation path.\n\nRejected reading: The low-power ping paragraph's CLASSA link does not alias the ping timer to the class timer.\n\nChecker obligations: Set visibly different ping/class timeouts and independently stimulate missed ping and unserviced class IRQ.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/ip_autogen/alert_handler/doc/theory_of_operation.md` lines 315-319.\n- `hw/top_earlgrey/ip_autogen/alert_handler/doc/theory_of_operation.md` lines 383-390.\n- `hw/top_earlgrey/ip_autogen/alert_handler/doc/theory_of_operation.md` lines 750-751.\n"
+    },
+    {
+      "id": "adjudication-CT-01",
+      "title": "Benchmark author contract: CT-01",
+      "layer": "architecture",
+      "module": "aon_control_subsystem",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "af221751e6bee3c8ed4f5ac25b0153bd65e0a306d92b8b41c977a6a9bd49f702",
+        "targets": [
+          {
+            "document_id": "hw--ip--tlul--README-md",
+            "sha256": "eb7166756b7d260c23dcdb97793ae1aa039c7d7e64abcb49ab2276899417670a",
+            "line_start": 88,
+            "line_end": 111
+          },
+          {
+            "document_id": "hw--ip--tlul--README-md",
+            "sha256": "eb7166756b7d260c23dcdb97793ae1aa039c7d7e64abcb49ab2276899417670a",
+            "line_start": 148,
+            "line_end": 150
+          },
+          {
+            "document_id": "hw--ip--tlul--README-md",
+            "sha256": "eb7166756b7d260c23dcdb97793ae1aa039c7d7e64abcb49ab2276899417670a",
+            "line_start": 168,
+            "line_end": 172
+          },
+          {
+            "document_id": "hw--ip--tlul--README-md",
+            "sha256": "eb7166756b7d260c23dcdb97793ae1aa039c7d7e64abcb49ab2276899417670a",
+            "line_start": 190,
+            "line_end": 196
+          }
+        ]
+      },
+      "content": "# CT-01: scoped_gap\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Use the current logical sidebands a_user={instr_type,cmd_intg,data_intg} and d_user={rsp_intg,data_intg}. The old reserved/parity typedef and TL_DUW=4 example are not a fixed-version ABI. D-02 owns the remaining public type/encoding contract; logical request/response planning can continue.\n\nRejected reading: Do not synthesize a supposedly compatible packed ABI from the historical example or infer it from held-out RTL.\n\nChecker obligations: Check field identity in the shared interface contract; require D-02 evidence before byte/bit-level integrity acceptance.\n\nLocal acceptance gate: Only TL-UL packed interface binding and integrity-oracle acceptance await the D-02 normative type/encoding addendum.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/tlul/README.md` lines 88-111.\n- `hw/ip/tlul/README.md` lines 148-150.\n- `hw/ip/tlul/README.md` lines 168-172.\n- `hw/ip/tlul/README.md` lines 190-196.\n"
+    },
+    {
+      "id": "adjudication-CT-02",
+      "title": "Benchmark author contract: CT-02",
+      "layer": "architecture",
+      "module": "aon_control_subsystem",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "88ef055dbfb9912c33058066e08ed00e023c9dc643cc57ad6a63d146346281e5",
+        "targets": [
+          {
+            "document_id": "earlgrey-system-context",
+            "sha256": "27af006aada210cba0158cd12ac88e38bb74eed40aeb89d4a849afafc2f8700f",
+            "line_start": 207,
+            "line_end": 210
+          },
+          {
+            "document_id": "hw--top_earlgrey--data--top_earlgrey-hjson",
+            "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+            "line_start": 181,
+            "line_end": 226
+          }
+        ]
+      },
+      "content": "# CT-02: background_scope\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: The selected top configuration instantiates uart0..uart3 (four UARTs). UART is whole-chip background and is outside both reduced subsystem DUTs.\n\nRejected reading: One-UART prose neither overrides the configuration nor creates a new UART implementation task.\n\nChecker obligations: Check scope inventory; do not add UART RTL, UART coverage bins or a global execution blocker.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/doc/design/README.md` lines 207-210.\n- `hw/top_earlgrey/data/top_earlgrey.hjson` lines 181-226.\n"
+    },
+    {
+      "id": "adjudication-CT-03",
+      "title": "Benchmark author contract: CT-03",
+      "layer": "module",
+      "module": "pinmux",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "285eccccf52a6ce0a75f8cc1b1d7114ec8e20ae0108a6d601fac969ce3dc23ca",
+        "targets": [
+          {
+            "document_id": "earlgrey-system-context",
+            "sha256": "27af006aada210cba0158cd12ac88e38bb74eed40aeb89d4a849afafc2f8700f",
+            "line_start": 216,
+            "line_end": 217
+          },
+          {
+            "document_id": "hw--top_earlgrey--data--top_earlgrey-hjson",
+            "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+            "line_start": 1235,
+            "line_end": 1287
+          }
+        ]
+      },
+      "content": "# CT-03: scope_interpretation\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: The base pinout has 47 muxed pads: IOA=9, IOB=13, IOC=13, IOR=12; direct IOR8/IOR9 are excluded. A 32-bit GPIO vector is not a count of all MIO pads. This constrains AON PINMUX geometry; it is external context in serial-I/O.\n\nRejected reading: Do not reduce the MIO geometry to 32 or count the two direct pads as muxed.\n\nChecker obligations: For in-scope PINMUX check enumeration, index bounds and direct/muxed classification; otherwise retain a boundary fact only.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/doc/design/README.md` lines 216-217.\n- `hw/top_earlgrey/data/top_earlgrey.hjson` lines 1235-1287.\n"
+    },
+    {
+      "id": "adjudication-CT-04",
+      "title": "Benchmark author contract: CT-04",
+      "layer": "architecture",
+      "module": "aon_control_subsystem",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "d394de9ab395f0e8df776aee189ed9f22794a205b98b0868444e167d272728c2",
+        "targets": [
+          {
+            "document_id": "earlgrey-system-context",
+            "sha256": "27af006aada210cba0158cd12ac88e38bb74eed40aeb89d4a849afafc2f8700f",
+            "line_start": 172,
+            "line_end": 185
+          }
+        ]
+      },
+      "content": "# CT-04: background_scope\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: The local ROM-key table enumerates seven slots, 0..6. Treat the earlier three-slot count as obsolete background; ROM/key provisioning is outside these exercises.\n\nRejected reading: Do not expand either subsystem into a ROM implementation or block unrelated design/DV tasks over this background inconsistency.\n\nChecker obligations: Retain the table/count correction in provenance; create no ROM DUT bins or global gate.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/doc/design/README.md` lines 172-185.\n"
+    },
+    {
+      "id": "adjudication-CT-05",
+      "title": "Benchmark author contract: CT-05",
+      "layer": "architecture",
+      "module": "aon_control_subsystem",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "4757751f34d280a090828b34c5ba9b06b3dc3a7e47c9dd99d022d12b18dbcfa3",
+        "targets": [
+          {
+            "document_id": "earlgrey-system-context",
+            "sha256": "27af006aada210cba0158cd12ac88e38bb74eed40aeb89d4a849afafc2f8700f",
+            "line_start": 223,
+            "line_end": 231
+          }
+        ]
+      },
+      "content": "# CT-05: scope_interpretation\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: In serial-I/O use the selected SPI_DEVICE CONTROL modes disabled/flashmode/passthrough with TPM controlled separately. Do not add a legacy Firmware mode without a declared interface. In AON this SPI paragraph is out-of-scope background only.\n\nRejected reading: A whole-chip overview is not authority to add an undeclared Firmware mode or a new SPI DUT to AON.\n\nChecker obligations: Check selected mode enumeration for serial-I/O; for AON check only that the scope remains the six control IPs.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/doc/design/README.md` lines 223-231.\n"
+    },
+    {
+      "id": "adjudication-Q-07",
+      "title": "Benchmark author contract: Q-07",
+      "layer": "module",
+      "module": "sysrst_ctrl",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "d47473b06339e76970b11c0c096cb37baf560fe2b4778d1ef4065fdcfb9aeea2",
+        "targets": [
+          {
+            "document_id": "hw--ip--sysrst_ctrl--doc--theory_of_operation-md",
+            "sha256": "ba8d4960179de26fa6920a4403c3e94f72ad080df0ede82de732b00cab23e7fe",
+            "line_start": 7,
+            "line_end": 9
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--doc--theory_of_operation-md",
+            "sha256": "ba8d4960179de26fa6920a4403c3e94f72ad080df0ede82de732b00cab23e7fe",
+            "line_start": 80,
+            "line_end": 84
+          }
+        ]
+      },
+      "content": "# Q-07: exercise_convention\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: For auto-block debounce the explicit two-sample description governs: qualify the start and end samples; an intermediate pulse that is not sampled at either endpoint is not guaranteed to cancel detection. This rule is confined to auto-block, not every SYSRST timer.\n\nRejected reading: Stays low is not a requirement for continuous glitch monitoring in this two-sample auto-block contract.\n\nChecker obligations: Check start/end levels, just-before-expiry changes and an intermediate returned pulse; distinguish sampling guarantees from analog pulse capture.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/sysrst_ctrl/doc/theory_of_operation.md` lines 7-9.\n- `hw/ip/sysrst_ctrl/doc/theory_of_operation.md` lines 80-84.\n"
+    },
+    {
+      "id": "adjudication-Q-08",
+      "title": "Benchmark author contract: Q-08",
+      "layer": "module",
+      "module": "sysrst_ctrl",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "1fd0ee63550b0225f0932c4139a865de9af081b88ed9645aee5e072844a51b85",
+        "targets": [
+          {
+            "document_id": "hw--ip--sysrst_ctrl--doc--theory_of_operation-md",
+            "sha256": "ba8d4960179de26fa6920a4403c3e94f72ad080df0ede82de732b00cab23e7fe",
+            "line_start": 119,
+            "line_end": 122
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--data--sysrst_ctrl-hjson",
+            "sha256": "f3c6e6fece167a32b70f3d74272e6182b4589bed9dc82db272bb930bb091b166",
+            "line_start": 31,
+            "line_end": 35
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--data--sysrst_ctrl-hjson",
+            "sha256": "f3c6e6fece167a32b70f3d74272e6182b4589bed9dc82db272bb930bb091b166",
+            "line_start": 279,
+            "line_end": 294
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--doc--registers-md",
+            "sha256": "c4195d76c8359cbbbe7be32274671c5f90f0ee6682d9d671c2c4d770257e4b59",
+            "line_start": 64,
+            "line_end": 67
+          }
+        ]
+      },
+      "content": "# Q-08: exercise_convention\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Author convention for the status IRQ: include a latched ULP_STATUS.ulp_wakeup alongside enabled combo/key source status in event_detected; INTR_ENABLE gates the output IRQ. Clear ULP at its declared W1C ULP_STATUS source, not at read-only INTR_STATE. The abbreviated combo/keyboard summary is not a prohibition of ULP.\n\nRejected reading: Do not call the omission a proven hardware conflict or delete ULP interrupt behavior without a replacement contract.\n\nChecker obligations: Trigger ULP alone and concurrently with a key/combo source; mask/unmask, clear each source and check source-OR retention. This authored merge rule must be evaluated as such.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/sysrst_ctrl/doc/theory_of_operation.md` lines 119-122.\n- `hw/ip/sysrst_ctrl/data/sysrst_ctrl.hjson` lines 31-35.\n- `hw/ip/sysrst_ctrl/data/sysrst_ctrl.hjson` lines 279-294.\n- `hw/ip/sysrst_ctrl/doc/registers.md` lines 64-67.\n"
+    },
+    {
+      "id": "adjudication-Q-09",
+      "title": "Benchmark author contract: Q-09",
+      "layer": "module",
+      "module": "pwrmgr",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "c34717236ce47d129a3248622d7b49a5aab783b1205a2479094f525d27d1788b",
+        "targets": [
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--pwrmgr--doc--theory_of_operation-md",
+            "sha256": "a368acee7b97f3ea0e473e84fb305fdf32a87427a901567c93bed1f87bb2dafd",
+            "line_start": 228,
+            "line_end": 237
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--pwrmgr--data--pwrmgr-hjson",
+            "sha256": "237aac4cc230fd1a30e41b8438615a0a0a6a178c34860c1c16845949c9e1eba1",
+            "line_start": 796,
+            "line_end": 803
+          }
+        ]
+      },
+      "content": "# Q-09: exercise_convention\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: For wake recording, interpret leaving Active in the context of a valid low-power-entry path. A reset-only transition out of Active does not open a new wake-recording window. Apply the documented recording stop/clear controls within the valid low-power path.\n\nRejected reading: Do not automatically record wake reasons on every Active exit, including unrelated reset paths.\n\nChecker obligations: Contrast valid low-power entry, entry abort/fall-through and reset-only exit; inject wake before/inside/after the defined recording window.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/ip_autogen/pwrmgr/doc/theory_of_operation.md` lines 228-237.\n- `hw/top_earlgrey/ip_autogen/pwrmgr/data/pwrmgr.hjson` lines 796-803.\n"
+    },
+    {
+      "id": "adjudication-Q-10",
+      "title": "Benchmark author contract: Q-10",
+      "layer": "module",
+      "module": "rstmgr",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "5070ad322e63e038dd0c8e2c37f4ac2bb131de45b184cbd406f097daf7282274",
+        "targets": [
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--rstmgr--doc--theory_of_operation-md",
+            "sha256": "819020bec8e2bf282b373eaa02d334d447383a74d7d654a1da193f1ed6821933",
+            "line_start": 62,
+            "line_end": 76
+          }
+        ]
+      },
+      "content": "# Q-10: scoped_gap\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Treat the LC/SYS chains as reset classes, not proof that every leaf has multiple drivers. The named peripheral module-reset class derives from LC. For each additional consumer, retain one explicit reset parent and domain in the shared integration map, supported by the selected configuration.\n\nRejected reading: Do not wire every leaf to both LC and SYS or assume every SYS consumer is an LC-reset peripheral.\n\nChecker obligations: Review one parent per leaf and propagation through the relevant chain; run reset tests for mapped leaves. Record unknown consumers individually.\n\nLocal acceptance gate: Only an unmapped leaf's reset binding/propagation acceptance awaits its documented parent; already mapped reset paths can proceed.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/ip_autogen/rstmgr/doc/theory_of_operation.md` lines 62-76.\n"
+    },
+    {
+      "id": "adjudication-Q-11",
+      "title": "Benchmark author contract: Q-11",
+      "layer": "module",
+      "module": "alert_handler",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "a87ed566cb0218fa61cb1d32a3f9f461fa062d7cd647427b1fe4cde099c97740",
+        "targets": [
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--theory_of_operation-md",
+            "sha256": "6c7290f7fee941b29f5e2c3ac9eb20ddff63403548830bd85b92f32ce5657216",
+            "line_start": 412,
+            "line_end": 413
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--programmers_guide-md",
+            "sha256": "5944be1d51fedc04aa2d30d1f9ecb04b8895e270c0b7ea7323b27e7dcff4540a",
+            "line_start": 85,
+            "line_end": 88
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--data--alert_handler-hjson",
+            "sha256": "a819d14a2fa5f699bdfecf14e702f361ba455c205517a067c602cd47911376c1",
+            "line_start": 862,
+            "line_end": 875
+          }
+        ]
+      },
+      "content": "# Q-11: not_a_conflict\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Clearing the escalation counter describes an effect of the CLASSx_CLR_SHADOWED operation, subject to CLASSx_CLR_REGWEN. ESC_CNT remains read-only. The link to the counter describes the observed state, not a writable entry point.\n\nRejected reading: Do not change ESC_CNT to RW or register this wording alone as an unresolved contradiction.\n\nChecker obligations: Clear through the shadowed clear interface and observe the counter/escalation effect; verify a write to the RO counter cannot substitute for clear.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/ip_autogen/alert_handler/doc/theory_of_operation.md` lines 412-413.\n- `hw/top_earlgrey/ip_autogen/alert_handler/doc/programmers_guide.md` lines 85-88.\n- `hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler.hjson` lines 862-875.\n"
+    },
+    {
+      "id": "adjudication-Q-12",
+      "title": "Benchmark author contract: Q-12",
+      "layer": "module",
+      "module": "alert_handler",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "78afbaf66808b025ed432894c8ef27ea55c38436c98c830af9d2e32d022c98bf",
+        "targets": [
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--data--alert_handler-hjson",
+            "sha256": "a819d14a2fa5f699bdfecf14e702f361ba455c205517a067c602cd47911376c1",
+            "line_start": 478,
+            "line_end": 497
+          }
+        ]
+      },
+      "content": "# Q-12: exercise_convention\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Author-chosen exercise reset contract: class A..D interrupt state resets to zero, sets on its qualified alert and clears through the declared interrupt W1C action. The interrupt-list description has no explicit reset field; this addendum supplies the exercise value rather than claiming an inferred generator/RTL result.\n\nRejected reading: Do not derive a reset value of one solely from Defaults true in the description, or claim the pinned RTL was inspected to resolve it.\n\nChecker obligations: Check all four state bits immediately after reset, first qualifying alerts and independent clear operations; record this as an authored reset convention.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler.hjson` lines 478-497.\n"
+    },
+    {
+      "id": "adjudication-Q-13",
+      "title": "Benchmark author contract: Q-13",
+      "layer": "module",
+      "module": "pinmux",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "b7ee3a16c56e9c843573bc2f393b9056735e360caf7dca03729dafc7fef18603",
+        "targets": [
+          {
+            "document_id": "hw--ip--pinmux--doc--theory_of_operation-md",
+            "sha256": "295ff383f814553e07b0a3d287e0ea42e92fd8adfb63d85876ebac7898e32af9",
+            "line_start": 110,
+            "line_end": 114
+          },
+          {
+            "document_id": "hw--top_earlgrey--data--top_earlgrey-hjson",
+            "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+            "line_start": 1441,
+            "line_end": 1446
+          }
+        ]
+      },
+      "content": "# Q-13: scope_interpretation\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Use the selected top special-signal mapping with exposed dft0=IOR5 and dft1=IOR7, plus tap0=IOC8 and tap1=IOC5. Three generic DFT straps do not imply a third external pad in this selected profile. Any extra internal generic strap remains an explicit wrapper boundary with a separately declared binding.\n\nRejected reading: Do not invent an unnamed pad or call differing generic/selected counts an established impossibility.\n\nChecker obligations: Check selected named straps and capture conditions; prevent an unbound internal generic port from being silently tied off or counted as verified.\n\nLocal acceptance gate: If the chosen generic IP exposes an additional strap port, only that port's binding awaits an explicit configuration decision.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/pinmux/doc/theory_of_operation.md` lines 110-114.\n- `hw/top_earlgrey/data/top_earlgrey.hjson` lines 1441-1446.\n"
+    },
+    {
+      "id": "adjudication-D-01",
+      "title": "Benchmark author contract: D-01",
+      "layer": "module",
+      "module": "pinmux",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "256ec5844f39fdb92cd11cfd5dbe943038dd515e29ee3ea4614d68a9adef97fd",
+        "targets": [
+          {
+            "document_id": "hw--top_earlgrey--ip--pinmux--data--autogen--pinmux-hjson",
+            "sha256": "aaa3c2c9c96887a0da995b0e36744e549cda412fd859afc239dd66b2b3b0b70e",
+            "line_start": 551,
+            "line_end": 556
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip--pinmux--data--autogen--pinmux-hjson",
+            "sha256": "aaa3c2c9c96887a0da995b0e36744e549cda412fd859afc239dd66b2b3b0b70e",
+            "line_start": 622,
+            "line_end": 627
+          },
+          {
+            "document_id": "hw--top_earlgrey--data--top_earlgrey-hjson",
+            "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+            "line_start": 1443,
+            "line_end": 1444
+          }
+        ]
+      },
+      "content": "# D-01: configuration_gap\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: Per-pad attribute WARL support is a technology/profile dependency, not a contradictory spec. TAP strap0 is identified as IOC8 in the selected mapping; preserve its documented pull-enable reset exception. Parameterize the capability/readback mapping and record the chosen pad profile before claiming exact physical behavior.\n\nRejected reading: Do not report TAP0 identity as missing, invent all-supported masks or reinterpret a technology gap as an unavailable simulator.\n\nChecker obligations: Check named-field plumbing and configured masks separately. Exact per-pad WARL/reset acceptance must cite a public or authored, reviewed pad capability table.\n\nLocal acceptance gate: Only precise technology-dependent pad masks/readback/reset qualification remains pending; mux routing and declared logical attributes can proceed.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/ip/pinmux/data/autogen/pinmux.hjson` lines 551-556.\n- `hw/top_earlgrey/ip/pinmux/data/autogen/pinmux.hjson` lines 622-627.\n- `hw/top_earlgrey/data/top_earlgrey.hjson` lines 1443-1444.\n"
+    },
+    {
+      "id": "adjudication-D-02",
+      "title": "Benchmark author contract: D-02",
+      "layer": "architecture",
+      "module": "aon_control_subsystem",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "accbfe944b6ba2ca87ac74709042877783d4be0e341da0ba50630ff1f7ec834e",
+        "targets": [
+          {
+            "document_id": "hw--ip--tlul--README-md",
+            "sha256": "eb7166756b7d260c23dcdb97793ae1aa039c7d7e64abcb49ab2276899417670a",
+            "line_start": 88,
+            "line_end": 111
+          },
+          {
+            "document_id": "hw--ip--tlul--README-md",
+            "sha256": "eb7166756b7d260c23dcdb97793ae1aa039c7d7e64abcb49ab2276899417670a",
+            "line_start": 148,
+            "line_end": 196
+          }
+        ]
+      },
+      "content": "# D-02: definition_gap\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: The current input does not supply a complete normative packed TL-UL type and integrity-code algorithm. Before compatible interface/encoding acceptance, supply a pinned public interface package or explicit reviewed specification addendum covering widths, ordering, encoding and error policy. Keep the logical protocol requirements; CT-01 rejects obsolete ABI examples.\n\nRejected reading: Do not fabricate bit widths/parity, mine the answer RTL as implicit specification, equate this gap with an EDA installation failure, or call it a whole-project error.\n\nChecker obligations: Validate the supplied type/encoding contract on both RTL and UVM sides with known vectors and invalid-code tests before counting integrity bins.\n\nLocal acceptance gate: TL-UL ABI and integrity encoding/fault bins remain unverified until a normative interface/algorithm addendum is accepted.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/tlul/README.md` lines 88-111.\n- `hw/ip/tlul/README.md` lines 148-196.\n"
+    },
+    {
+      "id": "adjudication-N-01",
+      "title": "Benchmark author contract: N-01",
+      "layer": "module",
+      "module": "pinmux",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "c7b73066e01cc4f47658c000166b474b32989ea48c97f3ca56854ac16d3c1f2c",
+        "targets": [
+          {
+            "document_id": "hw--ip--pinmux--doc--theory_of_operation-md",
+            "sha256": "295ff383f814553e07b0a3d287e0ea42e92fd8adfb63d85876ebac7898e32af9",
+            "line_start": 195,
+            "line_end": 215
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip--pinmux--data--autogen--pinmux-hjson",
+            "sha256": "aaa3c2c9c96887a0da995b0e36744e549cda412fd859afc239dd66b2b3b0b70e",
+            "line_start": 606,
+            "line_end": 619
+          }
+        ]
+      },
+      "content": "# N-01: not_a_conflict\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: CSR slew [17:16]/drive [23:20] and packed attr_i slew [9:8]/drive [13:10] are different interfaces. Translate by field name; differing packed positions are valid. AC-04 resolves the actual stale CSR layout.\n\nRejected reading: Do not demand identical packed positions, overwrite the CSR layout with attr_i bits or create a global ambiguity record.\n\nChecker obligations: Use different field values and verify explicit CSR-to-attribute mapping in both directions supported by the interface.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/ip/pinmux/doc/theory_of_operation.md` lines 195-215.\n- `hw/top_earlgrey/ip/pinmux/data/autogen/pinmux.hjson` lines 606-619.\n"
+    },
+    {
+      "id": "adjudication-N-04",
+      "title": "Benchmark author contract: N-04",
+      "layer": "module",
+      "module": "alert_handler",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "4073feac65a1b77938076b96dce8bfc0f75e8f2a71e582cd89a99379dc6f5646",
+        "targets": [
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--theory_of_operation-md",
+            "sha256": "6c7290f7fee941b29f5e2c3ac9eb20ddff63403548830bd85b92f32ce5657216",
+            "line_start": 1,
+            "line_end": 65
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--data--alert_handler-hjson",
+            "sha256": "a819d14a2fa5f699bdfecf14e702f361ba455c205517a067c602cd47911376c1",
+            "line_start": 43,
+            "line_end": 177
+          }
+        ]
+      },
+      "content": "# N-04: not_a_conflict\n\nAuthority: benchmark author. Exercise policy; upstream bytes unchanged; no RTL/EDA result claimed.\n\nEffective rule: The selected HJSON provides NAlerts=65, NLpg=24 and the LpgMap/AsyncOn defaults. Parse those provided parameter values for the profile; the early see-RTL table does not leave them missing. Do not copy a reference implementation to populate them.\n\nRejected reading: Do not retain an unresolved missing-LpgMap/AsyncOn issue after reading the supplied configuration, and do not confuse a mapping array with absent specification.\n\nChecker obligations: Validate parameter dimensions/ranges from the complete HJSON arrays and ensure RTL and DV use the same selected values.\n\nPinned source anchors (OpenTitan `c69eaea24a57c581ed274779887cb4a0c1405e3b`):\n- `hw/top_earlgrey/ip_autogen/alert_handler/doc/theory_of_operation.md` lines 1-65.\n- `hw/top_earlgrey/ip_autogen/alert_handler/data/alert_handler.hjson` lines 43-177.\n"
+    },
+    {
+      "id": "adjudication-SCOPE",
+      "title": "Benchmark author contract: SCOPE",
+      "layer": "architecture",
+      "module": "aon_control_subsystem",
+      "role": "specification",
+      "origin": {
+        "authored": true,
+        "kind": "source_adjudication",
+        "sha256": "a1c958c0f6233297f42ef19f0f99b273963e5e5067395748c8875bc9862c1121",
+        "targets": [
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--pwrmgr--README-md",
+            "sha256": "4fc978766e1fcc9147f64a8d3f8aee61325651e7036819971dd770cf2f7a3099",
+            "line_start": 1,
+            "line_end": 36
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--pwrmgr--doc--interfaces-md",
+            "sha256": "9275f7803078b92598a646e37fa43d1969ee9a9ad50c01349850ab5a588e4779",
+            "line_start": 1,
+            "line_end": 67
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--pwrmgr--doc--programmers_guide-md",
+            "sha256": "988552c44ac21c89360fad5e39bb5d0fb757671e9b3142c0aa29d461b824f035",
+            "line_start": 1,
+            "line_end": 81
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--pwrmgr--doc--registers-md",
+            "sha256": "e42c416d80e5a81411961706b468f4493206846cd6c2f4412dac2c53e26187b0",
+            "line_start": 1,
+            "line_end": 435
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--pwrmgr--doc--theory_of_operation-md",
+            "sha256": "a368acee7b97f3ea0e473e84fb305fdf32a87427a901567c93bed1f87bb2dafd",
+            "line_start": 1,
+            "line_end": 304
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--rstmgr--README-md",
+            "sha256": "1ae401dc3712b7de2e0bef003f10348871aa477a921eb373c671ba7fd83d0962",
+            "line_start": 1,
+            "line_end": 29
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--rstmgr--doc--interfaces-md",
+            "sha256": "974d6d8fc226e7e6566b1fcc41ca1b587a539b1e7b2565c9f936fccc27088221",
+            "line_start": 1,
+            "line_end": 55
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--rstmgr--doc--programmers_guide-md",
+            "sha256": "d33c8694fa09bd52be3cc7843b372c499ff1b2fdf0336ffe91d21b5e0712bf1c",
+            "line_start": 1,
+            "line_end": 5
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--rstmgr--doc--registers-md",
+            "sha256": "21cfdf6f1e4a485ae69e0c085f46846e92267c0941dcf1ed9c76da840f195ed5",
+            "line_start": 1,
+            "line_end": 336
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--rstmgr--doc--theory_of_operation-md",
+            "sha256": "819020bec8e2bf282b373eaa02d334d447383a74d7d654a1da193f1ed6821933",
+            "line_start": 1,
+            "line_end": 310
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--clkmgr--README-md",
+            "sha256": "3ae4fac2b640a642d040f4d1cb072e7ec22e800c6a569ae304b52eca8d5fa844",
+            "line_start": 1,
+            "line_end": 18
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--clkmgr--doc--interfaces-md",
+            "sha256": "b01414f31dc06e050b16be2d0416a9e26b602fd3b0f62d27e365bef6822f2646",
+            "line_start": 1,
+            "line_end": 59
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--clkmgr--doc--programmers_guide-md",
+            "sha256": "fb9593363cbb3b1df9c0f5c7b999f9140cadf5469956e146ad5b7b340ccb631f",
+            "line_start": 1,
+            "line_end": 17
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--clkmgr--doc--registers-md",
+            "sha256": "c51fb3e48797bf09e400ee01fd5a89f7186fcb5c7f6b8dfb709a045b002fa248",
+            "line_start": 1,
+            "line_end": 517
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--clkmgr--doc--theory_of_operation-md",
+            "sha256": "cb854abc65b6555a006a205c6049a3317034e9616984b9f21239c85475b4d78d",
+            "line_start": 1,
+            "line_end": 298
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--README-md",
+            "sha256": "7adc121293f0cac5ea55cf0505431477853a7659132b80d1daec1e515b5f49b7",
+            "line_start": 1,
+            "line_end": 35
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--doc--interfaces-md",
+            "sha256": "40597045144aee33f10ca9601ca80c6eca5018c33cd8065bd07d3b765c6c5d66",
+            "line_start": 1,
+            "line_end": 56
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--doc--registers-md",
+            "sha256": "c4195d76c8359cbbbe7be32274671c5f90f0ee6682d9d671c2c4d770257e4b59",
+            "line_start": 1,
+            "line_end": 709
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--doc--theory_of_operation-md",
+            "sha256": "ba8d4960179de26fa6920a4403c3e94f72ad080df0ede82de732b00cab23e7fe",
+            "line_start": 1,
+            "line_end": 170
+          },
+          {
+            "document_id": "hw--ip--pinmux--README-md",
+            "sha256": "81570719210149c6f37a04713cc409749ec6d58f46b07fe07355046c6bc2b8ef",
+            "line_start": 1,
+            "line_end": 29
+          },
+          {
+            "document_id": "hw--ip--pinmux--doc--interfaces-md",
+            "sha256": "fe2a8fb6445d2acd1c1c90fe4b274fd8f3d251ba55c9559340a3974c6085e28a",
+            "line_start": 1,
+            "line_end": 97
+          },
+          {
+            "document_id": "hw--ip--pinmux--doc--programmers_guide-md",
+            "sha256": "6e0571159d43c4d7907a7a8e135952db291efbdd1952314332996228632dd29a",
+            "line_start": 1,
+            "line_end": 115
+          },
+          {
+            "document_id": "hw--ip--pinmux--doc--registers-md",
+            "sha256": "94316c296a66b26fa8d5333031e549b5cbcb07d364302a1040168127a4a8ec05",
+            "line_start": 1,
+            "line_end": 1904
+          },
+          {
+            "document_id": "hw--ip--pinmux--doc--theory_of_operation-md",
+            "sha256": "295ff383f814553e07b0a3d287e0ea42e92fd8adfb63d85876ebac7898e32af9",
+            "line_start": 1,
+            "line_end": 215
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--README-md",
+            "sha256": "6f3c90f0bb39eff5380f2f6384be00e296eb0f89dc876887fb17288b5eea4a71",
+            "line_start": 1,
+            "line_end": 73
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--programmers_guide-md",
+            "sha256": "5944be1d51fedc04aa2d30d1f9ecb04b8895e270c0b7ea7323b27e7dcff4540a",
+            "line_start": 1,
+            "line_end": 122
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--doc--theory_of_operation-md",
+            "sha256": "6c7290f7fee941b29f5e2c3ac9eb20ddff63403548830bd85b92f32ce5657216",
+            "line_start": 1,
+            "line_end": 785
+          },
+          {
+            "document_id": "hw--ip--tlul--README-md",
+            "sha256": "eb7166756b7d260c23dcdb97793ae1aa039c7d7e64abcb49ab2276899417670a",
+            "line_start": 1,
+            "line_end": 700
+          },
+          {
+            "document_id": "doc--contributing--hw--comportability--README-md",
+            "sha256": "520152186999933415259bbf0636c385061b5485af10aa58b3ffb41dca30be25",
+            "line_start": 1,
+            "line_end": 736
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--pwrmgr--data--pwrmgr-hjson",
+            "sha256": "237aac4cc230fd1a30e41b8438615a0a0a6a178c34860c1c16845949c9e1eba1",
+            "line_start": 1,
+            "line_end": 869
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--rstmgr--data--rstmgr-hjson",
+            "sha256": "e6d0dd45e310d878286a238b4435945e9508b011b523294d7b6fa468e2e7d2be",
+            "line_start": 1,
+            "line_end": 636
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--clkmgr--data--clkmgr-hjson",
+            "sha256": "38412d4b64068b598fd9784ed537fba502220b96d3a983bde5db4c2de7742f27",
+            "line_start": 1,
+            "line_end": 1020
+          },
+          {
+            "document_id": "hw--ip--sysrst_ctrl--data--sysrst_ctrl-hjson",
+            "sha256": "f3c6e6fece167a32b70f3d74272e6182b4589bed9dc82db272bb930bb091b166",
+            "line_start": 1,
+            "line_end": 1086
+          },
+          {
+            "document_id": "hw--ip--pinmux--data--pinmux-hjson",
+            "sha256": "bfdade2e0321ee203d5bd89903aa8d85170e8cf6726ad1bbc03b36f1ed0510b9",
+            "line_start": 1,
+            "line_end": 1055
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip_autogen--alert_handler--data--alert_handler-hjson",
+            "sha256": "a819d14a2fa5f699bdfecf14e702f361ba455c205517a067c602cd47911376c1",
+            "line_start": 1,
+            "line_end": 1971
+          },
+          {
+            "document_id": "hw--top_earlgrey--ip--pinmux--data--autogen--pinmux-hjson",
+            "sha256": "aaa3c2c9c96887a0da995b0e36744e549cda412fd859afc239dd66b2b3b0b70e",
+            "line_start": 1,
+            "line_end": 1167
+          },
+          {
+            "document_id": "hw--top_earlgrey--data--top_earlgrey-hjson",
+            "sha256": "8e61ec4ee1cc3b85136be5195b81ecf061d279fd9d96507fdb9485379090e9d5",
+            "line_start": 1,
+            "line_end": 1550
+          },
+          {
+            "document_id": "earlgrey-system-context",
+            "sha256": "27af006aada210cba0158cd12ac88e38bb74eed40aeb89d4a849afafc2f8700f",
+            "line_start": 1,
+            "line_end": 580
+          }
+        ]
+      },
+      "content": "# SCOPE: opentitan-aon-control exercise contract\n\nBenchmark-author authority (opentitan-adjudications-v1). DUT module types are exactly pwrmgr, rstmgr, clkmgr, sysrst_ctrl, pinmux, alert_handler; the wrapper is aon_control_subsystem. Preserve the selected instance/configuration identities in integration_profile.json and the shared module_graph.json. Whole-chip chapters, UART, ROM, CPU, pads/technology and other external consumers are context or boundaries unless explicitly listed as DUTs. Do not create new RTL modules/coverage obligations or global blockers from unrelated background discrepancies.\n\nSource-adjudication documents supersede only their named statements/scopes; cite them with the original source. Literal field/access/bit declarations and selected configuration govern over obsolete names. Intra-source behavioral conflicts need the individual author decision, not a universal HJSON-wins rule. Do not infer a different source variant to excuse contradictions.\n\nBoth RTL and UVM use this same accepted contract. A precise missing interface/technology/timing definition gates only its dependent binding/checker; independent work continues. Unknown, unrun and reference-divergent behavior cannot count as passed or covered. Candidate/golden RTL never supplies silent requirements; author conventions are exercise choices, not claims of upstream bugs. Corrections and file size are not simulation evidence.\n"
     }
   ],
   "relations": [
